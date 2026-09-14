@@ -2147,6 +2147,43 @@ function projectInvoicesHtml(p){
     ' <span id="project-upload-status-'+p.id+'" style="color:var(--steel);"></span>' +
   '</div>';
 }
+// Concise bid-vs-billed summary: bid amount, one line per invoice actually issued
+// against this project (date + ref + $ amount, oldest first), total invoiced, and
+// what's left of the bid. Distinct from budgetStatus() (which measures tracked
+// LABOR VALUE, hours*rate, whether or not it's been invoiced yet) — this instead
+// answers "how much have I actually billed against the bid so far." Groups this
+// project's invoiced entries by invoiceBatchId (falls back to ref+date for older
+// entries marked invoiced before batches existed) since one invoice can cover
+// entries across several tasks/dates.
+function projectBillingSummaryHtml(p){
+  if(!p.bidAmount) return '';
+  const rate = resolveRate(p);
+  const invoicedEntries = data.entries.filter(e=>e.projectId===p.id && e.invoiced);
+  const byBatch = new Map();
+  for(const e of invoicedEntries){
+    const key = e.invoiceBatchId || (e.invoiceRef||'') + '|' + (e.invoiceDate||'');
+    if(!byBatch.has(key)) byBatch.set(key, { ref: e.invoiceRef || '(no ref)', date: e.invoiceDate || '', minutes: 0 });
+    byBatch.get(key).minutes += e.roundedMinutes;
+  }
+  const invoices = [...byBatch.values()]
+    .map(b => ({ ref: b.ref, date: b.date, amount: (b.minutes/60)*rate }))
+    .sort((a,b) => (a.date||'').localeCompare(b.date||''));
+  const totalInvoiced = invoices.reduce((s,b)=>s+b.amount, 0);
+  const remaining = p.bidAmount - totalInvoiced;
+  const rows = invoices.map(b =>
+    '<div style="display:flex;justify-content:space-between;gap:10px;padding:2px 0;">' +
+      '<span>' + (b.date || '—') + ' <span style="color:var(--muted);">' + (b.ref||'').replace(/</g,'&lt;') + '</span></span>' +
+      '<span style="font-weight:600;">$' + b.amount.toFixed(2) + '</span>' +
+    '</div>'
+  ).join('');
+  return '<div style="font-size:.8rem;border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin-bottom:8px;max-width:360px;">' +
+    '<div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;">Bid vs. billed</div>' +
+    '<div style="display:flex;justify-content:space-between;padding:2px 0;"><span>Bid</span><span style="font-weight:600;">$' + p.bidAmount.toFixed(2) + '</span></div>' +
+    (rows || '<div style="color:var(--muted);padding:2px 0;">No invoices marked yet.</div>') +
+    '<div style="border-top:1px solid var(--border);margin-top:4px;padding-top:4px;display:flex;justify-content:space-between;"><span>Total invoiced</span><span style="font-weight:600;">$' + totalInvoiced.toFixed(2) + '</span></div>' +
+    '<div style="display:flex;justify-content:space-between;color:' + (remaining < 0 ? 'var(--rust)' : 'var(--ok)') + ';font-weight:700;"><span>' + (remaining < 0 ? 'Over bid by' : 'Remaining') + '</span><span>$' + Math.abs(remaining).toFixed(2) + '</span></div>' +
+  '</div>';
+}
 // Chips for the phrases this project has been "taught" to recognize in QuickBooks
 // invoice text (see qbGuessProject / qbSetRowKeyword). Not shown on the Projects
 // tab (kept that view clean, per Matt) — taught automatically via the "Teach
@@ -4251,7 +4288,7 @@ function renderProjectsTable(){
       '<td>' + chips + '<div class="row" style="margin-top:4px;"><input id="taskInput-'+p.id+'" type="text" placeholder="Add task…" style="max-width:60%;padding:4px 6px;font-size:.78rem;"><button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="addProjectTask(\''+p.id+'\')">Add</button></div></td>' +
       '<td><button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="deleteProject(\''+p.id+'\')">Delete</button></td></tr>';
     if(showProjectInvoices){
-      html += '<tr class="project-sub-row"><td></td><td colspan="14" style="padding:0 8px 12px 4px;">' + projectInvoicesHtml(p) + '</td></tr>';
+      html += '<tr class="project-sub-row"><td></td><td colspan="14" style="padding:0 8px 12px 4px;">' + projectBillingSummaryHtml(p) + projectInvoicesHtml(p) + '</td></tr>';
     }
   }
   document.getElementById('projectsTable').innerHTML = (list.length ? html : '<tr><td>' + (q ? 'No projects or clients match "'+q+'".' : 'No projects in this status.') + '</td></tr>');
