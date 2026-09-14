@@ -2663,10 +2663,19 @@ const QB_KEYWORD_TEACH = {
 // row is left for Matt to assign by hand (and, ideally, teach a keyword for
 // next time).
 function qbGuessProject(billToText, fullText, invoiceNumber){
-  if(invoiceNumber && QB_CONFIRMED_INVOICE_MAP[invoiceNumber]){
-    const wantName = QB_CONFIRMED_INVOICE_MAP[invoiceNumber];
-    const hit = data.projects.find(p=>p.name === wantName);
-    if(hit) return hit.id;
+  if(invoiceNumber){
+const num = invoiceNumber.trim();
+for(const p of data.projects){
+for(const a of (p.invoices||[])){
+const n = (a.invoiceNumber || qbInvoiceNumberFromFilename(a.name||'') || '').trim();
+if(n && n === num) return p.id;
+}
+}
+if(QB_CONFIRMED_INVOICE_MAP[num]){
+const wantName = QB_CONFIRMED_INVOICE_MAP[num];
+const hit = data.projects.find(p=>p.name === wantName);
+if(hit) return hit.id;
+}
   }
   const nameHay = (fullText || billToText || '').toLowerCase();
   const clientHay = (billToText || '').toLowerCase();
