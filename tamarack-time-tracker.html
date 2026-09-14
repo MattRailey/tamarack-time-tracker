@@ -663,7 +663,7 @@
     </div>
   </div>
 
-  <!-- IDLE TIMER PROMPT — shown when the stopwatch has been running with no keyboard/
+  <div id="attachInvoiceOverlay" class="file-viewer-overlay" style="display:none;" onclick="if(event.target===this) closeAttachInvoiceModal();"><div class="file-viewer-modal" style="max-width:600px;height:auto;max-height:85vh;"><div class="file-viewer-header"><span class="file-viewer-title">Attach the invoice PDF?</span><div class="file-viewer-actions"><button class="secondary" onclick="closeAttachInvoiceModal()">Skip for now</button></div></div><div class="file-viewer-body" style="overflow:auto;padding:16px;"><p class="note" style="margin:0 0 12px;">You just marked these as invoiced. Drag the PDF (or PDFs) for this invoice in now so Bid vs. billed has the exact numbers.</p><div id="attachInvoiceRows"></div></div></div></div><div id="attachInvoiceOverlay" class="file-viewer-overlay" style="display:none;" onclick="if(event.target===this) closeAttachInvoiceModal();"><div class="file-viewer-modal" style="max-width:600px;height:auto;max-height:85vh;"><div class="file-viewer-header"><span class="file-viewer-title">Attach the invoice PDF?</span><div class="file-viewer-actions"><button class="secondary" onclick="closeAttachInvoiceModal()">Skip for now</button></div></div><div class="file-viewer-body" style="overflow:auto;padding:16px;"><p class="note" style="margin:0 0 12px;">You just marked these as invoiced. Drag the PDF (or PDFs) for this invoice in now so Bid vs. billed has the exact numbers — no need to come back and re-attach it later.</p><div id="attachInvoiceRows"></div></div></div></div><!-- IDLE TIMER PROMPT — shown when the stopwatch has been running with no keyboard/
        mouse activity in this browser tab for a while, so a timer left running by
        accident doesn't silently bill hours you weren't actually working. -->
   <div id="idleOverlay" class="idle-overlay" style="display:none;">
@@ -996,7 +996,7 @@ async function dropboxGetTemporaryLink(path){
   const json = await resp.json();
   return json.link;
 }
-async function dropboxDeleteFile(path){
+async function dropboxDownloadFileBytes(path){ const ok = await ensureDropboxToken(); if(!ok) throw new Error('Not connected to Dropbox — go to the Data File tab and connect.'); const resp = await fetch('https://content.dropboxapi.com/2/files/download', { method:'POST', headers: { 'Authorization': 'Bearer ' + dropboxTokens.access_token, 'Dropbox-API-Arg': JSON.stringify({ path }) } }); if(!resp.ok) throw new Error('Could not open that file (HTTP ' + resp.status + ')'); return await resp.arrayBuffer(); } async function dropboxDownloadFileBytes(path){ const ok = await ensureDropboxToken(); if(!ok) throw new Error('Not connected to Dropbox — go to the Data File tab and connect.'); const resp = await fetch('https://content.dropboxapi.com/2/files/download', { method:'POST', headers: { 'Authorization': 'Bearer ' + dropboxTokens.access_token, 'Dropbox-API-Arg': JSON.stringify({ path }) } }); if(!resp.ok) throw new Error('Could not open that file (HTTP ' + resp.status + ')'); return await resp.arrayBuffer(); } async function dropboxDeleteFile(path){
   const ok = await ensureDropboxToken();
   if(!ok) throw new Error('Not connected to Dropbox — go to the Data File tab and connect.');
   const resp = await fetch('https://api.dropboxapi.com/2/files/delete_v2', {
@@ -2083,7 +2083,7 @@ async function uploadProjectInvoices(projectId, fileList){
   if(!ok){ alert('Files uploaded to Dropbox, but the project record didn\'t save — reload the file (Data File tab) and check before uploading again.'); }
   renderProjectsTable();
 }
-async function openProjectInvoice(projectId, attId){
+let attachInvoiceQueue = []; function promptAttachInvoicePdf(projectIds, ref, invoiceDate){ if(storageMode !== 'dropbox') return; const uniqueIds = [...new Set(projectIds)].filter(Boolean); if(!uniqueIds.length) return; attachInvoiceQueue = uniqueIds.map(pid => ({ projectId: pid, projectName: projectName(pid), ref, invoiceDate, done: false })); renderAttachInvoiceModal(); document.getElementById('attachInvoiceOverlay').style.display = 'flex'; } function closeAttachInvoiceModal(){ document.getElementById('attachInvoiceOverlay').style.display = 'none'; attachInvoiceQueue = []; } function renderAttachInvoiceModal(){ const box = document.getElementById('attachInvoiceRows'); if(!box) return; box.innerHTML = attachInvoiceQueue.map((row, idx) => { if(row.done){ return '<div style="padding:8px 10px;margin-bottom:8px;border:1px solid var(--ok);border-radius:6px;background:#eafaf1;color:var(--ok);font-weight:600;">✓ ' + row.projectName + ' — attached</div>'; } const inputId = 'attach-invoice-input-' + idx; return '<div class="project-dropzone" id="attach-invoice-dropzone-'+idx+'" style="font-size:.85rem;border:1px dashed var(--border);border-radius:6px;padding:8px 10px;margin-bottom:8px;" ondragover="event.preventDefault();event.stopPropagation();this.classList.add(\'drag-over\');" ondragleave="this.classList.remove(\'drag-over\');" ondrop="handleAttachInvoiceDrop(event,'+idx+');">' + '<div style="font-weight:600;margin-bottom:4px;">' + row.projectName + (row.ref ? ' <span style="color:var(--muted);font-weight:400;">(QB# '+row.ref+')</span>' : '') + '</div>' + '<label class="secondary" style="display:inline-block;padding:4px 10px;font-size:.72rem;border:1px solid var(--border);border-radius:6px;cursor:pointer;color:var(--primary);" for="'+inputId+'">+ Choose PDF</label>' + ' <span style="color:var(--muted);">or drag &amp; drop here</span>' + '<input id="'+inputId+'" type="file" multiple accept=".pdf" style="display:none;" onchange="handleAttachInvoiceFiles('+idx+', this.files); this.value=\'\';">' + ' <span id="attach-invoice-status-'+idx+'" style="color:var(--steel);"></span>' + '</div>'; }).join(''); if(attachInvoiceQueue.length && attachInvoiceQueue.every(r=>r.done)){ setTimeout(closeAttachInvoiceModal, 900); } } function handleAttachInvoiceDrop(event, idx){ event.preventDefault(); event.stopPropagation(); const zone = document.getElementById('attach-invoice-dropzone-'+idx); if(zone) zone.classList.remove('drag-over'); const files = event.dataTransfer && event.dataTransfer.files; if(files && files.length) handleAttachInvoiceFiles(idx, files); } async function handleAttachInvoiceFiles(idx, fileList){ const row = attachInvoiceQueue[idx]; if(!row || row.done || !fileList || !fileList.length) return; const statusEl = document.getElementById('attach-invoice-status-'+idx); const files = Array.from(fileList); for(let i=0; i<files.length; i++){ const file = files[i]; if(statusEl) statusEl.textContent = 'Uploading ' + (i+1) + ' of ' + files.length + '…'; try{ const buf = await file.arrayBuffer(); let meta = { number: row.ref || null, date: row.invoiceDate || null, amount: null }; if(typeof pdfjsLib !== 'undefined' && /\.pdf$/i.test(file.name)){ try{ const pdfjsDoc = await pdfjsLib.getDocument({ data: buf.slice(0) }).promise; const content = await (await pdfjsDoc.getPage(1)).getTextContent(); const text = content.items.map(it=>it.str).join(' '); meta.number = qbExtractInvoiceNumber(text) || meta.number; meta.date = qbExtractInvoiceDate(text) || meta.date; meta.amount = qbExtractBalanceDue(text); }catch(parseErr){} } await saveProjectInvoiceBytes(row.projectId, file.name, buf, file.size, meta); }catch(e){ alert('Failed to attach "' + file.name + '": ' + e.message); if(statusEl) statusEl.textContent = ''; return; } } const ok = await writeToFile(); if(!ok){ alert('The PDF attached, but saving didn\'t go through — check the reload banner and try again from the project\'s own invoice dropzone.'); if(statusEl) statusEl.textContent = ''; return; } row.done = true; renderAttachInvoiceModal(); renderProjectsTable(); } let attachInvoiceQueue = []; function promptAttachInvoicePdf(projectIds, ref, invoiceDate){ if(storageMode !== 'dropbox') return; const uniqueIds = [...new Set(projectIds)].filter(Boolean); if(!uniqueIds.length) return; attachInvoiceQueue = uniqueIds.map(pid => ({ projectId: pid, projectName: projectName(pid), ref, invoiceDate, done: false })); renderAttachInvoiceModal(); document.getElementById('attachInvoiceOverlay').style.display = 'flex'; } function closeAttachInvoiceModal(){ document.getElementById('attachInvoiceOverlay').style.display = 'none'; attachInvoiceQueue = []; } function renderAttachInvoiceModal(){ const box = document.getElementById('attachInvoiceRows'); if(!box) return; box.innerHTML = attachInvoiceQueue.map((row, idx) => { if(row.done){ return '<div style="padding:8px 10px;margin-bottom:8px;border:1px solid var(--ok);border-radius:6px;background:#eafaf1;color:var(--ok);font-weight:600;">✓ ' + row.projectName + ' — attached</div>'; } const inputId = 'attach-invoice-input-' + idx; return '<div class="project-dropzone" id="attach-invoice-dropzone-'+idx+'" style="font-size:.85rem;border:1px dashed var(--border);border-radius:6px;padding:8px 10px;margin-bottom:8px;" ' + 'ondragover="event.preventDefault();event.stopPropagation();this.classList.add(\'drag-over\');" ' + 'ondragleave="this.classList.remove(\'drag-over\');" ' + 'ondrop="handleAttachInvoiceDrop(event,'+idx+');">' + '<div style="font-weight:600;margin-bottom:4px;">' + row.projectName + (row.ref ? ' <span style="color:var(--muted);font-weight:400;">(QB# '+row.ref+')</span>' : '') + '</div>' + '<label class="secondary" style="display:inline-block;padding:4px 10px;font-size:.72rem;border:1px solid var(--border);border-radius:6px;cursor:pointer;color:var(--primary);" for="'+inputId+'">+ Choose PDF</label>' + ' <span style="color:var(--muted);">or drag &amp; drop here</span>' + '<input id="'+inputId+'" type="file" multiple accept=".pdf" style="display:none;" onchange="handleAttachInvoiceFiles('+idx+', this.files); this.value=\'\';">' + ' <span id="attach-invoice-status-'+idx+'" style="color:var(--steel);"></span>' + '</div>'; }).join(''); if(attachInvoiceQueue.length && attachInvoiceQueue.every(r=>r.done)){ setTimeout(closeAttachInvoiceModal, 900); } } function handleAttachInvoiceDrop(event, idx){ event.preventDefault(); event.stopPropagation(); const zone = document.getElementById('attach-invoice-dropzone-'+idx); if(zone) zone.classList.remove('drag-over'); const files = event.dataTransfer && event.dataTransfer.files; if(files && files.length) handleAttachInvoiceFiles(idx, files); } async function handleAttachInvoiceFiles(idx, fileList){ const row = attachInvoiceQueue[idx]; if(!row || row.done || !fileList || !fileList.length) return; const statusEl = document.getElementById('attach-invoice-status-'+idx); const files = Array.from(fileList); for(let i=0; i<files.length; i++){ const file = files[i]; if(statusEl) statusEl.textContent = 'Uploading ' + (i+1) + ' of ' + files.length + '…'; try{ const buf = await file.arrayBuffer(); let meta = { number: row.ref || null, date: row.invoiceDate || null, amount: null }; if(typeof pdfjsLib !== 'undefined' && /\.pdf$/i.test(file.name)){ try{ const pdfjsDoc = await pdfjsLib.getDocument({ data: buf.slice(0) }).promise; const content = await (await pdfjsDoc.getPage(1)).getTextContent(); const text = content.items.map(it=>it.str).join(' '); meta.number = qbExtractInvoiceNumber(text) || meta.number; meta.date = qbExtractInvoiceDate(text) || meta.date; meta.amount = qbExtractBalanceDue(text); }catch(parseErr){ } } await saveProjectInvoiceBytes(row.projectId, file.name, buf, file.size, meta); }catch(e){ alert('Failed to attach "' + file.name + '": ' + e.message); if(statusEl) statusEl.textContent = ''; return; } } const ok = await writeToFile(); if(!ok){ alert('The PDF attached, but saving didn\'t go through — check the reload banner and try again from the project\'s own invoice dropzone.'); if(statusEl) statusEl.textContent = ''; return; } row.done = true; renderAttachInvoiceModal(); renderProjectsTable(); } async function openProjectInvoice(projectId, attId){
   const p = data.projects.find(p=>p.id===projectId);
   const list = p ? (p.invoices||[]) : [];
   const idx = list.findIndex(a=>a.id===attId);
@@ -2109,7 +2109,7 @@ async function openFileViewer(list, index){
 function closeFileViewer(){
   document.getElementById('fileViewerOverlay').style.display = 'none';
   document.getElementById('fileViewerFrame').src = '';
-  document.removeEventListener('keydown', fileViewerKeyHandler);
+  revokeFileViewerObjectUrl(); document.removeEventListener('keydown', fileViewerKeyHandler); } let fileViewerObjectUrl = null; function revokeFileViewerObjectUrl(){ if(fileViewerObjectUrl){ URL.revokeObjectURL(fileViewerObjectUrl); fileViewerObjectUrl = null; } } function fileViewerKeyHandler(e){
 }
 function fileViewerKeyHandler(e){
   if(e.key === 'Escape') closeFileViewer();
@@ -2138,7 +2138,7 @@ async function renderFileViewerCurrent(){
   nextBtn.disabled = fileViewerIndex >= fileViewerList.length-1;
   frame.src = '';
   try{
-    const link = await dropboxGetTemporaryLink(att.path);
+    revokeFileViewerObjectUrl(); const bytes = await dropboxDownloadFileBytes(att.path); const blob = new Blob([bytes], { type: 'application/pdf' }); fileViewerObjectUrl = URL.createObjectURL(blob); const link = fileViewerObjectUrl;
     // Dropbox's temporary link serves the raw PDF with the right content-type,
     // so the browser's built-in PDF viewer renders it right in the iframe —
     // no download prompt, no separate tab.
@@ -3635,7 +3635,7 @@ async function markDayGroupInvoiced(idx){
     data.invoiceBatches.pop();
     return;
   }
-  runReport();
+  promptAttachInvoicePdf(toMark.map(e=>e.projectId), ref, invoiceDate); runReport();
   renderEntries();
 }
 
@@ -3696,7 +3696,7 @@ async function markGroupInvoiced(idx){
     data.invoiceBatches.pop();
     return;
   }
-  runReport();
+  promptAttachInvoicePdf([group.pid], ref, invoiceDate); runReport();
   renderEntries();
 }
 
@@ -3720,7 +3720,9 @@ async function markReportInvoiced(){
     .map(([pid, mins]) => billingOverageWarning(pid, mins))
     .filter(Boolean);
   const warnSuffix = warnings.length ? warnings.map(budgetOverageConfirmSuffix).join('') : '';
-  if(!confirm('Mark ' + toMark.length + ' entr' + (toMark.length===1?'y':'ies') + ' (' + totalHours + ' hours) as invoiced?\n\nThis stamps today\'s date on each one. You can still delete individual entries later from the Entries tab if you make a mistake, but there is no bulk "un-invoice" — double check the report above before confirming.' + warnSuffix)) return;
+  if(!confirm('Mark ' + toMark.length + ' entr' + (toMark.length===1?'y':'ies') + ' (' + totalHours + ' hours) as invoiced?
+
+This stamps today\'s date on each one. You can still delete individual entries later from the Entries tab if you make a mistake, but there is no bulk "un-invoice" — double check the report above before confirming.' + warnSuffix)) return;
 
   const batchId = uid();
   const ref = document.getElementById('invoiceRef').value.trim();
@@ -3736,7 +3738,7 @@ async function markReportInvoiced(){
     return;
   }
   document.getElementById('invoiceRef').value = '';
-  runReport();
+  promptAttachInvoicePdf(toMark.map(e=>e.projectId), ref, invoiceDate); runReport();
   renderEntries();
 }
 
