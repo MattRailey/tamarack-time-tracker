@@ -3719,6 +3719,14 @@ function readInvoiceForm(){
 // description/hours/rate/amount line-item table, total due) — from the given form
 // values and the current lastInvoiceGroups. Pure: never touches `data` or the file,
 // so it's safe to call for a preview as well as for the real, saved invoice.
+function fmtMoney(n){
+  n = Number(n)||0;
+  const neg = n < 0; n = Math.abs(n);
+  const parts = n.toFixed(2).split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return (neg?'-':'') + parts.join('.');
+}
+
 async function buildInvoicePdfBytes(form){
   const { client, invoiceNumber, invoiceDate, dueDate, notes, business } = form;
   const { PDFDocument, StandardFonts, rgb } = PDFLib;
@@ -3726,98 +3734,116 @@ async function buildInvoicePdfBytes(form){
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-  const navy = hexToPdfColor(rgb, '#1c2438');
-  const steel = hexToPdfColor(rgb, '#5a6178');
-  const lightSteel = hexToPdfColor(rgb, '#8a90a2');
-  const border = hexToPdfColor(rgb, '#d7dae0');
-  const primary = hexToPdfColor(rgb, '#2f7cf6');
-  const headerBg = hexToPdfColor(rgb, '#f0f2f6');
+  const ink = hexToPdfColor(rgb, '#1a1a1a');
+  const steel = hexToPdfColor(rgb, '#4d4d4d');
+  const lightSteel = hexToPdfColor(rgb, '#6e6e6e');
+  const border = hexToPdfColor(rgb, '#c9c9c9');
+  const headerBg = hexToPdfColor(rgb, '#e9e9e9');
 
   const pageW = 612, pageH = 792, marginX = 50;
   let page = pdfDoc.addPage([pageW, pageH]);
-  let y = pageH - 55;
-  function newPage(){ page = pdfDoc.addPage([pageW, pageH]); y = pageH - 55; }
+  let y = pageH - 50;
+  function newPage(){ page = pdfDoc.addPage([pageW, pageH]); y = pageH - 50; }
   function ensure(h){ if(y - h < 90) newPage(); }
   function txt(str, x, yy, size, opts){
     opts = opts || {};
-    page.drawText(String(str==null?'':str), { x, y: yy, size, font: opts.bold?fontBold:font, color: opts.color||navy });
+    page.drawText(String(str==null?'':str), { x, y: yy, size, font: opts.bold?fontBold:font, color: opts.color||ink });
+  }
+  function txtRight(str, xRight, yy, size, opts){
+    opts = opts || {};
+    str = String(str==null?'':str);
+    const f = opts.bold?fontBold:font;
+    const w = f.widthOfTextAtSize(str, size);
+    txt(str, xRight - w, yy, size, opts);
   }
 
-  // --- Header: business (left) / INVOICE + meta box (right) ---
-  txt(business.name, marginX, y, 16, {bold:true});
-  let leftY = y - 18;
+  // --- Header: business letterhead (top-left) ---
+  txt(business.name, marginX, y, 14, {bold:true});
+  let leftY = y - 16;
   if(business.address){
-    for(const line of business.address.split('\n')){ txt(line, marginX, leftY, 9, {color:steel}); leftY -= 12; }
+    for(const line of business.address.split('\n')){ txt(line, marginX, leftY, 9, {color:steel}); leftY -= 11; }
   }
   const contactLine = [business.phone, business.email].filter(Boolean).join('   ·   ');
-  if(contactLine){ txt(contactLine, marginX, leftY, 9, {color:steel}); leftY -= 12; }
+  if(contactLine){ txt(contactLine, marginX, leftY, 9, {color:steel}); leftY -= 11; }
 
-  txt('INVOICE', pageW-marginX-130, y, 22, {bold:true, color:primary});
-  let rightY = y - 24;
-  for(const [label, val] of [['Invoice #', invoiceNumber], ['Date', invoiceDate], ['Due', dueDate || '—']]){
-    txt(label, pageW-marginX-130, rightY, 9, {color:lightSteel});
-    txt(val, pageW-marginX-60, rightY, 9, {bold:true});
-    rightY -= 13;
-  }
+  // --- INVOICE heading, below the letterhead block ---
+  y = leftY - 16;
+  txt('INVOICE', marginX, y, 20, {bold:true});
+  y -= 26;
 
-  y = Math.min(leftY, rightY) - 14;
-  page.drawLine({ start:{x:marginX,y}, end:{x:pageW-marginX,y}, thickness:1.5, color:primary });
-  y -= 22;
+  // --- Two-column row: BILL TO (left) / Invoice #, Date, Due Date (right) ---
+  const metaX = pageW - marginX - 150;
+  let leftColY = y, rightColY = y;
 
-  // --- Bill To ---
-  txt('BILL TO', marginX, y, 8, {bold:true, color:lightSteel});
-  y -= 14;
-  txt(client.name, marginX, y, 11, {bold:true});
-  y -= 14;
+  txt('BILL TO', marginX, leftColY, 8, {bold:true, color:lightSteel});
+  leftColY -= 13;
+  txt(client.name, marginX, leftColY, 10.5, {bold:true});
+  leftColY -= 13;
   if(client.address){
-    for(const line of client.address.split('\n')){ txt(line, marginX, y, 9, {color:steel}); y -= 12; }
+    for(const line of client.address.split('\n')){ txt(line, marginX, leftColY, 9, {color:steel}); leftColY -= 11; }
   }
-  if(client.email){ txt(client.email, marginX, y, 9, {color:steel}); y -= 12; }
-  y -= 14;
+  if(client.email){ txt(client.email, marginX, leftColY, 9, {color:steel}); leftColY -= 11; }
 
-  // --- Line-item table ---
-  const col = { desc: marginX, hours: pageW-marginX-190, rate: pageW-marginX-130, amount: pageW-marginX-70 };
-  function drawTableHeader(){
-    page.drawRectangle({ x: marginX, y: y-4, width: pageW-2*marginX, height: 20, color: headerBg });
-    txt('DESCRIPTION', col.desc+6, y+2, 8, {bold:true, color:steel});
-    txt('HOURS', col.hours, y+2, 8, {bold:true, color:steel});
-    txt('RATE', col.rate, y+2, 8, {bold:true, color:steel});
-    txt('AMOUNT', col.amount, y+2, 8, {bold:true, color:steel});
-    y -= 24;
+  for(const [label, val] of [['Invoice #', invoiceNumber], ['Invoice Date', invoiceDate], ['Due Date', dueDate || '—']]){
+    txt(label, metaX, rightColY, 9, {color:lightSteel});
+    txtRight(val, pageW-marginX, rightColY, 9, {bold:true});
+    rightColY -= 14;
   }
-  ensure(40);
+
+  y = Math.min(leftColY, rightColY) - 12;
+  page.drawLine({ start:{x:marginX,y}, end:{x:pageW-marginX,y}, thickness:1, color:border });
+  y -= 20;
+
+  // --- Line-item table: ACTIVITY | DESCRIPTION | QTY | RATE | AMOUNT ---
+  const col = { activity: marginX, desc: marginX+90, qty: pageW-marginX-140, rate: pageW-marginX-95, amountR: pageW-marginX };
+  const descWidth = col.qty - col.desc - 10;
+  function drawTableHeader(){
+    page.drawRectangle({ x: marginX, y: y-5, width: pageW-2*marginX, height: 18, color: headerBg });
+    txt('ACTIVITY', col.activity+4, y, 8, {bold:true, color:steel});
+    txt('DESCRIPTION', col.desc, y, 8, {bold:true, color:steel});
+    txt('QTY', col.qty, y, 8, {bold:true, color:steel});
+    txtRight('RATE', col.rate+30, y, 8, {bold:true, color:steel});
+    txtRight('AMOUNT', col.amountR, y, 8, {bold:true, color:steel});
+    y -= 22;
+  }
+  ensure(36);
   drawTableHeader();
 
   let total = 0;
   for(const g of lastInvoiceGroups){
-    const label = g.projectName + (g.task && g.task !== '(no task)' ? ' — ' + g.task : '');
-    const lines = pdfWrapText(label, font, 9.5, col.hours - col.desc - 16);
-    const rowH = Math.max(16, lines.length*12 + 4);
-    if(y - rowH - 6 < 110){ newPage(); drawTableHeader(); }
+    const activity = g.task && g.task !== '(no task)' ? g.task : 'Services';
+    const descLines = pdfWrapText(g.projectName, font, 9, descWidth);
+    const rowH = Math.max(15, descLines.length*11 + 4);
+    if(y - rowH - 4 < 110){ newPage(); drawTableHeader(); }
+    txt(activity, col.activity+4, y, 9, {bold:true});
     let ly = y;
-    for(const line of lines){ txt(line, col.desc, ly, 9.5); ly -= 12; }
-    txt(g.hours.toFixed(2), col.hours, y, 9.5);
-    txt('$'+g.rate.toFixed(2), col.rate, y, 9.5);
-    txt('$'+g.amount.toFixed(2), col.amount, y, 9.5, {bold:true});
+    for(const line of descLines){ txt(line, col.desc, ly, 9); ly -= 11; }
+    txt(g.hours.toFixed(2), col.qty, y, 9);
+    txtRight(fmtMoney(g.rate), col.rate+30, y, 9);
+    txtRight(fmtMoney(g.amount), col.amountR, y, 9);
     total += g.amount;
     y -= rowH;
-    page.drawLine({ start:{x:marginX,y:y+4}, end:{x:pageW-marginX,y:y+4}, thickness:0.5, color:border });
-    y -= 6;
+    page.drawLine({ start:{x:marginX,y:y+3}, end:{x:pageW-marginX,y:y+3}, thickness:0.5, color:border });
+    y -= 5;
   }
 
   // --- Totals ---
   ensure(70);
-  y -= 6;
-  page.drawLine({ start:{x:col.rate-10,y:y+14}, end:{x:pageW-marginX,y:y+14}, thickness:1, color:border });
-  txt('Total hours', col.rate-10, y, 9, {color:steel});
-  txt(lastInvoiceGroups.reduce((s,g)=>s+g.hours,0).toFixed(2), col.amount, y, 9, {color:steel});
-  y -= 16;
-  txt('TOTAL DUE', col.rate-10, y, 12, {bold:true});
-  txt('$'+total.toFixed(2), col.amount, y, 12, {bold:true, color:primary});
-  y -= 30;
+  y -= 8;
+  // dashed divider
+  const dashY = y + 14;
+  for(let dx = col.rate-10; dx < pageW-marginX; dx += 6){
+    page.drawLine({ start:{x:dx,y:dashY}, end:{x:Math.min(dx+3,pageW-marginX),y:dashY}, thickness:0.75, color:border });
+  }
+  txt('Total Hours', col.rate-10, y, 9, {color:steel});
+  txtRight(lastInvoiceGroups.reduce((s,g)=>s+g.hours,0).toFixed(2), col.amountR, y, 9, {color:steel});
+  y -= 18;
+  txt('BALANCE DUE', col.rate-10, y, 12.5, {bold:true});
+  txtRight('$'+fmtMoney(total), col.amountR, y, 12.5, {bold:true});
+  y -= 32;
 
   if(notes){
-    ensure(30);
+    ensure(34);
     txt('Notes', marginX, y, 8, {bold:true, color:lightSteel});
     y -= 13;
     for(const line of pdfWrapText(notes, font, 9, pageW-2*marginX)){
@@ -3825,7 +3851,13 @@ async function buildInvoicePdfBytes(form){
       txt(line, marginX, y, 9, {color:steel});
       y -= 12;
     }
+    y -= 12;
   }
+
+  // --- Footer ---
+  const footerText = 'Thank you for your business!';
+  const footerW = font.widthOfTextAtSize(footerText, 10);
+  txt(footerText, (pageW-footerW)/2, 60, 10, {color:steel});
 
   return await pdfDoc.save();
 }
