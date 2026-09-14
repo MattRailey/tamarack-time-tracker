@@ -2010,13 +2010,23 @@ function projectInvoiceDir(projectId){ return '/project-invoices/' + projectId; 
 // importer: uploads the bytes to Dropbox and pushes the attachment record onto the
 // project — does NOT call writeToFile() itself, so a bulk save across many
 // projects/invoices can batch everything into one write instead of one per file.
-async function saveProjectInvoiceBytes(projectId, filename, bytes, size){
+// meta (optional): { number, date, amount } read straight off the invoice PDF
+// itself (QB import passes this — see qbExtractInvoiceNumber/Date/BalanceDue),
+// so the Bid-vs-billed summary can show the invoice's real number/date/amount
+// instead of having to infer it from whichever time entries got marked invoiced.
+async function saveProjectInvoiceBytes(projectId, filename, bytes, size, meta){
   const p = data.projects.find(p=>p.id===projectId);
   if(!p) throw new Error('Project not found');
   if(!p.invoices) p.invoices = [];
   const path = projectInvoiceDir(projectId) + '/' + uid() + '-' + sanitizeAttachmentName(filename);
   const actualPath = await dropboxUploadBinary(path, bytes);
-  p.invoices.push({ id: uid(), name: filename, path: actualPath, size: size, uploadedAt: new Date().toISOString() });
+  const rec = { id: uid(), name: filename, path: actualPath, size: size, uploadedAt: new Date().toISOString() };
+  if(meta){
+    if(meta.number) rec.invoiceNumber = meta.number;
+    if(meta.date) rec.invoiceDate = meta.date;
+    if(meta.amount != null && !isNaN(meta.amount)) rec.amount = meta.amount;
+  }
+  p.invoices.push(rec);
 }
 async function uploadProjectInvoices(projectId, fileList){
   if(storageMode !== 'dropbox'){ alert('Connect Dropbox (Data File tab) first — invoice attachments are stored there.'); return; }
@@ -2028,7 +2038,25 @@ async function uploadProjectInvoices(projectId, fileList){
     if(statusEl) statusEl.textContent = 'Uploading ' + (i+1) + ' of ' + files.length + ' (' + file.name + ')…';
     try{
       const buf = await file.arrayBuffer();
-      await saveProjectInvoiceBytes(projectId, file.name, buf, file.size);
+      // Best-effort: if this looks like a real invoice PDF, pull its actual
+      // number/date/balance-due off the page text so the Bid-vs-billed
+      // summary can show real figures for hand-dragged invoices too, same as
+      // the QuickBooks import path. Silently skipped for anything pdf.js
+      // can't parse, or that doesn't look like an invoice — the file still
+      // attaches either way, just without the extra metadata.
+      let meta = null;
+      if(typeof pdfjsLib !== 'undefined' && /\.pdf$/i.test(file.name)){
+        try{
+          const pdfjsDoc = await pdfjsLib.getDocument({ data: buf.slice(0) }).promise;
+          const content = await (await pdfjsDoc.getPage(1)).getTextContent();
+          const text = content.items.map(it=>it.str).join(' ');
+          const number = qbExtractInvoiceNumber(text);
+          const date = qbExtractInvoiceDate(text);
+          const amount = qbExtractBalanceDue(text);
+          if(number || date || amount != null) meta = { number, date, amount };
+        }catch(parseErr){ /* not a parseable/invoice-shaped PDF — attach without metadata */ }
+      }
+      await saveProjectInvoiceBytes(projectId, file.name, buf, file.size, meta);
     }catch(e){
       alert('Failed to upload "' + file.name + '": ' + e.message);
     }
@@ -2135,6 +2163,10 @@ function projectInvoicesHtml(p){
       (chips ? '<br>' : '') + 'Connect Dropbox (Data File tab) to attach invoices to projects.</div>';
   }
   const inputId = 'project-file-input-' + p.id;
+  const needsRescan = invoices.some(a=>a.amount==null);
+  const rescanBtn = needsRescan ?
+    ' <button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="rescanProjectInvoiceMeta(\''+p.id+'\')" title="Read the real invoice #/date/amount off the attached PDF(s) that don\'t have it yet, so Bid vs. billed can show exact figures">Read amounts from PDF</button>'
+    : '';
   return '<div class="project-dropzone" id="project-dropzone-'+p.id+'" style="font-size:.8rem;border:1px dashed var(--border);border-radius:6px;padding:6px 8px;" ' +
       'ondragover="event.preventDefault();event.stopPropagation();this.classList.add(\'drag-over\');" ' +
       'ondragleave="this.classList.remove(\'drag-over\');" ' +
@@ -2143,6 +2175,7 @@ function projectInvoicesHtml(p){
     (chips ? '<div style="margin:4px 0;">' + chips + '</div>' : '') +
     '<label class="secondary" style="display:inline-block;padding:4px 10px;font-size:.72rem;border:1px solid var(--border);border-radius:6px;cursor:pointer;color:var(--primary);" for="'+inputId+'">+ Add invoice PDF</label>' +
     ' <span style="color:var(--muted);">or drag &amp; drop here — also fed automatically by the QuickBooks Invoices import tool</span>' +
+    rescanBtn +
     '<input id="'+inputId+'" type="file" multiple accept=".pdf" style="display:none;" onchange="uploadProjectInvoices(\''+p.id+'\', this.files); this.value=\'\';">' +
     ' <span id="project-upload-status-'+p.id+'" style="color:var(--steel);"></span>' +
   '</div>';
@@ -2151,66 +2184,125 @@ function projectInvoicesHtml(p){
 // against this project (date + ref + $ amount, oldest first), total invoiced, and
 // what's left of the bid. Distinct from budgetStatus() (which measures tracked
 // LABOR VALUE, hours*rate, whether or not it's been invoiced yet) — this instead
-// answers "how much have I actually billed against the bid so far." Groups this
-// project's invoiced entries by invoiceBatchId (falls back to ref+date for older
-// entries marked invoiced before batches existed) since one invoice can cover
-// entries across several tasks/dates.
+// answers "how much have I actually billed against the bid so far."
+//
+// Two sources of invoice data, preferred in this order:
+//  1. The attached invoice PDFs themselves (p.invoices[].amount/invoiceNumber/
+//     invoiceDate) — read straight off the real QuickBooks document by
+//     qbExtractInvoiceDate/qbExtractBalanceDue at import/upload time. This is
+//     ground truth: the actual billed total, which can differ slightly from
+//     hours×rate (rounding, adjustments), and correctly keeps multiple invoices
+//     that got marked invoiced in one batch as separate lines with separate
+//     amounts.
+//  2. Falls back to grouping this project's invoiced time entries by
+//     invoiceBatchId (old behavior) ONLY when no attached file has parsed
+//     amount data — e.g. an Invoice Maker invoice with no PDF dragged back in,
+//     or files attached before this metadata extraction existed.
 // Pulls an invoice number back out of the auto-generated QuickBooks-import
-// filename ("<Project> - Invoice 1155.pdf") so it can be shown next to the
-// dollar totals below, since the QB import attaches PDFs to the project
-// without ever touching the individual time entries' invoiceRef/invoiceDate.
+// filename ("<Project> - Invoice 1155.pdf") — used only as a last-resort label
+// for older attachments that predate the real invoiceNumber/amount metadata.
 function qbInvoiceNumberFromFilename(name){
   const m = /Invoice\s+([^.]+?)\s*\.pdf$/i.exec(name||'');
   return m ? m[1].trim() : '';
 }
+// One-time backfill for invoices attached BEFORE the number/date/amount
+// extraction above existed (like Valle's two QB invoices) — downloads each
+// attached PDF that's still missing amount data, reads its number/date/
+// balance-due off the actual page text the same way the QB import does, and
+// saves it onto the p.invoices record. Safe to click repeatedly: only files
+// still missing `amount` get re-fetched.
+async function rescanProjectInvoiceMeta(projectId){
+  if(typeof pdfjsLib === 'undefined'){ alert('PDF library failed to load — check your internet connection and reload the page.'); return; }
+  const p = data.projects.find(p=>p.id===projectId);
+  if(!p || !p.invoices) return;
+  const todo = p.invoices.filter(a=>a.amount==null);
+  if(!todo.length) return;
+  const statusEl = document.getElementById('project-upload-status-' + projectId);
+  let updated = 0;
+  for(let i=0; i<todo.length; i++){
+    const att = todo[i];
+    if(statusEl) statusEl.textContent = 'Reading ' + (i+1) + ' of ' + todo.length + ' (' + att.name + ')…';
+    try{
+      const link = await dropboxGetTemporaryLink(att.path);
+      const resp = await fetch(link);
+      const buf = await resp.arrayBuffer();
+      const pdfjsDoc = await pdfjsLib.getDocument({ data: buf.slice(0) }).promise;
+      const content = await (await pdfjsDoc.getPage(1)).getTextContent();
+      const text = content.items.map(it=>it.str).join(' ');
+      const number = qbExtractInvoiceNumber(text);
+      const date = qbExtractInvoiceDate(text);
+      const amount = qbExtractBalanceDue(text);
+      if(number) att.invoiceNumber = number;
+      if(date) att.invoiceDate = date;
+      if(amount != null && !isNaN(amount)){ att.amount = amount; updated++; }
+    }catch(e){ /* leave this one for another pass */ }
+  }
+  if(statusEl) statusEl.textContent = '';
+  const ok = await writeToFile();
+  if(!ok){ alert('Read the invoice amounts, but saving failed — reload and try again.'); return; }
+  if(!updated) alert('Couldn\'t find a readable Balance Due on the remaining file(s) — they may use a different layout than the standard QuickBooks template.');
+  renderProjectsTable();
+}
 function projectBillingSummaryHtml(p){
   if(!p.bidAmount) return '';
   const rate = resolveRate(p);
-  const invoicedEntries = data.entries.filter(e=>e.projectId===p.id && e.invoiced);
-  const byBatch = new Map();
-  for(const e of invoicedEntries){
-    const key = e.invoiceBatchId || (e.invoiceRef||'') + '|' + (e.invoiceDate||'');
-    if(!byBatch.has(key)) byBatch.set(key, { ref: e.invoiceRef || '', date: e.invoiceDate || '', minutes: 0 });
-    byBatch.get(key).minutes += e.roundedMinutes;
-  }
-  const invoices = [...byBatch.values()]
-    .map(b => ({ ref: b.ref, date: b.date, amount: (b.minutes/60)*rate }))
-    .sort((a,b) => (a.date||'').localeCompare(b.date||''));
-  const totalInvoiced = invoices.reduce((s,b)=>s+b.amount, 0);
-  const remaining = p.bidAmount - totalInvoiced;
-  // Tracked time not yet invoiced — a heads-up note only, kept out of the
-  // Total invoiced/Remaining math above (which reflects what's actually been
-  // billed), so it doesn't get confused with what's left of the bid.
   const uninvoicedMinutes = data.entries.filter(e=>e.projectId===p.id && !e.invoiced).reduce((s,e)=>s+e.roundedMinutes,0);
   const uninvoicedAmount = (uninvoicedMinutes/60)*rate;
-  // The actual QuickBooks invoice PDFs attached to this project (via the QB import
-  // tool or dragged on manually) — the real invoice numbers/dates, independent of
-  // whether the underlying time entries were ever individually tagged with a ref.
-  const invoiceFiles = (p.invoices||[])
-    .map(a => ({ number: qbInvoiceNumberFromFilename(a.name), date: (a.uploadedAt||'').slice(0,10) }))
-    .sort((a,b) => (a.date||'').localeCompare(b.date||''));
-  // A batch with no typed ref/date (common with "Mark all shown") gets backfilled
-  // from the attached invoice files, one-to-one in date order, purely for display —
-  // doesn't change the $ total, which always comes from the tracked entries.
-  let fileIdx = 0;
-  const rowsHtml = invoices.map(b => {
-    let ref = b.ref, date = b.date;
-    if(!ref && fileIdx < invoiceFiles.length){ ref = invoiceFiles[fileIdx].number; date = date || invoiceFiles[fileIdx].date; fileIdx++; }
-    return '<div style="display:flex;justify-content:space-between;gap:10px;padding:2px 0;">' +
-      '<span>' + (date || '—') + ' <span style="color:var(--muted);">' + (ref ? ('#'+ref).replace(/</g,'&lt;') : '(no ref)') + '</span></span>' +
+
+  const filesWithAmount = (p.invoices||[]).filter(a => a.amount != null);
+  let invoices, sourceNote, leftoverHtml = '';
+
+  if(filesWithAmount.length){
+    // Ground truth from the actual invoice PDFs.
+    invoices = filesWithAmount
+      .map(a => ({ ref: a.invoiceNumber || qbInvoiceNumberFromFilename(a.name), date: a.invoiceDate || (a.uploadedAt||'').slice(0,10), amount: a.amount }))
+      .sort((a,b) => (a.date||'').localeCompare(b.date||''));
+    sourceNote = '';
+    // Attachments that never got parsed (couldn't read an amount off them) —
+    // still surfaced so they're not silently missing from the picture.
+    const leftoverFiles = (p.invoices||[]).filter(a => a.amount == null)
+      .map(a => ({ number: a.invoiceNumber || qbInvoiceNumberFromFilename(a.name), date: a.invoiceDate || (a.uploadedAt||'').slice(0,10) }));
+    leftoverHtml = leftoverFiles.length ?
+      '<div style="color:var(--muted);padding:2px 0;">Also on file (amount unknown): ' +
+        leftoverFiles.map(f => (f.number?('#'+f.number):'invoice') + (f.date?(' ('+f.date+')'):'')).join(', ').replace(/</g,'&lt;') +
+      '</div>' : '';
+  } else {
+    // Fallback: group invoiced entries by batch (old behavior), backfilling a
+    // ref from an attached file's filename when the batch itself has none.
+    const invoicedEntries = data.entries.filter(e=>e.projectId===p.id && e.invoiced);
+    const byBatch = new Map();
+    for(const e of invoicedEntries){
+      const key = e.invoiceBatchId || (e.invoiceRef||'') + '|' + (e.invoiceDate||'');
+      if(!byBatch.has(key)) byBatch.set(key, { ref: e.invoiceRef || '', date: e.invoiceDate || '', minutes: 0 });
+      byBatch.get(key).minutes += e.roundedMinutes;
+    }
+    const invoiceFiles = (p.invoices||[])
+      .map(a => ({ number: a.invoiceNumber || qbInvoiceNumberFromFilename(a.name), date: a.invoiceDate || (a.uploadedAt||'').slice(0,10) }))
+      .sort((a,b) => (a.date||'').localeCompare(b.date||''));
+    let fileIdx = 0;
+    invoices = [...byBatch.values()].map(b => {
+      let ref = b.ref, date = b.date;
+      if(!ref && fileIdx < invoiceFiles.length){ ref = invoiceFiles[fileIdx].number; date = date || invoiceFiles[fileIdx].date; fileIdx++; }
+      return { ref, date, amount: (b.minutes/60)*rate };
+    }).sort((a,b) => (a.date||'').localeCompare(b.date||''));
+    const leftoverFiles = invoiceFiles.slice(fileIdx);
+    sourceNote = invoicedEntries.length ? ' (estimated from tracked hours — attach the invoice PDFs for exact amounts)' : '';
+    leftoverHtml = leftoverFiles.length ?
+      '<div style="color:var(--muted);padding:2px 0;">Also on file: ' +
+        leftoverFiles.map(f => (f.number?('#'+f.number):'invoice') + (f.date?(' ('+f.date+')'):'')).join(', ').replace(/</g,'&lt;') +
+      '</div>' : '';
+  }
+
+  const totalInvoiced = invoices.reduce((s,b)=>s+b.amount, 0);
+  const remaining = p.bidAmount - totalInvoiced;
+  const rowsHtml = invoices.map(b =>
+    '<div style="display:flex;justify-content:space-between;gap:10px;padding:2px 0;">' +
+      '<span>' + (b.date || '—') + ' <span style="color:var(--muted);">' + (b.ref ? ('#'+b.ref).replace(/</g,'&lt;') : '(no ref)') + '</span></span>' +
       '<span style="font-weight:600;">$' + b.amount.toFixed(2) + '</span>' +
-    '</div>';
-  }).join('');
-  // Any attached invoice files left over after backfilling above (e.g. more files
-  // on record than distinct invoice batches) — shown as a reference line so they're
-  // not silently dropped, without inventing a dollar amount for them.
-  const leftoverFiles = invoiceFiles.slice(fileIdx);
-  const leftoverHtml = leftoverFiles.length ?
-    '<div style="color:var(--muted);padding:2px 0;">Also on file: ' +
-      leftoverFiles.map(f => (f.number?('#'+f.number):'invoice') + (f.date?(' ('+f.date+')'):'')).join(', ').replace(/</g,'&lt;') +
-    '</div>' : '';
+    '</div>'
+  ).join('');
   return '<div style="font-size:.8rem;border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin-bottom:8px;max-width:360px;">' +
-    '<div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;">Bid vs. billed</div>' +
+    '<div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;">Bid vs. billed' + sourceNote + '</div>' +
     '<div style="display:flex;justify-content:space-between;padding:2px 0;"><span>Bid</span><span style="font-weight:600;">$' + p.bidAmount.toFixed(2) + '</span></div>' +
     (rowsHtml || '<div style="color:var(--muted);padding:2px 0;">No invoices marked yet.</div>') +
     leftoverHtml +
@@ -2325,6 +2417,22 @@ function qbExtractReceivedFrom(pageText){
 function qbExtractInvoiceNumber(pageText){
   const m = pageText.match(/invoice\s*(?:#|no\.?|number)?\s*[:\-]?\s*(\d{2,10})/i);
   return m ? m[1] : '';
+}
+// Same idea for the invoice's own Date and Balance Due fields, printed
+// elsewhere on the page — lets the QB-import path record the REAL invoice
+// date/amount straight off the document itself, instead of guessing from
+// whatever the time entries happen to say. Date comes back as YYYY-MM-DD
+// (matching the app's date fields everywhere else) if parseable, else ''.
+function qbExtractInvoiceDate(pageText){
+  const m = pageText.match(/\bdate\b\s*[:\-]?\s*(\d{1,2})\/(\d{1,2})\/(\d{2,4})/i);
+  if(!m) return '';
+  let [, mo, d, y] = m;
+  if(y.length === 2) y = (Number(y) < 70 ? '20' : '19') + y;
+  return y + '-' + mo.padStart(2,'0') + '-' + d.padStart(2,'0');
+}
+function qbExtractBalanceDue(pageText){
+  const m = pageText.match(/balance\s*due\s*\$?\s*([\d,]+\.\d{2})/i) || pageText.match(/total\s*\$?\s*([\d,]+\.\d{2})/i);
+  return m ? parseFloat(m[1].replace(/,/g,'')) : null;
 }
 // Classifies a page as an invoice's first page, a payment receipt's first
 // page, or neither (a continuation page, or something this heuristic doesn't
@@ -2705,7 +2813,9 @@ async function saveQbMatches(){
       const copied = await outDoc.copyPages(src.libDoc, g.pages);
       copied.forEach(pg=>outDoc.addPage(pg));
       const outBytes = await outDoc.save();
-      await saveProjectInvoiceBytes(g.projectId, g.filename || (uid()+'.pdf'), outBytes, outBytes.byteLength);
+      const fullText = g.pages.map(i=>src.pageTexts[i]).join(' ');
+      const meta = { number: g.invoiceNumber, date: qbExtractInvoiceDate(fullText), amount: qbExtractBalanceDue(fullText) };
+      await saveProjectInvoiceBytes(g.projectId, g.filename || (uid()+'.pdf'), outBytes, outBytes.byteLength, meta);
       // Teach the project this phrase for next time, if Matt typed one in.
       // Same write batches with everything else below (one writeToFile() call
       // for the whole import), so this doesn't cost an extra round trip.
