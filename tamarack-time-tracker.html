@@ -2155,6 +2155,14 @@ function projectInvoicesHtml(p){
 // project's invoiced entries by invoiceBatchId (falls back to ref+date for older
 // entries marked invoiced before batches existed) since one invoice can cover
 // entries across several tasks/dates.
+// Pulls an invoice number back out of the auto-generated QuickBooks-import
+// filename ("<Project> - Invoice 1155.pdf") so it can be shown next to the
+// dollar totals below, since the QB import attaches PDFs to the project
+// without ever touching the individual time entries' invoiceRef/invoiceDate.
+function qbInvoiceNumberFromFilename(name){
+  const m = /Invoice\s+([^.]+?)\s*\.pdf$/i.exec(name||'');
+  return m ? m[1].trim() : '';
+}
 function projectBillingSummaryHtml(p){
   if(!p.bidAmount) return '';
   const rate = resolveRate(p);
@@ -2162,7 +2170,7 @@ function projectBillingSummaryHtml(p){
   const byBatch = new Map();
   for(const e of invoicedEntries){
     const key = e.invoiceBatchId || (e.invoiceRef||'') + '|' + (e.invoiceDate||'');
-    if(!byBatch.has(key)) byBatch.set(key, { ref: e.invoiceRef || '(no ref)', date: e.invoiceDate || '', minutes: 0 });
+    if(!byBatch.has(key)) byBatch.set(key, { ref: e.invoiceRef || '', date: e.invoiceDate || '', minutes: 0 });
     byBatch.get(key).minutes += e.roundedMinutes;
   }
   const invoices = [...byBatch.values()]
@@ -2175,16 +2183,37 @@ function projectBillingSummaryHtml(p){
   // billed), so it doesn't get confused with what's left of the bid.
   const uninvoicedMinutes = data.entries.filter(e=>e.projectId===p.id && !e.invoiced).reduce((s,e)=>s+e.roundedMinutes,0);
   const uninvoicedAmount = (uninvoicedMinutes/60)*rate;
-  const rows = invoices.map(b =>
-    '<div style="display:flex;justify-content:space-between;gap:10px;padding:2px 0;">' +
-      '<span>' + (b.date || '—') + ' <span style="color:var(--muted);">' + (b.ref||'').replace(/</g,'&lt;') + '</span></span>' +
+  // The actual QuickBooks invoice PDFs attached to this project (via the QB import
+  // tool or dragged on manually) — the real invoice numbers/dates, independent of
+  // whether the underlying time entries were ever individually tagged with a ref.
+  const invoiceFiles = (p.invoices||[])
+    .map(a => ({ number: qbInvoiceNumberFromFilename(a.name), date: (a.uploadedAt||'').slice(0,10) }))
+    .sort((a,b) => (a.date||'').localeCompare(b.date||''));
+  // A batch with no typed ref/date (common with "Mark all shown") gets backfilled
+  // from the attached invoice files, one-to-one in date order, purely for display —
+  // doesn't change the $ total, which always comes from the tracked entries.
+  let fileIdx = 0;
+  const rowsHtml = invoices.map(b => {
+    let ref = b.ref, date = b.date;
+    if(!ref && fileIdx < invoiceFiles.length){ ref = invoiceFiles[fileIdx].number; date = date || invoiceFiles[fileIdx].date; fileIdx++; }
+    return '<div style="display:flex;justify-content:space-between;gap:10px;padding:2px 0;">' +
+      '<span>' + (date || '—') + ' <span style="color:var(--muted);">' + (ref ? ('#'+ref).replace(/</g,'&lt;') : '(no ref)') + '</span></span>' +
       '<span style="font-weight:600;">$' + b.amount.toFixed(2) + '</span>' +
-    '</div>'
-  ).join('');
+    '</div>';
+  }).join('');
+  // Any attached invoice files left over after backfilling above (e.g. more files
+  // on record than distinct invoice batches) — shown as a reference line so they're
+  // not silently dropped, without inventing a dollar amount for them.
+  const leftoverFiles = invoiceFiles.slice(fileIdx);
+  const leftoverHtml = leftoverFiles.length ?
+    '<div style="color:var(--muted);padding:2px 0;">Also on file: ' +
+      leftoverFiles.map(f => (f.number?('#'+f.number):'invoice') + (f.date?(' ('+f.date+')'):'')).join(', ').replace(/</g,'&lt;') +
+    '</div>' : '';
   return '<div style="font-size:.8rem;border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin-bottom:8px;max-width:360px;">' +
     '<div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;">Bid vs. billed</div>' +
     '<div style="display:flex;justify-content:space-between;padding:2px 0;"><span>Bid</span><span style="font-weight:600;">$' + p.bidAmount.toFixed(2) + '</span></div>' +
-    (rows || '<div style="color:var(--muted);padding:2px 0;">No invoices marked yet.</div>') +
+    (rowsHtml || '<div style="color:var(--muted);padding:2px 0;">No invoices marked yet.</div>') +
+    leftoverHtml +
     '<div style="border-top:1px solid var(--border);margin-top:4px;padding-top:4px;display:flex;justify-content:space-between;"><span>Total invoiced</span><span style="font-weight:600;">$' + totalInvoiced.toFixed(2) + '</span></div>' +
     '<div style="display:flex;justify-content:space-between;color:' + (remaining < 0 ? 'var(--rust)' : 'var(--ok)') + ';font-weight:700;"><span>' + (remaining < 0 ? 'Over bid by' : 'Remaining') + '</span><span>$' + Math.abs(remaining).toFixed(2) + '</span></div>' +
     (uninvoicedMinutes > 0 ?
