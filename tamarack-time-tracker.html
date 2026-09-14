@@ -2909,18 +2909,36 @@ function handleInvoiceCsvFile(evt){
   const statusEl = document.getElementById('invCsvParseStatus');
   const reader = new FileReader();
   reader.onload = () => {
-    const rows = parseCSV(reader.result);
-    if(rows.length < 2){ if(statusEl) statusEl.textContent = 'File looks empty.'; return; }
-    const headers = rows[0];
+    const allRows = parseCSV(reader.result);
+    if(allRows.length < 2){ if(statusEl) statusEl.textContent = 'File looks empty.'; return; }
+    // QuickBooks' own CSV export ("Invoice List by Date" and similar) puts a
+    // few title lines (company name, report name, date range, a blank line)
+    // BEFORE the real header row, not row 1 — so find the header row instead
+    // of assuming it's first: the first row that contains something that
+    // looks like both a date-ish header and an amount-ish header.
+    let headerIdx = 0;
+    for(let i=0; i<Math.min(allRows.length, 10); i++){
+      const lower = allRows[i].map(c=>(c||'').trim().toLowerCase());
+      if(lower.some(c=>c==='date') && lower.some(c=>['amount','total','open balance','balance','invoice amount'].includes(c))){
+        headerIdx = i;
+        break;
+      }
+    }
+    const headers = allRows[headerIdx];
     const iNum = findCol(headers, 'num', 'invoice no', 'invoice no.', 'invoice #', 'invoice number', 'no.', 'no');
     const iDate = findCol(headers, 'date', 'invoice date', 'created date', 'txn date');
     const iCustomer = findCol(headers, 'customer', 'customer full name', 'customer name', 'name', 'bill to');
     const iAmount = findCol(headers, 'amount', 'total', 'open balance', 'balance', 'invoice amount');
+    const iType = findCol(headers, 'transaction type', 'type');
     if(iAmount === -1){ if(statusEl) statusEl.textContent = 'Couldn\'t find an Amount/Total/Balance column — check the CSV\'s header row.'; return; }
     invCsvRows = [];
-    for(let r=1; r<rows.length; r++){
-      const row = rows[r];
+    for(let r=headerIdx+1; r<allRows.length; r++){
+      const row = allRows[r];
       if(!row || !row.length || row.every(c=>!c || !c.trim())) continue;
+      // Skip QuickBooks' trailing "TOTAL" summary row and anything else that
+      // isn't actually an invoice line (a payment/credit memo row, if the
+      // export includes other transaction types).
+      if(iType !== -1 && !/invoice/i.test(row[iType]||'')) continue;
       const invoiceNumber = iNum!==-1 ? (row[iNum]||'').trim() : '';
       const customer = iCustomer!==-1 ? (row[iCustomer]||'').trim() : '';
       const rawDate = iDate!==-1 ? (row[iDate]||'').trim() : '';
