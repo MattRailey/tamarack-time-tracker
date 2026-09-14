@@ -550,10 +550,11 @@
       <!-- IMPORT -->
       <section class="panel" id="import">
         <h2>Import</h2>
-        <p class="sub">Bring in time entries from Clockify, or split and attach invoice PDFs exported from QuickBooks.</p>
+        <p class="sub">Bring in time entries from Clockify, split and attach invoice PDFs exported from QuickBooks, or import exact invoice amounts from a QuickBooks invoice-list CSV.</p>
         <div class="row" style="margin-bottom:14px;">
           <button class="sub-tab active" data-import-tab="clockify" onclick="switchImportTab('clockify')">Import from Clockify</button>
           <button class="sub-tab" data-import-tab="qb" onclick="switchImportTab('qb')">QuickBooks Invoices</button>
+          <button class="sub-tab" data-import-tab="invcsv" onclick="switchImportTab('invcsv')">Invoice Amounts (CSV)</button>
         </div>
 
         <div class="import-subpanel" id="import-clockify">
@@ -578,6 +579,22 @@
             <div class="table-wrap"><table id="qbReviewTable"></table></div>
             <button onclick="saveQbMatches()">Save matched invoices to their projects</button>
             <p class="note" id="qbSaveStatus" style="margin-top:8px;"></p>
+          </div>
+        </div>
+
+        <div class="import-subpanel" id="import-invcsv" style="display:none;">
+          <p class="sub">The most reliable way to get exact invoice numbers/dates/amounts into Bid vs. billed — no PDF text-reading involved. In QuickBooks, export your invoice list as CSV (Reports → Invoice List, or Sales → Invoices → Export), then load that file here. Column names are matched flexibly — it looks for something like Invoice No./Num, Date, Customer/Name, and Amount/Total/Balance — check the preview before saving, especially the first time.</p>
+          <div class="card">
+            <h2 style="font-size:1rem;">1. Choose CSV</h2>
+            <input id="invCsvFileInput" type="file" accept=".csv" onchange="handleInvoiceCsvFile(event)">
+            <p class="note" id="invCsvParseStatus" style="margin-top:8px;"></p>
+          </div>
+          <div class="card" id="invCsvReviewCard" style="display:none;">
+            <h2 style="font-size:1rem;">2. Review &amp; confirm matches</h2>
+            <p class="sub" style="margin-top:0;">Green rows matched a project automatically from the customer/description text (same matching QuickBooks Invoices import uses, including any taught phrases). Amber rows couldn't be matched — pick a project yourself, or leave "— skip —" to not save that row. Saving updates the matching invoice already attached to a project (matched by invoice number) if there is one, or adds a lightweight record with no PDF attached otherwise — either way it's what Bid vs. billed reads from.</p>
+            <div class="table-wrap"><table id="invCsvReviewTable"></table></div>
+            <button onclick="saveInvoiceCsvMatches()">Save matched invoice amounts to their projects</button>
+            <p class="note" id="invCsvSaveStatus" style="margin-top:8px;"></p>
           </div>
         </div>
       </section>
@@ -2136,9 +2153,15 @@ async function deleteProjectInvoice(projectId, attId){
   const p = data.projects.find(p=>p.id===projectId);
   const att = p && (p.invoices||[]).find(a=>a.id===attId);
   if(!att) return;
-  if(!confirm('Delete "' + att.name + '"? This removes it from Dropbox too.')) return;
-  try{ await dropboxDeleteFile(att.path); }
-  catch(e){ alert('Delete failed: ' + e.message); return; }
+  // CSV-sourced records (see importInvoiceCsvMatches) have no PDF behind them —
+  // just a number/date/amount — so there's nothing to delete from Dropbox.
+  if(att.path){
+    if(!confirm('Delete "' + att.name + '"? This removes it from Dropbox too.')) return;
+    try{ await dropboxDeleteFile(att.path); }
+    catch(e){ alert('Delete failed: ' + e.message); return; }
+  } else {
+    if(!confirm('Remove this invoice record ("' + att.name + '")?')) return;
+  }
   p.invoices = p.invoices.filter(a=>a.id!==attId);
   await writeToFile();
   renderProjectsTable();
@@ -2148,15 +2171,19 @@ async function deleteProjectInvoice(projectId, attId){
 // if Dropbox isn't connected, since that's where the files actually live).
 function projectInvoicesHtml(p){
   const invoices = p.invoices || [];
-  const chips = invoices.map(a =>
-    '<span class="pill" style="display:inline-flex;align-items:center;gap:5px;background:#eef2fb;color:var(--navy);margin:2px 4px 2px 0;">' +
-      '<a href="#" onclick="openProjectInvoice(\''+p.id+'\',\''+a.id+'\');return false;" style="color:var(--primary);text-decoration:none;font-weight:600;" title="'+(a.name||'').replace(/"/g,'&quot;')+'">🧾 ' +
-        (a.name && a.name.length > 28 ? a.name.slice(0,25)+'…' : (a.name||'file')) +
-      '</a>' +
-      '<span style="color:var(--muted);font-weight:400;">'+fmtFileSize(a.size)+'</span>' +
+  const chips = invoices.map(a => {
+    // A record from the Invoice Amounts (CSV) import has no PDF attached — just
+    // number/date/amount — so it's shown as plain text instead of an openable link.
+    const label = a.name && a.name.length > 28 ? a.name.slice(0,25)+'…' : (a.name||'file');
+    const nameHtml = a.path
+      ? '<a href="#" onclick="openProjectInvoice(\''+p.id+'\',\''+a.id+'\');return false;" style="color:var(--primary);text-decoration:none;font-weight:600;" title="'+(a.name||'').replace(/"/g,'&quot;')+'">🧾 ' + label + '</a>'
+      : '<span style="font-weight:600;" title="'+(a.name||'').replace(/"/g,'&quot;')+'">🧮 ' + label + '</span>';
+    return '<span class="pill" style="display:inline-flex;align-items:center;gap:5px;background:#eef2fb;color:var(--navy);margin:2px 4px 2px 0;">' +
+      nameHtml +
+      '<span style="color:var(--muted);font-weight:400;">'+(a.path ? fmtFileSize(a.size) : (a.amount!=null ? '$'+a.amount.toFixed(2) : ''))+'</span>' +
       '<a href="#" onclick="deleteProjectInvoice(\''+p.id+'\',\''+a.id+'\');return false;" style="color:var(--rust);text-decoration:none;font-weight:700;padding:0 2px;" title="Remove">×</a>' +
-    '</span>'
-  ).join('');
+    '</span>';
+  }).join('');
   const label = '<span style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-right:6px;">Invoices</span>';
   if(storageMode !== 'dropbox'){
     return '<div style="font-size:.78rem;color:var(--muted);">' + label + chips +
@@ -2863,6 +2890,126 @@ async function saveQbMatches(){
   // set to "skip"/unmatched, stays in the list for another pass.
   qbGroups = qbGroups.filter(g => !succeeded.includes(g));
   renderQbReview();
+  renderProjectsTable();
+}
+
+/* ============================================================
+   INVOICE AMOUNTS (CSV) IMPORT — the reliable alternative to reading
+   numbers off a QuickBooks PDF: QuickBooks can export its own invoice
+   list as a clean CSV (Invoice No./Date/Customer/Amount columns), which
+   sidesteps the pdf.js text-extraction-order problems documented above
+   qbExtractBillTo/qbExtractBalanceDue entirely. Reuses qbGuessProject
+   for project matching (customer name + taught keywords) and the same
+   review-then-confirm pattern as the QuickBooks PDF import.
+   ============================================================ */
+let invCsvRows = [];  // [{ id, invoiceNumber, date, customer, amount, projectId }]
+function handleInvoiceCsvFile(evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  const statusEl = document.getElementById('invCsvParseStatus');
+  const reader = new FileReader();
+  reader.onload = () => {
+    const rows = parseCSV(reader.result);
+    if(rows.length < 2){ if(statusEl) statusEl.textContent = 'File looks empty.'; return; }
+    const headers = rows[0];
+    const iNum = findCol(headers, 'num', 'invoice no', 'invoice no.', 'invoice #', 'invoice number', 'no.', 'no');
+    const iDate = findCol(headers, 'date', 'invoice date', 'created date', 'txn date');
+    const iCustomer = findCol(headers, 'customer', 'customer full name', 'customer name', 'name', 'bill to');
+    const iAmount = findCol(headers, 'amount', 'total', 'open balance', 'balance', 'invoice amount');
+    if(iAmount === -1){ if(statusEl) statusEl.textContent = 'Couldn\'t find an Amount/Total/Balance column — check the CSV\'s header row.'; return; }
+    invCsvRows = [];
+    for(let r=1; r<rows.length; r++){
+      const row = rows[r];
+      if(!row || !row.length || row.every(c=>!c || !c.trim())) continue;
+      const invoiceNumber = iNum!==-1 ? (row[iNum]||'').trim() : '';
+      const customer = iCustomer!==-1 ? (row[iCustomer]||'').trim() : '';
+      const rawDate = iDate!==-1 ? (row[iDate]||'').trim() : '';
+      const rawAmount = (row[iAmount]||'').replace(/[^0-9.\-]/g,'');
+      const amount = rawAmount ? parseFloat(rawAmount) : null;
+      if(amount == null || isNaN(amount)) continue;
+      // Normalize whatever date format QuickBooks used (typically MM/DD/YYYY) to
+      // YYYY-MM-DD, matching every other date field in the app.
+      let date = '';
+      const dm = /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/.exec(rawDate);
+      if(dm){ let [, mo, d, y] = dm; if(y.length===2) y = (Number(y)<70?'20':'19')+y; date = y+'-'+mo.padStart(2,'0')+'-'+d.padStart(2,'0'); }
+      else if(/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) date = rawDate;
+      const projectId = qbGuessProject(customer, customer, invoiceNumber);
+      invCsvRows.push({ id: uid(), invoiceNumber, date, customer, amount, projectId });
+    }
+    if(statusEl) statusEl.textContent = invCsvRows.length + ' row(s) parsed.';
+    renderInvCsvReview();
+  };
+  reader.readAsText(file);
+}
+function invCsvSetRowProject(rowId, projectId){
+  const r = invCsvRows.find(r=>r.id===rowId);
+  if(r) r.projectId = projectId || null;
+}
+function renderInvCsvReview(){
+  const card = document.getElementById('invCsvReviewCard');
+  const el = document.getElementById('invCsvReviewTable');
+  if(!card || !el) return;
+  card.style.display = invCsvRows.length ? '' : 'none';
+  if(!invCsvRows.length){ el.innerHTML = ''; return; }
+  const projectOpts = '<option value="">— skip —</option>' + sortedProjects().map(p=>'<option value="'+p.id+'">'+(p.favorite?'★ ':'')+p.name+' ('+clientName(p.clientId)+')</option>').join('');
+  let html = '<tr><th style="width:100px;">Invoice #</th><th style="width:100px;">Date</th><th>Customer (from CSV)</th><th style="width:100px;">Amount</th><th style="width:220px;">Project</th></tr>';
+  for(const r of invCsvRows){
+    const rowClass = r.projectId ? 'matched' : 'unmatched';
+    const optsForRow = projectOpts.replace('value="'+r.projectId+'"', 'value="'+r.projectId+'" selected');
+    html += '<tr class="qb-invoice-row '+rowClass+'">' +
+      '<td>'+(r.invoiceNumber||'—').replace(/</g,'&lt;')+'</td>' +
+      '<td>'+(r.date||'—')+'</td>' +
+      '<td>'+(r.customer||'').replace(/</g,'&lt;')+'</td>' +
+      '<td>$'+r.amount.toFixed(2)+'</td>' +
+      '<td><select style="width:100%;box-sizing:border-box;" onchange="invCsvSetRowProject(\''+r.id+'\', this.value)">'+optsForRow+'</select></td>' +
+    '</tr>';
+  }
+  el.innerHTML = html;
+  makeTableResizable('invCsvReviewTable');
+}
+// Saves each matched row's invoiceNumber/date/amount onto the matching project.
+// If that project already has an attached invoice record with the same invoice
+// number (a PDF from the QuickBooks import, or an earlier CSV row), this fills
+// in/overwrites its date+amount rather than duplicating it — matched by
+// invoiceNumber (falling back to the filename-embedded number for older PDF
+// attachments). Otherwise it adds a new record with no `path`/`size" — a
+// PDF-less line Bid vs. billed can still read amount/date/number from (see
+// projectInvoicesHtml's plain-text chip rendering for these).
+async function saveInvoiceCsvMatches(){
+  const toSave = invCsvRows.filter(r=>r.projectId);
+  if(!toSave.length){ alert('Nothing to save — every row is set to "skip", or pick a project on at least one row first.'); return; }
+  const statusEl = document.getElementById('invCsvSaveStatus');
+  let saved = 0;
+  const succeeded = [];
+  for(const r of toSave){
+    const p = data.projects.find(p=>p.id===r.projectId);
+    if(!p) continue;
+    if(!p.invoices) p.invoices = [];
+    const existing = r.invoiceNumber ? p.invoices.find(a => (a.invoiceNumber || qbInvoiceNumberFromFilename(a.name)) === r.invoiceNumber) : null;
+    if(existing){
+      existing.invoiceNumber = r.invoiceNumber || existing.invoiceNumber;
+      if(r.date) existing.invoiceDate = r.date;
+      existing.amount = r.amount;
+    } else {
+      p.invoices.push({
+        id: uid(),
+        name: 'Invoice' + (r.invoiceNumber ? ' ' + r.invoiceNumber : '') + ' (from CSV)',
+        invoiceNumber: r.invoiceNumber || '',
+        invoiceDate: r.date || '',
+        amount: r.amount,
+        uploadedAt: new Date().toISOString()
+        // no path/size — nothing was attached, just the number/date/amount
+      });
+    }
+    saved++;
+    succeeded.push(r);
+  }
+  const ok = await writeToFile();
+  if(statusEl){
+    statusEl.textContent = saved + ' invoice amount(s) saved' + (ok ? '' : ' — but the data file itself failed to save, reload and check before retrying') + '.';
+  }
+  invCsvRows = invCsvRows.filter(r => !succeeded.includes(r));
+  renderInvCsvReview();
   renderProjectsTable();
 }
 
@@ -4176,6 +4323,7 @@ function switchImportTab(which){
   document.querySelectorAll('.sub-tab').forEach(b=>b.classList.toggle('active', b.dataset.importTab===which));
   document.getElementById('import-clockify').style.display = which==='clockify' ? '' : 'none';
   document.getElementById('import-qb').style.display = which==='qb' ? '' : 'none';
+  document.getElementById('import-invcsv').style.display = which==='invcsv' ? '' : 'none';
 }
 
 function handleImportFile(evt){
