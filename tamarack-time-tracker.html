@@ -2864,14 +2864,14 @@ function handleInvoiceCsvFile(evt){
     let headerIdx = 0;
     for(let i=0; i<Math.min(allRows.length, 10); i++){
       const lower = allRows[i].map(c=>(c||'').trim().toLowerCase());
-      if(lower.some(c=>c==='date') && lower.some(c=>['amount','total','open balance','balance','invoice amount'].includes(c))){
+      if(lower.some(c=>c.includes('date')) && lower.some(c=>['amount','total','open balance','balance','invoice amount','sales price'].some(k=>c.includes(k)))){
         headerIdx = i;
         break;
       }
     }
     const headers = allRows[headerIdx];
     const iNum = findCol(headers, 'num', 'invoice no', 'invoice no.', 'invoice #', 'invoice number', 'no.', 'no');
-    const iDate = findCol(headers, 'date', 'invoice date', 'created date', 'txn date');
+    const iDate = findCol(headers, 'date', 'invoice date', 'created date', 'txn date', 'transaction date');     const iDescription = findCol(headers, 'description', 'memo', 'memo/description', 'product/service full name', 'product/service');
     const iCustomer = findCol(headers, 'customer', 'customer full name', 'customer name', 'name', 'bill to');
     const iAmount = findCol(headers, 'amount', 'total', 'open balance', 'balance', 'invoice amount');
     const iType = findCol(headers, 'transaction type', 'type');
@@ -2885,7 +2885,7 @@ function handleInvoiceCsvFile(evt){
       // export includes other transaction types).
       if(iType !== -1 && !/invoice/i.test(row[iType]||'')) continue;
       const invoiceNumber = iNum!==-1 ? (row[iNum]||'').trim() : '';
-      const customer = iCustomer!==-1 ? (row[iCustomer]||'').trim() : '';
+      const customer = iCustomer!==-1 ? (row[iCustomer]||'').trim() : '';       const description = iDescription!==-1 ? (row[iDescription]||'').trim() : '';
       const rawDate = iDate!==-1 ? (row[iDate]||'').trim() : '';
       const rawAmount = (row[iAmount]||'').replace(/[^0-9.\-]/g,'');
       const amount = rawAmount ? parseFloat(rawAmount) : null;
@@ -2896,8 +2896,8 @@ function handleInvoiceCsvFile(evt){
       const dm = /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/.exec(rawDate);
       if(dm){ let [, mo, d, y] = dm; if(y.length===2) y = (Number(y)<70?'20':'19')+y; date = y+'-'+mo.padStart(2,'0')+'-'+d.padStart(2,'0'); }
       else if(/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) date = rawDate;
-      const projectId = qbGuessProject(customer, customer, invoiceNumber);
-      invCsvRows.push({ id: uid(), invoiceNumber, date, customer, amount, projectId });
+      const projectId = qbGuessProject(customer, customer + ' ' + description, invoiceNumber);
+      invCsvRows.push({ id: uid(), invoiceNumber, date, customer, amount, description, projectId });
     }
     if(statusEl) statusEl.textContent = invCsvRows.length + ' row(s) parsed.';
     renderInvCsvReview();
@@ -2915,14 +2915,14 @@ function renderInvCsvReview(){
   card.style.display = invCsvRows.length ? '' : 'none';
   if(!invCsvRows.length){ el.innerHTML = ''; return; }
   const projectOpts = '<option value="">— skip —</option>' + sortedProjects().map(p=>'<option value="'+p.id+'">'+(p.favorite?'★ ':'')+p.name+' ('+clientName(p.clientId)+')</option>').join('');
-  let html = '<tr><th style="width:100px;">Invoice #</th><th style="width:100px;">Date</th><th>Customer (from CSV)</th><th style="width:100px;">Amount</th><th style="width:220px;">Project</th></tr>';
+  let html = '<tr><th style="width:100px;">Invoice #</th><th style="width:100px;">Date</th><th>Customer (from CSV)</th><th>Description</th><th style="width:100px;">Amount</th><th style="width:220px;">Project</th></tr>';
   for(const r of invCsvRows){
     const rowClass = r.projectId ? 'matched' : 'unmatched';
     const optsForRow = projectOpts.replace('value="'+r.projectId+'"', 'value="'+r.projectId+'" selected');
     html += '<tr class="qb-invoice-row '+rowClass+'">' +
       '<td>'+(r.invoiceNumber||'—').replace(/</g,'&lt;')+'</td>' +
       '<td>'+(r.date||'—')+'</td>' +
-      '<td>'+(r.customer||'').replace(/</g,'&lt;')+'</td>' +
+      '<td>'+(r.customer||'').replace(/</g,'&lt;')+'</td>' +       '<td style="font-size:.78rem;color:var(--steel);" title="'+(r.description||'').replace(/"/g,'&quot;')+'">'+(r.description ? (r.description.length>90?r.description.slice(0,87)+'…':r.description) : '<span class="note">—</span>')+'</td>' +
       '<td>$'+r.amount.toFixed(2)+'</td>' +
       '<td><select style="width:100%;box-sizing:border-box;" onchange="invCsvSetRowProject(\''+r.id+'\', this.value)">'+optsForRow+'</select></td>' +
     '</tr>';
