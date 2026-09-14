@@ -3720,9 +3720,7 @@ async function markReportInvoiced(){
     .map(([pid, mins]) => billingOverageWarning(pid, mins))
     .filter(Boolean);
   const warnSuffix = warnings.length ? warnings.map(budgetOverageConfirmSuffix).join('') : '';
-  if(!confirm('Mark ' + toMark.length + ' entr' + (toMark.length===1?'y':'ies') + ' (' + totalHours + ' hours) as invoiced?
-
-This stamps today\'s date on each one. You can still delete individual entries later from the Entries tab if you make a mistake, but there is no bulk "un-invoice" — double check the report above before confirming.' + warnSuffix)) return;
+  if(!confirm('Mark ' + toMark.length + ' entr' + (toMark.length===1?'y':'ies') + ' (' + totalHours + ' hours) as invoiced?\n\nThis stamps today\'s date on each one. You can still delete individual entries later from the Entries tab if you make a mistake, but there is no bulk "un-invoice" — double check the report above before confirming.' + warnSuffix)) return;
 
   const batchId = uid();
   const ref = document.getElementById('invoiceRef').value.trim();
