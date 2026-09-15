@@ -269,9 +269,9 @@
           <div class="row" style="align-items:flex-end;">
             <div><label>Project</label><select id="e-filter-project" onchange="renderEntries()"><option value="">All projects</option></select></div>
             <div><label>Period</label><select id="e-filter-period" onchange="onEntriesPeriodChange()">
-              <option value="" selected>All time</option>
+              <option value="">All time</option>
               <option value="week">Week</option>
-              <option value="month">Month</option>
+              <option value="month" selected>Month</option>
               <option value="year">Year</option>
               <option value="custom">Custom range</option>
             </select></div>
@@ -314,8 +314,8 @@
         </div>
         <div class="row" style="align-items:flex-end; flex-wrap:wrap;">
           <div><label>Period</label><select id="dash-period" onchange="onDashPeriodChange()">
-            <option value="week" selected>Week</option>
-            <option value="month">Month</option>
+            <option value="week">Week</option>
+            <option value="month" selected>Month</option>
             <option value="year">Year</option>
             <option value="custom">Custom range</option>
           </select></div>
@@ -357,9 +357,9 @@
             <div><label>Period</label><select id="r-period" onchange="onReportPeriodChange()">
               <option value="">All time</option>
               <option value="week">Week</option>
-              <option value="month">Month</option>
+              <option value="month" selected>Month</option>
               <option value="year">Year</option>
-              <option value="custom" selected>Custom range</option>
+              <option value="custom">Custom range</option>
             </select></div>
             <div><label>Project</label><select id="r-project"><option value="">All projects</option></select></div>
             <div><label>Client</label><select id="r-client"><option value="">All clients</option></select></div>
@@ -5012,9 +5012,10 @@ function renderAll(){
   renderProjectsTable();
   renderBidsTable();
   renderPricingTable();
-  renderEntries();
+  updateEntriesPeriodUI();
   renderBalance();
   renderDashboard();
+  updateReportPeriodUI();
   renderCalendar();
   renderInvoiceTab();
   document.getElementById('m-date').value = todayStr();
