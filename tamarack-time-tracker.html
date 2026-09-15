@@ -215,7 +215,7 @@
             <div><label>Description (optional)</label><input id="t-desc" type="text" placeholder="what are you working on?"></div>
           </div>
           <div class="row" style="align-items:flex-end;">
-            <div style="width:150px;"><label>Actually started at (optional)</label><input id="t-start-override" type="text" list="time-options" autocomplete="off" placeholder="e.g. 8:00 AM"></div>
+            <div style="width:150px;position:relative;"><label>Actually started at (optional)</label><input id="t-start-override" type="text" list="time-options" autocomplete="off" placeholder="e.g. 8:00 AM" style="padding-right:28px;"><button type="button" id="t-start-clear" onclick="clearStartOverride()" title="Clear — use the actual start time instead" style="display:none;position:absolute;right:6px;bottom:9px;background:none;border:none;color:var(--muted);font-size:1rem;line-height:1;cursor:pointer;padding:2px 4px;">&times;</button></div>
             <span id="backdateBadge" class="pill uninvoiced" style="display:none;"></span>
           </div>
           <p class="note" style="margin:0 0 10px;">Leave "Actually started at" blank to start the clock right now. Fill it in if you're clicking Start a bit after you actually began — it backdates the start of this timer to that time today.</p>
@@ -1454,12 +1454,41 @@ function showBackdatedState(startedAtMs){
   field.disabled = true;
   badge.textContent = 'Backdated — started ' + field.value;
   badge.style.display = '';
+  updateStartOverrideClearBtn();
 }
 function clearBackdatedState(){
   const field = document.getElementById('t-start-override');
   const badge = document.getElementById('backdateBadge');
   if(field){ field.disabled = false; field.value = ''; }
   if(badge) badge.style.display = 'none';
+  updateStartOverrideClearBtn();
+}
+// Shows the little (x) whenever there's something to clear — either typed text
+// before starting, or an already-applied backdate on a running timer.
+function updateStartOverrideClearBtn(){
+  const field = document.getElementById('t-start-override');
+  const btn = document.getElementById('t-start-clear');
+  if(!field || !btn) return;
+  btn.style.display = field.value.trim() ? '' : 'none';
+}
+// Undoes the "Actually started at" override. Before Start is clicked, this just
+// clears the typed text. If a backdated timer is already running, this resets
+// its start time to right now instead — for "didn't mean to backdate that."
+function clearStartOverride(){
+  const field = document.getElementById('t-start-override');
+  if(!field) return;
+  if(timerState && timerState.backdated){
+    if(!confirm('This timer was backdated to ' + field.value + '. Reset its start time to right now instead?')) return;
+    timerState.startedAt = Date.now();
+    timerState.backdated = false;
+    data.activeTimer = timerState;
+    clearBackdatedState();
+    updateTimerStartedLabel();
+    writeToFile();
+    return;
+  }
+  field.value = '';
+  updateStartOverrideClearBtn();
 }
 // Shows "Started at 2:14 PM" under the running stopwatch, so it's clear when the clock
 // actually began even without doing the elapsed-time math in your head.
@@ -5057,6 +5086,7 @@ PROJECT_COMBOS.forEach(initProjectCombo);
     el.dataset.prevValue = el.value;
     el.value = '';
   });
+document.getElementById('t-start-override').addEventListener('input', updateStartOverrideClearBtn);
   el.addEventListener('input', ()=>refreshTimeOptionsFor(el));
   el.addEventListener('blur', ()=>{
     if(!el.value.trim() && el.dataset.prevValue) el.value = el.dataset.prevValue;
