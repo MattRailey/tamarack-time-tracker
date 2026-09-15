@@ -145,7 +145,20 @@
   .summary-card .lbl{font-size:.72rem;color:var(--muted);}
   .checklist{max-height:40vh;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;background:#fff;}
   .checklist label{display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--ink);margin-bottom:4px;font-family:var(--sans);}
-  @media (max-width:820px){ .layout{display:block;} nav{width:100%;display:flex;overflow-x:auto;padding:8px;gap:2px;} nav button{flex:0 0 auto;border-left:none;border-bottom:3px solid transparent;white-space:nowrap;} main{padding:14px;} }
+  @media (max-width:820px){
+    .layout{display:block;}
+    nav{display:none;}
+    main{padding:14px;}
+    #mobileNavSelect{
+      display:block;width:100%;position:sticky;top:0;z-index:10;
+      background:var(--navy);color:#fff;border:none;border-bottom:1px solid var(--navy-light);
+      padding:13px 16px;font-family:var(--sans);font-size:.95rem;font-weight:600;
+      -webkit-appearance:none;appearance:none;min-height:48px;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23aab2c8'%3E%3Cpath d='M5.5 7.5l4.5 4.5 4.5-4.5z'/%3E%3C/svg%3E");
+      background-repeat:no-repeat;background-position:right 14px center;background-size:16px;
+    }
+  }
+  #mobileNavSelect{display:none;}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
@@ -172,6 +185,7 @@
       <button data-panel="import">Import</button>
       <button data-panel="datafile">Data File</button>
     </nav>
+    <select id="mobileNavSelect" aria-label="Jump to section"></select>
 
     <main>
 
@@ -5009,10 +5023,24 @@ function renderAll(){
 function showPanel(name){
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active', b.dataset.panel===name));
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id===name));
+  const mobileSel = document.getElementById('mobileNavSelect');
+  if(mobileSel) mobileSel.value = name;
 }
 document.querySelectorAll('nav button').forEach(btn=>{
   btn.addEventListener('click', ()=> showPanel(btn.dataset.panel));
 });
+(function initMobileNav(){
+  const sel = document.getElementById('mobileNavSelect');
+  if(!sel) return;
+  document.querySelectorAll('nav button').forEach(btn=>{
+    const opt = document.createElement('option');
+    opt.value = btn.dataset.panel;
+    opt.textContent = btn.textContent.trim();
+    if(btn.classList.contains('active')) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', ()=> showPanel(sel.value));
+})();
 buildTimeOptions();
 PROJECT_COMBOS.forEach(initProjectCombo);
 // The browser filters a <datalist> to options that start with whatever text is
