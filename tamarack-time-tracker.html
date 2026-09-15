@@ -489,6 +489,7 @@
             <div><label>Square footage (optional)</label><input id="newBidSF" type="number" step="1" min="0"></div>
             <div><label>Sheet count (optional)</label><input id="newBidSheets" type="number" step="1" min="0"></div>
             <div style="grid-column:1/-1;"><label>Notes (optional)</label><input id="newBidNotes" type="text"></div>
+            <div style="grid-column:1/-1;"><label>Attach files (optional)</label><div id="newBidDropzone"></div></div>
           </div>
           <button class="secondary" onclick="addBid()">Add bid</button>
         </div>
@@ -1295,6 +1296,7 @@ function showReloadBanner(text){
 function updateFileStatus(){
   const el = document.getElementById('fileStatus');
   const backupsCard = document.getElementById('backupsCard');
+  renderNewBidDropzone();
   if(storageMode === 'dropbox' && dropboxTokens){
     el.innerHTML = 'Connected: <b>Dropbox</b> (v' + (data ? data.version : '?') + ')';
     let detail = 'App-relative path this app reads/writes: <code>' + DROPBOX_FILE_PATH + '</code> — version ' + (data ? data.version : '?');
@@ -1911,7 +1913,8 @@ async function addBid(){
   const notes = document.getElementById('newBidNotes').value.trim();
   if(!name){ alert('Enter a project name.'); return; }
   if(!clientId){ alert('Add a client first, then pick it here.'); return; }
-  data.bids.push({ id: uid(), name, clientId, bidAmount, dateBid, sf, sheets, notes, status:'pending', wonProjectId:null, wonAt:null, attachments:[] });
+  const newBidId = uid();
+  data.bids.push({ id: newBidId, name, clientId, bidAmount, dateBid, sf, sheets, notes, status:'pending', wonProjectId:null, wonAt:null, attachments:[] });
   const ok = await writeToFile();
   if(!ok){ data.bids.pop(); return; }
   document.getElementById('newBidName').value = '';
@@ -1919,6 +1922,14 @@ async function addBid(){
   document.getElementById('newBidSF').value = '';
   document.getElementById('newBidSheets').value = '';
   document.getElementById('newBidNotes').value = '';
+  // Any PDFs/docs dropped into the form while it was being filled out were only
+  // staged in memory (the bid had no id yet to attach them to) — upload them now
+  // that the bid record actually exists.
+  if(newBidPendingFiles.length){
+    const filesToUpload = newBidPendingFiles;
+    newBidPendingFiles = [];
+    await uploadBidAttachments(newBidId, filesToUpload);
+  }
   renderAll();
 }
 // Turns a pending bid into a real Bid/Fixed project — carries over client, bid
@@ -1965,6 +1976,51 @@ async function setBidField(id, field, value, isNumber){
   const ok = await writeToFile();
   if(!ok){ b[field] = prev; return; }
   renderBidsTable();
+}
+// --- Staging area for files dropped/picked in the "Add a bid" form itself, before
+// the bid has been saved (and so before it has a real id/attachment folder). Files
+// sit here in memory as plain File objects; addBid() uploads them as the new bid's
+// own attachments right after the bid record is created. ---
+let newBidPendingFiles = [];
+function renderNewBidDropzone(){
+  const el = document.getElementById('newBidDropzone');
+  if(!el) return;
+  if(storageMode !== 'dropbox'){
+    el.innerHTML = '<div style="font-size:.78rem;color:var(--muted);">Connect Dropbox (Data File tab) to attach files here.</div>';
+    return;
+  }
+  const chips = newBidPendingFiles.map((f,i) =>
+    '<span class="pill" style="display:inline-flex;align-items:center;gap:5px;background:#eef2fb;color:var(--navy);margin:2px 4px 2px 0;">' +
+      '<span title="'+(f.name||'').replace(/"/g,'&quot;')+'">📎 ' + (f.name && f.name.length>28 ? f.name.slice(0,25)+'…' : (f.name||'file')) + '</span>' +
+      '<span style="color:var(--muted);font-weight:400;">'+fmtFileSize(f.size)+'</span>' +
+      '<a href="#" onclick="removeNewBidPendingFile('+i+');return false;" style="color:var(--rust);text-decoration:none;font-weight:700;padding:0 2px;" title="Remove">&times;</a>' +
+    '</span>'
+  ).join('');
+  el.innerHTML = '<div class="bid-dropzone" id="newBidDropzoneInner" style="font-size:.8rem;border:1px dashed var(--border);border-radius:6px;padding:6px 8px;" ' +
+      'ondragover="event.preventDefault();event.stopPropagation();this.classList.add(\'drag-over\');" ' +
+      'ondragleave="this.classList.remove(\'drag-over\');" ' +
+      'ondrop="handleNewBidFileDrop(event);">' +
+    (chips ? '<div style="margin-bottom:4px;">' + chips + '</div>' : '') +
+    '<label class="secondary" style="display:inline-block;padding:4px 10px;font-size:.72rem;border:1px solid var(--border);border-radius:6px;cursor:pointer;color:var(--primary);" for="newBidFileInput">+ Add file (PDF, doc, photo)</label>' +
+    ' <span style="color:var(--muted);">or drag &amp; drop files here — they upload once you click "Add bid" below.</span>' +
+    '<input id="newBidFileInput" type="file" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.heic,.gif,.txt,.xlsx,.xls" style="display:none;" onchange="addNewBidPendingFiles(this.files); this.value=\'\';">';
+}
+function addNewBidPendingFiles(fileList){
+  if(!fileList || !fileList.length) return;
+  newBidPendingFiles = newBidPendingFiles.concat(Array.from(fileList));
+  renderNewBidDropzone();
+}
+function removeNewBidPendingFile(i){
+  newBidPendingFiles.splice(i,1);
+  renderNewBidDropzone();
+}
+function handleNewBidFileDrop(event){
+  event.preventDefault();
+  event.stopPropagation();
+  const inner = document.getElementById('newBidDropzoneInner');
+  if(inner) inner.classList.remove('drag-over');
+  const files = event.dataTransfer && event.dataTransfer.files;
+  if(files && files.length) addNewBidPendingFiles(files);
 }
 // --- Bid attachments (PDFs/docs/photos) — stored in Dropbox under /bid-attachments/<bidId>/,
 // so there's somewhere to drop files before a bid is won and gets its own real project folder. ---
@@ -3058,6 +3114,7 @@ function renderBidsTable(){
   }
   document.getElementById('bidsTable').innerHTML = list.length ? html : '<tr><td>No bids match this filter.</td></tr>';
   makeTableResizable('bidsTable');
+  renderNewBidDropzone();
 }
 async function addProject(){
   const name = document.getElementById('newProjectName').value.trim();
