@@ -34,7 +34,7 @@
   nav button:hover{background:var(--navy-light);color:#fff;}
   nav button.active{border-left-color:var(--primary);color:#fff;font-weight:600;background:var(--navy-light);}
   #mobileNavSelect{ display:none; }
-  .mobile-tabbar{ display:none; }
+  .mobile-topbar{ display:none; }
   main{flex:1;padding:22px 26px 90px;min-width:0;}
   .panel{display:none;} .panel.active{display:block;}
   .sub-tab{background:#eef1f6;border:1px solid var(--border,#dde2ea);color:var(--muted);font-family:var(--sans);font-size:.82rem;font-weight:600;padding:7px 14px;border-radius:6px;cursor:pointer;margin-right:6px;}
@@ -152,14 +152,7 @@
     nav{display:none;}
     main{padding:14px;padding-bottom:78px;}
     body{padding-bottom:env(safe-area-inset-bottom,0);}
-    #mobileNavSelect{
-      display:block;width:100%;position:sticky;top:0;z-index:10;
-      background:var(--navy);color:#fff;border:none;border-bottom:1px solid var(--navy-light);
-      padding:13px 16px;font-family:var(--sans);font-size:.95rem;font-weight:600;
-      -webkit-appearance:none;appearance:none;min-height:48px;
-      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23aab2c8'%3E%3Cpath d='M5.5 7.5l4.5 4.5 4.5-4.5z'/%3E%3C/svg%3E");
-      background-repeat:no-repeat;background-position:right 14px center;background-size:16px;
-    }
+    #mobileNavSelect{ display:none; }
     /* Rounded, pill-shaped progress bars */
     .bar-track{border-radius:999px;height:16px;}
     .bar-fill{border-radius:999px;}
@@ -179,22 +172,23 @@
     details.mobile-card > summary::after{content:'\25BE';font-size:.8rem;color:var(--steel);transition:transform .15s ease;flex-shrink:0;}
     details.mobile-card:not([open]) > summary::after{transform:rotate(-90deg);}
     details.mobile-card > summary + *{margin-top:10px;}
-    /* Persistent bottom tab bar */
-    .mobile-tabbar{
-      display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;
-      background:var(--navy);border-top:1px solid var(--navy-light);
-      box-shadow:0 -2px 12px rgba(0,0,0,.18);
-      padding-bottom:env(safe-area-inset-bottom,0);
+    /* Persistent top tab strip, replacing the old dropdown */
+    .mobile-topbar{
+      display:flex;position:sticky;top:0;z-index:40;
+      background:var(--navy);border-bottom:1px solid var(--navy-light);
+      overflow-x:auto;-webkit-overflow-scrolling:touch;
+      scrollbar-width:none;
     }
-    .mobile-tabbar button{
-      flex:1;background:none;border:none;color:#aab2c8;cursor:pointer;
+    .mobile-topbar::-webkit-scrollbar{display:none;}
+    .mobile-topbar button{
+      flex:1 0 auto;min-width:64px;background:none;border:none;color:#aab2c8;cursor:pointer;
       display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
-      padding:8px 2px 9px;font-family:var(--sans);font-size:.62rem;font-weight:600;
-      min-height:52px;
+      padding:9px 8px 8px;font-family:var(--sans);font-size:.62rem;font-weight:600;
+      min-height:52px;border-bottom:2px solid transparent;
     }
-    .mobile-tabbar button svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;}
-    .mobile-tabbar button.active{color:#fff;}
-    .mobile-tabbar button.active svg{stroke:var(--primary);}
+    .mobile-topbar button svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;}
+    .mobile-topbar button.active{color:#fff;border-bottom-color:var(--primary);}
+    .mobile-topbar button.active svg{stroke:var(--primary);}
   }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -204,7 +198,7 @@
   <header>
     <div>
       <h1>Tamarack Time Tracker</h1>
-      <p>Quarter-hour time tracking and invoicing reports, stored as a single JSON file in your Dropbox folder — no subscription, no server. Everything runs in your browser.</p>
+      <p>Time tracking &amp; invoicing, synced via Dropbox. No subscription, no server.</p>
     </div>
     <div id="fileStatus">No data file connected</div>
   </header>
@@ -223,7 +217,7 @@
       <button data-panel="datafile">Data File</button>
     </nav>
     <select id="mobileNavSelect" aria-label="Jump to section"></select>
-    <nav class="mobile-tabbar" id="mobileTabbar" aria-label="Quick navigation">
+    <nav class="mobile-topbar" id="mobileTopbar" aria-label="Quick navigation">
       <button data-panel="tracker" class="active" type="button">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>
         <span>Tracker</span>
@@ -244,6 +238,26 @@
         <svg viewBox="0 0 24 24"><path d="M3 6h6l2 2h10v11H3z"/></svg>
         <span>Projects</span>
       </button>
+      <button data-panel="invoice" type="button">
+        <svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>
+        <span>Invoice</span>
+      </button>
+      <button data-panel="clients" type="button">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg>
+        <span>Clients</span>
+      </button>
+      <button data-panel="pricing" type="button">
+        <svg viewBox="0 0 24 24"><path d="M12 2v20M17 6H9.5a2.5 2.5 0 0 0 0 5h5a2.5 2.5 0 0 1 0 5H7"/></svg>
+        <span>Pricing</span>
+      </button>
+      <button data-panel="import" type="button">
+        <svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>
+        <span>Import</span>
+      </button>
+      <button data-panel="datafile" type="button">
+        <svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M4 9h16"/></svg>
+        <span>Data</span>
+      </button>
     </nav>
 
     <main>
@@ -255,7 +269,7 @@
       <!-- TRACKER -->
       <section class="panel active" id="tracker">
         <h2>Track time</h2>
-        <p class="sub">Run a live stopwatch, or add a block of time directly. Everything gets rounded to the nearest 15 minutes when it's saved.</p>
+        <p class="sub">Start a stopwatch or log a block directly. Rounds to 15 min.</p>
 
         <div id="resumeBanner" class="banner" style="display:none;"></div>
 
@@ -324,7 +338,7 @@
 
         <div class="card">
           <h2 style="font-size:1rem;">All entries</h2>
-          <p class="sub">Every logged block of time. Edit or delete corrects mistakes — every change re-saves the data file. Updates the moment you hit Stop &amp; Save or add a manual entry.</p>
+          <p class="sub">All logged time. Edit or delete anytime — saves instantly.</p>
           <div class="row" style="align-items:flex-end;">
             <div><label>Project</label><select id="e-filter-project" onchange="renderEntries()"><option value="">All projects</option></select></div>
             <div><label>Period</label><select id="e-filter-period" onchange="onEntriesPeriodChange()">
@@ -356,7 +370,7 @@
         <h2>Dashboard</h2>
         <details class="card mobile-card" open>
           <summary>Calendar</summary>
-          <p class="sub" style="margin-top:0;">A month at a glance, independent of the Period selector below — darker days mean more hours logged, so a blank or pale square jumps right out. Click a day to see what made it up. Read-only here; edit an entry from the Tracker tab's "All entries" table.</p>
+          <p class="sub" style="margin-top:0;">Month view — darker days mean more hours. Click a day for details.</p>
           <div class="row" style="align-items:center;">
             <div class="row" id="cal-nav" style="gap:6px;">
               <button class="secondary" onclick="shiftCalendarMonth(-1)">&larr; Prev month</button>
@@ -400,7 +414,7 @@
         </details>
         <details class="card mobile-card" open>
           <summary>Project status</summary>
-          <p class="sub" style="margin-top:0;">Shows the same projects as "Time by project" above (i.e. with time logged in the selected period). The summary row below is scoped to the selected period; the table's own columns (time/invoiced/budget) are cumulative all-time running totals, not period-scoped. "Budget" is a project's Bid amount ($); for a Time &amp; Materials project the Bid amount field (if set) is just a reference figure to burn against, not what it's actually billed at.</p>
+          <p class="sub" style="margin-top:0;">Same projects as above. Table totals are all-time; "Budget" is the project's Bid amount.</p>
           <div class="summary-grid" id="dashStatusSummaryGrid" style="margin-bottom:10px;"></div>
           <input id="dashStatusSearch" type="text" placeholder="Search projects or clients…" style="margin-bottom:8px;" oninput="renderDashboardStatus()">
           <div class="table-wrap"><table id="dashStatusTable"></table></div>
@@ -410,7 +424,7 @@
       <!-- REPORTS -->
       <section class="panel" id="reports">
         <h2>Reports &amp; invoicing</h2>
-        <p class="sub">Build an invoice-ready summary per project, then mark it invoiced once it's actually been billed in QuickBooks. Marked entries are stamped with the invoice date and excluded from future "not yet invoiced" totals — they never silently disappear, they just move column.</p>
+        <p class="sub">Build a per-project summary, then mark it invoiced once billed in QuickBooks.</p>
         <div class="card">
           <div class="grid">
             <div><label>Period</label><select id="r-period" onchange="onReportPeriodChange()">
@@ -459,7 +473,7 @@
       <!-- INVOICE MAKER -->
       <section class="panel" id="invoice">
         <h2>Invoice Maker</h2>
-        <p class="sub">Generate a client-ready PDF invoice straight from your tracked time, styled like a QuickBooks invoice, for whenever you'd rather send this instead of billing through QuickBooks. It doesn't touch QuickBooks or your existing invoice-matching setup either way — use whichever route makes sense for a given invoice.</p>
+        <p class="sub">Generate a client-ready PDF invoice from tracked time. Doesn't touch QuickBooks.</p>
 
         <div class="card">
           <h2 style="font-size:1rem;">Your business info (shown in the invoice header)</h2>
@@ -520,7 +534,7 @@
       <!-- PRICING ANALYSIS -->
       <section class="panel" id="pricing">
         <h2>Project pricing analysis</h2>
-        <p class="sub">All-time, per project: effective $/hr actually earned, and how that compares against your required rate — same idea as the Tamarack Project Tracker spreadsheet. Revenue is hours &times; rate for T&amp;M projects, or the bid amount for Bid/Fixed projects.</p>
+        <p class="sub">Effective $/hr per project, all-time, vs. your required rate.</p>
         <div class="card">
           <div class="grid">
             <div><label>Required rate ($/hr — your break-even/target)</label><input id="requiredRate" type="number" step="0.01" min="0" placeholder="e.g. 148.00" onchange="saveRequiredRate()"></div>
@@ -537,7 +551,7 @@
       <!-- BIDS -->
       <section class="panel" id="bids">
         <h2>Bids</h2>
-        <p class="sub">Projects you've quoted but haven't been awarded yet. Every field below is editable any time. Once you land one, mark it active and it turns into a real Bid/Fixed project — everything you entered here (client, bid amount, SF, and any time logged working up the bid) carries over automatically. Editing a bid's numbers after it's already been marked active won't change the project it created — go to the Projects tab for that. Didn't win it? Archive it instead of deleting — it's kept below, searchable, in case you want to reference it later.</p>
+        <p class="sub">Quoted projects awaiting an answer — fully editable. Mark active to convert to a real project. Didn't win it? Archive instead of delete.</p>
         <div class="card">
           <h2 style="font-size:1rem;">Add a bid</h2>
           <div class="grid">
@@ -575,7 +589,7 @@
       <!-- CLIENTS -->
       <section class="panel" id="clients">
         <h2>Clients</h2>
-        <p class="sub">Set a default hourly rate per client. Projects use this rate automatically unless you set a rate on the project itself to override it.</p>
+        <p class="sub">Default hourly rate per client — projects use it unless overridden.</p>
         <div class="card">
           <h2 style="font-size:1rem;">Add a client</h2>
           <div class="grid">
@@ -593,7 +607,7 @@
       <!-- PROJECTS -->
       <section class="panel" id="projects">
         <h2>Projects</h2>
-        <p class="sub">Entries reference a project by ID, so renaming a project or client here never breaks past entries. "Tracked" and "Amount" (all-time, rounded hours &times; hourly rate) are shown right in the table below — set a rate to see amounts.</p>
+        <p class="sub">Rename anytime — entries link by ID, not name. Set a rate to see $ totals.</p>
         <div class="card">
           <h2 style="font-size:1rem;">Add a project</h2>
           <div class="grid">
@@ -632,7 +646,7 @@
       <!-- IMPORT -->
       <section class="panel" id="import">
         <h2>Import</h2>
-        <p class="sub">Bring in time entries from Clockify, split and attach invoice PDFs exported from QuickBooks, or import exact invoice amounts from a QuickBooks invoice-list CSV.</p>
+        <p class="sub">Import time from Clockify, or invoices/amounts from QuickBooks.</p>
         <div class="row" style="margin-bottom:14px;">
           <button class="sub-tab active" data-import-tab="clockify" onclick="switchImportTab('clockify')">Import from Clockify</button>
           <button class="sub-tab" data-import-tab="qb" onclick="switchImportTab('qb')">QuickBooks Invoices</button>
@@ -640,7 +654,7 @@
         </div>
 
         <div class="import-subpanel" id="import-clockify">
-          <p class="sub">Export your Clockify time entries as CSV (Clockify → Reports → Detailed → Export → CSV), then load that file here. Nothing is written until you review the preview and confirm.</p>
+          <p class="sub">Export Clockify time as CSV (Reports → Detailed → Export), then load it here.</p>
           <div class="card">
             <input type="file" id="importFile" accept=".csv" onchange="handleImportFile(event)">
             <div id="importPreview"></div>
@@ -649,7 +663,7 @@
         </div>
 
         <div class="import-subpanel" id="import-qb" style="display:none;">
-          <p class="sub">Upload PDF(s) exported from QuickBooks — a single invoice, or a combined batch-print of many invoices back to back — and this splits it into one PDF per invoice, guesses which project each belongs to from the "Bill To" text on the page, and attaches the results directly to those projects (same place shown on the Projects tab, under each project's row). Everything runs in your browser; files go straight to your own Dropbox, nowhere else.</p>
+          <p class="sub">Upload a QuickBooks PDF (single or batch) — splits it per invoice, auto-matches by project, and attaches each one.</p>
           <div class="card">
             <h2 style="font-size:1rem;">1. Choose PDF(s)</h2>
             <input id="qbFileInput" type="file" accept=".pdf" multiple onchange="handleQbFiles(this.files)">
@@ -657,7 +671,7 @@
           </div>
           <div class="card" id="qbReviewCard" style="display:none;">
             <h2 style="font-size:1rem;">2. Review &amp; confirm matches</h2>
-            <p class="sub" style="margin-top:0;">Green rows matched a project automatically from the extracted "Bill To" text on the page — double-check them before saving. Amber rows couldn't be matched confidently; pick a project yourself, or leave "— skip —" to not save that one. This is page-text-based guessing, not exact — if a row's page range looks wrong (an invoice got split in the wrong spot), edit "Pages" (e.g. "3-4") and click that row's Re-slice button.</p>
+            <p class="sub" style="margin-top:0;">Green = auto-matched, double-check. Amber = pick a project or skip. Wrong page range? Edit Pages, then Re-slice.</p>
             <div class="table-wrap"><table id="qbReviewTable"></table></div>
             <button onclick="saveQbMatches()">Save matched invoices to their projects</button>
             <p class="note" id="qbSaveStatus" style="margin-top:8px;"></p>
@@ -665,7 +679,7 @@
         </div>
 
         <div class="import-subpanel" id="import-invcsv" style="display:none;">
-          <p class="sub">The most reliable way to get exact invoice numbers/dates/amounts into Bid vs. billed — no PDF text-reading involved. In QuickBooks, export your invoice list as CSV (Reports → Invoice List, or Sales → Invoices → Export), then load that file here. Column names are matched flexibly — it looks for something like Invoice No./Num, Date, Customer/Name, and Amount/Total/Balance — check the preview before saving, especially the first time.</p>
+          <p class="sub">Most accurate way to import exact invoice numbers/dates/amounts. Export invoice list as CSV in QuickBooks, then load it here.</p>
           <div class="card">
             <h2 style="font-size:1rem;">1. Choose CSV</h2>
             <input id="invCsvFileInput" type="file" accept=".csv" onchange="handleInvoiceCsvFile(event)">
@@ -673,7 +687,7 @@
           </div>
           <div class="card" id="invCsvReviewCard" style="display:none;">
             <h2 style="font-size:1rem;">2. Review &amp; confirm matches</h2>
-            <p class="sub" style="margin-top:0;">Green rows matched a project automatically from the customer/description text (same matching QuickBooks Invoices import uses, including any taught phrases). Amber rows couldn't be matched — pick a project yourself, or leave "— skip —" to not save that row. Saving updates the matching invoice already attached to a project (matched by invoice number) if there is one, or adds a lightweight record with no PDF attached otherwise — either way it's what Bid vs. billed reads from.</p>
+            <p class="sub" style="margin-top:0;">Green = auto-matched. Amber = pick a project or skip.</p>
             <div class="table-wrap"><table id="invCsvReviewTable"></table></div>
             <button onclick="saveInvoiceCsvMatches()">Save matched invoice amounts to their projects</button>
             <p class="note" id="invCsvSaveStatus" style="margin-top:8px;"></p>
@@ -684,7 +698,7 @@
       <!-- DATA FILE -->
       <section class="panel" id="datafile">
         <h2>Data file</h2>
-        <p class="sub">Connect to Dropbox on every device (desktop included) so they all read and write the exact same data. Every save re-checks nothing changed since you last loaded it and warns you instead of silently overwriting.</p>
+        <p class="sub">Connect Dropbox on every device to share the same data file. Warns you before overwriting a conflict.</p>
 
         <div class="card">
           <h2 style="font-size:1rem;">Connect to Dropbox — use this on every device</h2>
@@ -5314,9 +5328,13 @@ function showPanel(name){
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id===name));
   const mobileSel = document.getElementById('mobileNavSelect');
   if(mobileSel) mobileSel.value = name;
-  document.querySelectorAll('.mobile-tabbar button').forEach(b=>b.classList.toggle('active', b.dataset.panel===name));
+  document.querySelectorAll('.mobile-topbar button').forEach(b=>{
+    const isActive = b.dataset.panel===name;
+    b.classList.toggle('active', isActive);
+    if(isActive) b.scrollIntoView({block:'nearest', inline:'center', behavior:'smooth'});
+  });
 }
-document.querySelectorAll('.mobile-tabbar button').forEach(btn=>{
+document.querySelectorAll('.mobile-topbar button').forEach(btn=>{
   btn.addEventListener('click', ()=> showPanel(btn.dataset.panel));
 });
 // The collapsible Dashboard cards (details.mobile-card) are only meant to
