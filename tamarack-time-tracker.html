@@ -3683,12 +3683,24 @@ let lastReportRows = [];
 // Builds the shared task-suggestion list for the Reports table's editable Task field
 // from every task used anywhere (past entries plus each project's own task list) —
 // not scoped to one project, since a report row can be any project.
-let reportTaskOptions = [];
+// Per-project task suggestions, keyed by projectId — so typing a new task on one
+// entry offers it to other entries for the SAME project only, without ever writing
+// it into that project's own Tasks list (Projects tab) unless done there directly.
+let reportTaskOptionsByProject = {};
 function buildReportTaskDatalist(){
-  const tasks = new Set();
-  data.entries.forEach(e=>{ if(e.task) tasks.add(e.task); });
-  data.projects.forEach(p=>{ (p.tasks||[]).forEach(t=>tasks.add(t)); });
-  reportTaskOptions = [...tasks].sort();
+  const byProject = {};
+  data.entries.forEach(e=>{
+    if(!e.task) return;
+    if(!byProject[e.projectId]) byProject[e.projectId] = new Set();
+    byProject[e.projectId].add(e.task);
+  });
+  data.projects.forEach(p=>{
+    if(!(p.tasks||[]).length) return;
+    if(!byProject[p.id]) byProject[p.id] = new Set();
+    p.tasks.forEach(t=>byProject[p.id].add(t));
+  });
+  reportTaskOptionsByProject = {};
+  Object.keys(byProject).forEach(pid=>{ reportTaskOptionsByProject[pid] = [...byProject[pid]].sort(); });
 }
 // Custom suggestion dropdown for the Reports table's Task field, used instead of a
 // native <datalist> — iOS Safari never renders datalist suggestions at all, which is
@@ -3699,7 +3711,8 @@ function showTaskSuggestions(input){
   const box = document.getElementById('taskSuggestBox');
   if(!box) return;
   const q = input.value.trim().toLowerCase();
-  const matches = reportTaskOptions.filter(t=> !q || t.toLowerCase().includes(q));
+  const options = reportTaskOptionsByProject[input.dataset.projectId] || [];
+  const matches = options.filter(t=> !q || t.toLowerCase().includes(q));
   if(!matches.length){ box.style.display = 'none'; return; }
   box.innerHTML = matches.map(t=>
     '<div onmousedown="event.preventDefault();chooseTaskSuggestion(this.textContent)" ' +
@@ -3848,7 +3861,7 @@ function renderReportDetailed(rows){
       projectTotal += subtotal;
       for(const e of group){
         html += '<tr class="' + (e.invoiced?'invoiced':'') + '"><td>' + e.date + '</td><td>' + projectCell(e.projectId) + '</td>' +
-          '<td><input type="text" autocomplete="off" value="' + (e.task||'').replace(/"/g,'&quot;') + '" style="width:100%;min-width:90px;box-sizing:border-box;font-size:.8rem;padding:4px 6px;" onfocus="showTaskSuggestions(this)" oninput="showTaskSuggestions(this)" onblur="setTimeout(hideTaskSuggestions,150)" onchange="updateReportEntryField(\''+e.id+'\',\'task\',this.value)"></td>' +
+          '<td><input type="text" autocomplete="off" data-project-id="' + e.projectId + '" value="' + (e.task||'').replace(/"/g,'&quot;') + '" style="width:100%;min-width:90px;box-sizing:border-box;font-size:.8rem;padding:4px 6px;" onfocus="showTaskSuggestions(this)" oninput="showTaskSuggestions(this)" onblur="setTimeout(hideTaskSuggestions,150)" onchange="updateReportEntryField(\''+e.id+'\',\'task\',this.value)"></td>' +
           '<td><input type="text" value="' + (e.description||'').replace(/"/g,'&quot;') + '" style="width:100%;min-width:110px;box-sizing:border-box;font-size:.8rem;padding:4px 6px;" onchange="updateReportEntryField(\''+e.id+'\',\'description\',this.value)"></td>' +
           '<td><input class="entry-time-edit" type="text" list="time-options" autocomplete="off" style="width:92px;padding:4px 6px;font-size:.8rem;" value="' + fmtTimeOfDay(e.startTime) + '" onchange="updateReportEntryTime(\''+e.id+'\',\'start\',this.value)"></td>' +
           '<td><input class="entry-time-edit" type="text" list="time-options" autocomplete="off" style="width:92px;padding:4px 6px;font-size:.8rem;" value="' + fmtTimeOfDay(e.endTime) + '" onchange="updateReportEntryTime(\''+e.id+'\',\'end\',this.value)"></td>' +
@@ -3936,7 +3949,7 @@ function renderReportOverview(rows){
     const dayTotal = entries.reduce((s,e)=>s+e.roundedMinutes,0);
     for(const e of entries){
       html += '<tr class="' + (e.invoiced?'invoiced':'') + '"><td>' + e.date + '</td>' +
-        '<td><input type="text" autocomplete="off" value="' + (e.task||'').replace(/"/g,'&quot;') + '" style="width:100%;min-width:90px;box-sizing:border-box;font-size:.8rem;padding:4px 6px;" onfocus="showTaskSuggestions(this)" oninput="showTaskSuggestions(this)" onblur="setTimeout(hideTaskSuggestions,150)" onchange="updateReportEntryField(\''+e.id+'\',\'task\',this.value)"></td>' +
+        '<td><input type="text" autocomplete="off" data-project-id="' + e.projectId + '" value="' + (e.task||'').replace(/"/g,'&quot;') + '" style="width:100%;min-width:90px;box-sizing:border-box;font-size:.8rem;padding:4px 6px;" onfocus="showTaskSuggestions(this)" oninput="showTaskSuggestions(this)" onblur="setTimeout(hideTaskSuggestions,150)" onchange="updateReportEntryField(\''+e.id+'\',\'task\',this.value)"></td>' +
         '<td>' + projectCell(e.projectId) + '</td>' +
         '<td><input type="text" value="' + (e.description||'').replace(/"/g,'&quot;') + '" style="width:100%;min-width:110px;box-sizing:border-box;font-size:.8rem;padding:4px 6px;" onchange="updateReportEntryField(\''+e.id+'\',\'description\',this.value)"></td>' +
         '<td><input class="entry-time-edit" type="text" list="time-options" autocomplete="off" style="width:92px;padding:4px 6px;font-size:.8rem;" value="' + fmtTimeOfDay(e.startTime) + '" onchange="updateReportEntryTime(\''+e.id+'\',\'start\',this.value)"></td>' +
