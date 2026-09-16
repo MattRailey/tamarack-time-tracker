@@ -641,7 +641,7 @@
           </label>
         </div>
         <div class="table-wrap"><table id="projectsTable"></table></div>
-        <p class="flag">Tasks (right-most column above) are the categories you bill time toward within a project — e.g. "Const Admin," "Redlines." Add them per project here; they'll show up as suggestions when you track time against that project.</p>
+        <p class="flag">Tasks (right-most column above) are the categories you bill time toward within a project — e.g. "Const Admin," "Redlines." Add them per project here; they'll show up as suggestions when you track time against that project. Each task's dropdown sets whether it counts toward the bid amount (default) or is billed T&amp;M as extra on top of it.</p>
       </section>
 
       <!-- IMPORT -->
@@ -789,9 +789,19 @@ function resolveRate(project){
   const c = data.clients.find(c=>c.id===project.clientId);
   return (c && c.hourlyRate) || 0;
 }
-function projectRevenue(project, minutes){
+// `entries` (optional) is this project's own time entries — passed in wherever available
+// so a Bid/Fixed project's revenue can add extra-billed (T&M) task time on top of the
+// flat bid fee, per each task's Bid/Extra setting (see isExtraBillingTask). Without
+// `entries`, a Bid project's revenue is just the flat bid amount, same as before.
+function projectRevenue(project, minutes, entries){
   if(!project) return 0;
-  if(project.billingType === 'Bid' && project.bidAmount) return project.bidAmount;
+  if(project.billingType === 'Bid' && project.bidAmount){
+    if(entries){
+      const extraMins = entries.filter(e=>isExtraBillingTask(project, e.task)).reduce((s,e)=>s+e.roundedMinutes,0);
+      return project.bidAmount + (extraMins/60) * resolveRate(project);
+    }
+    return project.bidAmount;
+  }
   return (minutes/60) * resolveRate(project);
 }
 // Shared budget-vs-tracked-value calc, used by both the Projects table and the
@@ -800,10 +810,14 @@ function projectRevenue(project, minutes){
 // billing type (a Bid/Fixed project's actual revenue is still its flat bid amount —
 // see projectRevenue() — this is a separate "is the labor value tracked so far
 // outrunning the fee" check, not the invoice amount itself).
-function budgetStatus(project, minutes){
+// `entries` (optional) lets this exclude extra-billed (T&M) task time from the burn-down —
+// that time is billed separately on top of the bid, so it shouldn't count against it.
+// Without `entries`, every tracked minute counts, same as before.
+function budgetStatus(project, minutes, entries){
   const budget = (project && project.bidAmount) || 0;
   if(!budget) return null;
-  const valueWorked = (minutes/60) * resolveRate(project);
+  const budgetMinutes = entries ? entries.filter(e=>!isExtraBillingTask(project, e.task)).reduce((s,e)=>s+e.roundedMinutes,0) : minutes;
+  const valueWorked = (budgetMinutes/60) * resolveRate(project);
   const pctUsed = valueWorked/budget*100;
   return { budget, valueWorked, budgetLeft: budget - valueWorked, pctUsed, over: valueWorked > budget };
 }
@@ -819,8 +833,9 @@ async function maybeAlertBudget(projectId){
   if(!data) return;
   const p = data.projects.find(p=>p.id===projectId);
   if(!p || p.budgetAlertAcked) return;
-  const mins = data.entries.filter(e=>e.projectId===p.id).reduce((s,e)=>s+e.roundedMinutes,0);
-  const bs = budgetStatus(p, mins);
+  const projEntries = data.entries.filter(e=>e.projectId===p.id);
+  const mins = projEntries.reduce((s,e)=>s+e.roundedMinutes,0);
+  const bs = budgetStatus(p, mins, projEntries);
   if(!bs || !bs.over) return;
   alert('Heads up: "' + p.name + '" has now tracked $' + bs.valueWorked.toFixed(2) + ' of work against its $' + bs.budget.toFixed(2) + ' budget (' + bs.pctUsed.toFixed(0) + '%).\n\nJust a flag — keep tracking time as normal. This won\'t ask again for this project unless you change its budget amount. Check the Budget used column on the Projects tab or Dashboard any time.');
   p.budgetAlertAcked = true;
@@ -3973,7 +3988,7 @@ function renderReportOverview(rows){
 
 // Mark-invoiced for one day group in the Overview view. A day can span multiple
 // projects/tasks, so — same as markReportInvoiced's bulk case — the budget-overage
-// check is done per project, excluding exempt (Const Admin/Revision) task minutes.
+// check is done per project, excluding minutes on tasks marked "T&M extra".
 async function markDayGroupInvoiced(idx){
   const group = lastReportDayGroups[idx];
   if(!group) return;
@@ -3985,7 +4000,8 @@ async function markDayGroupInvoiced(idx){
 
   const addMinutesByProject = {};
   for(const e of toMark){
-    if(isExemptBudgetTask(e.task)) continue;
+    const eProject = data.projects.find(p=>p.id===e.projectId);
+    if(isExtraBillingTask(eProject, e.task)) continue;
     addMinutesByProject[e.projectId] = (addMinutesByProject[e.projectId]||0) + e.roundedMinutes;
   }
   const warnings = Object.entries(addMinutesByProject)
@@ -4010,27 +4026,42 @@ async function markDayGroupInvoiced(idx){
   renderEntries();
 }
 
-// Tasks that legitimately run past a project's budget without it being a problem —
-// construction administration and revision/change-order billing are both normal to
-// keep charging for even once the original design-phase budget is spent. Matched
-// loosely (substring, case-insensitive) against the task category text so "Const
-// Admin", "Construction Administration", "Revisions - Owner request" etc. all match.
-function isExemptBudgetTask(taskName){
-  const t = (taskName||'').toLowerCase();
-  return t.includes('const admin') || t.includes('construction admin') || t.includes('revision');
+// Whether a task's time is billed T&M as extra on top of the bid fee, rather than
+// counting toward it — set explicitly per project/task from the dropdown next to
+// each task chip on the Projects tab. Defaults to false (counts toward the bid)
+// for any task that hasn't been explicitly marked "T&M extra" — no name-based
+// guessing (e.g. "Const Admin"/"Revision") anymore; it has to be set on purpose.
+function isExtraBillingTask(project, taskName){
+  const key = taskName || '';
+  return !!(project && project.taskBilling && project.taskBilling[key] === 'extra');
+}
+async function setTaskBilling(projectId, taskName, mode){
+  const p = data.projects.find(p=>p.id===projectId);
+  if(!p) return;
+  if(!p.taskBilling) p.taskBilling = {};
+  const hadPrev = Object.prototype.hasOwnProperty.call(p.taskBilling, taskName);
+  const prev = p.taskBilling[taskName];
+  p.taskBilling[taskName] = mode;
+  const ok = await writeToFile();
+  if(!ok){
+    if(hadPrev) p.taskBilling[taskName] = prev; else delete p.taskBilling[taskName];
+    renderProjectsTable();
+    return;
+  }
+  renderAll();
 }
 // Checks whether marking `addMinutes` more (non-exempt-task) time as invoiced would push
 // a project's INVOICED labor value past its budget — separate from the passive Projects/
 // Dashboard budget bar, which tracks ALL tracked time (invoiced or not). This one is
 // specifically "are you about to bill more than the budget", asked right at the moment
-// of billing, and it always lets you proceed — Const Admin/Revision time never counts
-// against it at all (see isExemptBudgetTask), and everything else is just a warning,
+// of billing, and it always lets you proceed — time on tasks marked "T&M extra"
+// never counts against it at all (see isExtraBillingTask), everything else is just a warning,
 // not a block. Returns null when there's nothing to flag.
 function billingOverageWarning(projectId, addMinutes){
   const p = data.projects.find(p=>p.id===projectId);
   if(!p || !p.bidAmount || addMinutes <= 0) return null;
   const existingNonExemptMins = data.entries
-    .filter(e=>e.projectId===projectId && e.invoiced && !isExemptBudgetTask(e.task))
+    .filter(e=>e.projectId===projectId && e.invoiced && !isExtraBillingTask(p, e.task))
     .reduce((s,e)=>s+e.roundedMinutes,0);
   const projectedMins = existingNonExemptMins + addMinutes;
   const rate = resolveRate(p);
@@ -4042,7 +4073,7 @@ function budgetOverageConfirmSuffix(warn){
   if(!warn) return '';
   return '\n\n⚠ Billing this will put "' + warn.project.name + '" at $' + warn.projectedValue.toFixed(2) +
     ' invoiced against its $' + warn.project.bidAmount.toFixed(2) + ' budget (' + warn.pctOver.toFixed(0) +
-    '% over) — not counting Const Admin/Revision time, which is exempt from this check.';
+    '% over) — not counting time marked "T&M extra", which is billed separately.';
 }
 
 async function markGroupInvoiced(idx){
@@ -4053,7 +4084,8 @@ async function markGroupInvoiced(idx){
   const refInput = document.getElementById('inv-ref-'+idx);
   const ref = refInput ? refInput.value.trim() : '';
   const totalHours = fmtHoursDecimal(toMark.reduce((s,e)=>s+e.roundedMinutes,0));
-  const warn = isExemptBudgetTask(group.task) ? null : billingOverageWarning(group.pid, toMark.reduce((s,e)=>s+e.roundedMinutes,0));
+  const groupProject = data.projects.find(p=>p.id===group.pid);
+  const warn = isExtraBillingTask(groupProject, group.task) ? null : billingOverageWarning(group.pid, toMark.reduce((s,e)=>s+e.roundedMinutes,0));
   if(!confirm('Mark ' + toMark.length + ' entr' + (toMark.length===1?'y':'ies') + ' (' + totalHours + ' hours) for ' + projectName(group.pid) + ' / ' + group.task + ' as invoiced' + (ref ? (' on QuickBooks invoice ' + ref) : '') + '?' + budgetOverageConfirmSuffix(warn))) return;
 
   const batchId = uid();
@@ -4080,11 +4112,12 @@ async function markReportInvoiced(){
   if(toMark.length === 0){ alert('Nothing in this report is unmarked.'); return; }
   const totalHours = fmtHoursDecimal(toMark.reduce((s,e)=>s+e.roundedMinutes,0));
   // This report can span multiple projects at once, so check each one separately —
-  // exempt-task (Const Admin/Revision) minutes are excluded from the addMinutes tally
+  // minutes on tasks marked "T&M extra" are excluded from the addMinutes tally
   // per project, same rule as the single-group check in markGroupInvoiced.
   const addMinutesByProject = {};
   for(const e of toMark){
-    if(isExemptBudgetTask(e.task)) continue;
+    const eProject = data.projects.find(p=>p.id===e.projectId);
+    if(isExtraBillingTask(eProject, e.task)) continue;
     addMinutesByProject[e.projectId] = (addMinutesByProject[e.projectId]||0) + e.roundedMinutes;
   }
   const warnings = Object.entries(addMinutesByProject)
@@ -4977,14 +5010,23 @@ function renderProjectsTable(){
   });
   for(const p of list){
     const tasks = p.tasks || [];
-    const chips = tasks.map(t=>'<span class="task-chip">'+t+' <button class="chip-x" title="Remove" onclick="removeProjectTask(\''+p.id+'\',\''+t.replace(/'/g,"\\'")+'\')">&times;</button></span>').join(' ');
+    const chips = tasks.map(t=>{
+      const extra = isExtraBillingTask(p, t);
+      return '<span class="task-chip">'+t+
+        ' <select title="Whether time logged under this task counts toward the bid amount, or is billed T&amp;M as extra on top of it" style="font-size:.68rem;padding:1px 3px;border-radius:4px;border:1px solid var(--border);margin-left:2px;" onchange="setTaskBilling(\''+p.id+'\',\''+t.replace(/'/g,"\\'")+'\', this.value)">' +
+          '<option value="bid"'+(extra?'':' selected')+'>Bid</option>' +
+          '<option value="extra"'+(extra?' selected':'')+'>T&amp;M extra</option>' +
+        '</select>' +
+        ' <button class="chip-x" title="Remove" onclick="removeProjectTask(\''+p.id+'\',\''+t.replace(/'/g,"\\'")+'\')">&times;</button></span>';
+    }).join(' ');
     const isBid = p.billingType === 'Bid';
     const status = p.status || 'Active';
     // Tracked/Amount — all-time, same figures the old standalone "Project Totals" tab
     // showed, now folded straight into this table (see project memory 2026-09-11).
-    const mins = data.entries.filter(e=>e.projectId===p.id).reduce((s,e)=>s+e.roundedMinutes,0);
-    const amount = projectRevenue(p, mins);
-    const bs = budgetStatus(p, mins);
+    const projEntries = data.entries.filter(e=>e.projectId===p.id);
+    const mins = projEntries.reduce((s,e)=>s+e.roundedMinutes,0);
+    const amount = projectRevenue(p, mins, projEntries);
+    const bs = budgetStatus(p, mins, projEntries);
     html += '<tr class="project-row' + (status==='Archived' ? ' note' : '') + '"' + (status==='Archived' ? ' style="opacity:.6;"' : '') + '>' +
       '<td><button class="star-btn" title="' + (p.favorite?'Unstar':'Star to pin to top') + '" onclick="toggleFavorite(\''+p.id+'\')">' + (p.favorite?'★':'☆') + '</button></td>' +
       '<td><input type="color" value="'+(p.color||'#2f7cf6')+'" style="width:34px;height:28px;padding:2px;" onchange="setProjectColor(\''+p.id+'\', this.value)"></td>' +
@@ -5326,7 +5368,7 @@ function renderDashboardStatus(){
     if(totalMins === 0) continue; // nothing tracked yet — matches the Pricing Analysis table's convention
     const invoicedMins = entries.filter(e=>e.invoiced).reduce((s,e)=>s+e.roundedMinutes,0);
     const notInvoicedMins = totalMins - invoicedMins;
-    const bs = budgetStatus(p, totalMins);
+    const bs = budgetStatus(p, totalMins, entries);
     rows.push({ p, totalMins, invoicedMins, notInvoicedMins, bs });
   }
   const filtered = rows.filter(r => !q || r.p.name.toLowerCase().includes(q) || clientName(r.p.clientId).toLowerCase().includes(q));
@@ -5379,10 +5421,11 @@ function renderPricingTable(){
 
   const rows = [];
   for(const p of data.projects){
-    const mins = data.entries.filter(e=>e.projectId===p.id).reduce((s,e)=>s+e.roundedMinutes,0);
+    const pEntries = data.entries.filter(e=>e.projectId===p.id);
+    const mins = pEntries.reduce((s,e)=>s+e.roundedMinutes,0);
     if(mins === 0) continue; // nothing tracked yet — no meaningful $/hr to show
     const hours = mins/60;
-    const revenue = projectRevenue(p, mins);
+    const revenue = projectRevenue(p, mins, pEntries);
     const effRate = hours ? revenue/hours : 0;
     const marginPerHr = effRate - requiredRate;
     const dollarPerSF = p.sf ? revenue/p.sf : 0;
