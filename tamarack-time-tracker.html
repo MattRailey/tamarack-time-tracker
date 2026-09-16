@@ -172,22 +172,20 @@
     details.mobile-card > summary::after{content:'\25BE';font-size:.8rem;color:var(--steel);transition:transform .15s ease;flex-shrink:0;}
     details.mobile-card:not([open]) > summary::after{transform:rotate(-90deg);}
     details.mobile-card > summary + *{margin-top:10px;}
-    /* Persistent top tab strip, replacing the old dropdown */
+    /* Persistent top tab strip, replacing the old dropdown -- icon-only so
+       every tab fits in one row across the screen width, no scrolling */
     .mobile-topbar{
-      display:flex;position:sticky;top:0;z-index:40;
+      display:flex;position:sticky;top:0;z-index:40;width:100%;
       background:var(--navy);border-bottom:1px solid var(--navy-light);
-      overflow-x:auto;-webkit-overflow-scrolling:touch;
-      scrollbar-width:none;
     }
-    .mobile-topbar::-webkit-scrollbar{display:none;}
     .mobile-topbar button{
-      flex:1 0 auto;min-width:64px;background:none;border:none;color:#aab2c8;cursor:pointer;
-      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
-      padding:9px 8px 8px;font-family:var(--sans);font-size:.62rem;font-weight:600;
-      min-height:52px;border-bottom:2px solid transparent;
+      flex:1 1 0;min-width:0;background:none;border:none;color:#aab2c8;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;
+      padding:10px 2px;min-height:42px;border-bottom:2px solid transparent;
     }
-    .mobile-topbar button svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;}
-    .mobile-topbar button.active{color:#fff;border-bottom-color:var(--primary);}
+    .mobile-topbar button span{display:none;}
+    .mobile-topbar button svg{width:17px;height:17px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.8;}
+    .mobile-topbar button.active{color:#fff;border-bottom-color:var(--primary);background:var(--navy-light);}
     .mobile-topbar button.active svg{stroke:var(--primary);}
   }
 </style>
@@ -218,43 +216,43 @@
     </nav>
     <select id="mobileNavSelect" aria-label="Jump to section"></select>
     <nav class="mobile-topbar" id="mobileTopbar" aria-label="Quick navigation">
-      <button data-panel="tracker" class="active" type="button">
+      <button data-panel="tracker" class="active" type="button" aria-label="Tracker" title="Tracker">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>
         <span>Tracker</span>
       </button>
-      <button data-panel="dashboard" type="button">
+      <button data-panel="dashboard" type="button" aria-label="Dashboard" title="Dashboard">
         <svg viewBox="0 0 24 24"><path d="M4 20V10M11 20V4M18 20v-7"/></svg>
         <span>Dashboard</span>
       </button>
-      <button data-panel="reports" type="button">
+      <button data-panel="reports" type="button" aria-label="Reports" title="Reports">
         <svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>
         <span>Reports</span>
       </button>
-      <button data-panel="bids" type="button">
+      <button data-panel="bids" type="button" aria-label="Bids" title="Bids">
         <svg viewBox="0 0 24 24"><path d="M20.4 12.6 11 22l-9-9L11.6 3.6H20a1 1 0 0 1 1 1v8z"/><circle cx="15.5" cy="7.5" r="1.5"/></svg>
         <span>Bids</span>
       </button>
-      <button data-panel="projects" type="button">
+      <button data-panel="projects" type="button" aria-label="Projects" title="Projects">
         <svg viewBox="0 0 24 24"><path d="M3 6h6l2 2h10v11H3z"/></svg>
         <span>Projects</span>
       </button>
-      <button data-panel="invoice" type="button">
+      <button data-panel="invoice" type="button" aria-label="Invoice" title="Invoice">
         <svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>
         <span>Invoice</span>
       </button>
-      <button data-panel="clients" type="button">
+      <button data-panel="clients" type="button" aria-label="Clients" title="Clients">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg>
         <span>Clients</span>
       </button>
-      <button data-panel="pricing" type="button">
+      <button data-panel="pricing" type="button" aria-label="Pricing" title="Pricing">
         <svg viewBox="0 0 24 24"><path d="M12 2v20M17 6H9.5a2.5 2.5 0 0 0 0 5h5a2.5 2.5 0 0 1 0 5H7"/></svg>
         <span>Pricing</span>
       </button>
-      <button data-panel="import" type="button">
+      <button data-panel="import" type="button" aria-label="Import" title="Import">
         <svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>
         <span>Import</span>
       </button>
-      <button data-panel="datafile" type="button">
+      <button data-panel="datafile" type="button" aria-label="Data" title="Data">
         <svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M4 9h16"/></svg>
         <span>Data</span>
       </button>
