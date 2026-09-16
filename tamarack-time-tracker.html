@@ -434,7 +434,13 @@
               <option value="year">Year</option>
               <option value="custom">Custom range</option>
             </select></div>
-            <div><label>Project</label><select id="r-project"><option value="">All projects</option></select></div>
+            <div><label>Project</label>
+              <div class="proj-combo">
+                <input type="text" id="r-project-search" autocomplete="off" placeholder="Search projects…">
+                <select id="r-project"><option value="">All projects</option></select>
+                <div class="proj-combo-panel" id="r-project-panel"></div>
+              </div>
+            </div>
             <div><label>Client</label><select id="r-client"><option value="">All clients</option></select></div>
             <div><label>Status</label><select id="r-status"><option value="uninvoiced" selected>Not yet invoiced</option><option value="invoiced">Already invoiced</option><option value="">Both</option></select></div>
             <div><label>View</label><select id="r-view" onchange="runReport()">
@@ -4915,7 +4921,8 @@ function fillProjectSelects(){
 // it that filters a floating list of options and writes back into that same select.
 const PROJECT_COMBOS = [
   { select:'t-project', search:'t-project-search', panel:'t-project-panel' },
-  { select:'m-project', search:'m-project-search', panel:'m-project-panel' }
+  { select:'m-project', search:'m-project-search', panel:'m-project-panel' },
+  { select:'r-project', search:'r-project-search', panel:'r-project-panel' }
 ];
 function syncProjectCombos(){
   PROJECT_COMBOS.forEach(c=>{
