@@ -87,12 +87,6 @@
   tr.bid-row td{border-bottom:none;}
   tr.bid-notes-row td, tr.project-sub-row td{padding-top:0;}
   tr.project-row td{border-bottom:none;}
-  tr.project-summary-row td{border-bottom:1px solid var(--border);padding-top:2px;}
-  .project-summary-bar{display:flex;flex-wrap:wrap;align-items:center;gap:18px;padding:2px 0 6px;}
-  .project-summary-item{display:flex;align-items:center;gap:6px;}
-  .project-summary-item .lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-weight:600;}
-  .project-summary-item .val{font-size:.85rem;color:var(--ink);white-space:nowrap;}
-  .project-summary-tasks{display:flex;align-items:center;flex-wrap:wrap;gap:4px;flex:1;min-width:220px;}
   .bid-dropzone.drag-over, .project-dropzone.drag-over{border-color:var(--primary);background:#eef4ff;}
   .qb-invoice-row.matched{background:#f4fbf7;}
   .qb-invoice-row.unmatched{background:#fdf7ec;}
@@ -427,7 +421,7 @@
 
       <!-- REPORTS -->
       <section class="panel" id="reports">
-        <h2>Reports &amp; invoicing</h2>
+        <h2>Reports &amp; Invoicing</h2>
         <p class="sub">Build a per-project summary, then mark it invoiced once billed in QuickBooks.</p>
         <div class="card">
           <div class="grid">
@@ -444,6 +438,7 @@
             <div><label>View</label><select id="r-view" onchange="runReport()">
               <option value="detailed" selected>Detailed (every entry)</option>
               <option value="overview">Overview (by day, then task)</option>
+              <option value="summary">Project summary (one line per project)</option>
             </select></div>
           </div>
           <div class="row" id="r-periodNav" style="display:none; align-items:center;">
@@ -3759,6 +3754,8 @@ function runReport(){
   const view = document.getElementById('r-view').value;
   if(view === 'overview'){
     renderReportOverview(rows);
+  } else if(view === 'summary'){
+    renderReportProjectSummary(rows);
   } else {
     renderReportDetailed(rows);
   }
@@ -3806,6 +3803,42 @@ function renderReportDetailed(rows){
       html += '<tr style="background:#fafbfc;"><td colspan="4">Subtotal — ' + projectName(pid) + ' / ' + taskKey + '</td><td>' + fmtHM(subtotal) + '</td><td>' + actionHtml + '</td></tr>';
     }
     html += '<tr style="font-weight:700;background:#f0f2f6;"><td colspan="4">Project total — ' + projectName(pid) + '</td><td>' + fmtHM(projectTotal) + '</td><td></td></tr>';
+  }
+  document.getElementById('reportTable').innerHTML = html || '<tr><td>No entries match this report.</td></tr>';
+  makeTableResizable('reportTable');
+}
+
+// "Project summary" view: one line per project — read-only overview of everything
+// in this report, no per-line invoicing controls (use Detailed or Overview for that).
+function renderReportProjectSummary(rows){
+  const byProject = {};
+  const projectOrder = [];
+  for(const e of rows){
+    if(!byProject[e.projectId]){ byProject[e.projectId] = []; projectOrder.push(e.projectId); }
+    byProject[e.projectId].push(e);
+  }
+  projectOrder.sort((a,b)=> projectName(a).localeCompare(projectName(b)));
+
+  let html = '<tr><th>Project</th><th>Client</th><th>Entries</th><th>First</th><th>Last</th><th>Billed</th><th>Actual</th><th>Invoiced</th><th>Not invoiced</th></tr>';
+  for(const pid of projectOrder){
+    const group = byProject[pid];
+    const p = data.projects.find(p=>p.id===pid);
+    const dates = group.map(e=>e.date).sort();
+    const billed = group.reduce((s,e)=>s+e.roundedMinutes,0);
+    const actual = group.reduce((s,e)=>s+e.actualMinutes,0);
+    const invoicedCount = group.filter(e=>e.invoiced).length;
+    const notInvoicedCount = group.length - invoicedCount;
+    html += '<tr>' +
+      '<td>' + projectCell(pid) + '</td>' +
+      '<td>' + (p ? clientName(p.clientId) : '') + '</td>' +
+      '<td>' + group.length + '</td>' +
+      '<td>' + dates[0] + '</td>' +
+      '<td>' + dates[dates.length-1] + '</td>' +
+      '<td>' + fmtHM(billed) + '</td>' +
+      '<td>' + fmtHM(actual) + '</td>' +
+      '<td>' + invoicedCount + '</td>' +
+      '<td>' + notInvoicedCount + '</td>' +
+      '</tr>';
   }
   document.getElementById('reportTable').innerHTML = html || '<tr><td>No entries match this report.</td></tr>';
   makeTableResizable('reportTable');
@@ -4852,7 +4885,7 @@ function setShowProjectInvoices(checked){
 function renderProjectsTable(){
   const q = (document.getElementById('projectSearch') ? document.getElementById('projectSearch').value : '').trim().toLowerCase();
   const statusFilter = document.getElementById('projectStatusFilter') ? document.getElementById('projectStatusFilter').value : 'open';
-  let html = '<tr><th></th><th>Color</th><th>Project</th><th>Status</th><th>Client</th><th>Billing type</th><th>Rate override ($/hr)</th><th>Budget ($)</th><th>SF</th><th>Sheets</th><th></th></tr>';
+  let html = '<tr><th></th><th>Color</th><th>Project</th><th>Status</th><th>Client</th><th>Billing type</th><th>Rate override ($/hr)</th><th>Budget ($)</th><th>SF</th><th>Sheets</th><th>Tracked</th><th>Amount</th><th>Budget used</th><th>Tasks</th><th></th></tr>';
   const list = sortedProjects().filter(p => {
     if(q && !(p.name.toLowerCase().includes(q) || clientName(p.clientId).toLowerCase().includes(q))) return false;
     const status = p.status || 'Active';
@@ -4886,15 +4919,13 @@ function renderProjectsTable(){
       '<td><input type="number" step="0.01" min="0" value="'+(p.bidAmount||0)+'" title="' + (isBid ? 'The fixed fee this project is billed at.' : 'Optional reference figure to burn against — a T&amp;M project isn\'t billed at this number, but you\'ll get a heads-up if tracked hours\' dollar value runs past it.') + '" style="width:100%;box-sizing:border-box;" onchange="setProjectBid(\''+p.id+'\', this.value)"></td>' +
       '<td><input type="number" step="1" min="0" value="'+(p.sf||0)+'" style="width:100%;box-sizing:border-box;" onchange="setProjectField(\''+p.id+'\',\'sf\', this.value, true)"></td>' +
       '<td><input type="number" step="1" min="0" value="'+(p.sheets||0)+'" style="width:100%;box-sizing:border-box;" onchange="setProjectField(\''+p.id+'\',\'sheets\', this.value, true)"></td>' +
+      '<td style="white-space:nowrap;">' + fmtHM(mins) + '</td>' +
+      '<td style="white-space:nowrap;">' + (amount ? '$'+amount.toFixed(2) : '—') + '</td>' +
+      '<td>' + budgetBadgeHtml(bs) + '</td>' +
+      '<td>' + chips + '<div class="row" style="margin-top:4px;"><input id="taskInput-'+p.id+'" type="text" placeholder="Add task…" style="max-width:60%;padding:4px 6px;font-size:.78rem;"><button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="addProjectTask(\''+p.id+'\')">Add</button></div></td>' +
       '<td><button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="deleteProject(\''+p.id+'\')">Delete</button></td></tr>';
-    html += '<tr class="project-summary-row"><td></td><td colspan="9"><div class="project-summary-bar">' +
-      '<div class="project-summary-item"><span class="lbl">Tracked</span><span class="val">' + fmtHM(mins) + '</span></div>' +
-      '<div class="project-summary-item"><span class="lbl">Amount</span><span class="val">' + (amount ? '$'+amount.toFixed(2) : '—') + '</span></div>' +
-      '<div class="project-summary-item"><span class="lbl">Budget used</span><span class="val">' + budgetBadgeHtml(bs) + '</span></div>' +
-      '<div class="project-summary-tasks"><span class="lbl">Tasks</span>' + chips + '<input id="taskInput-'+p.id+'" type="text" placeholder="Add task…" style="max-width:140px;padding:4px 6px;font-size:.78rem;"><button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="addProjectTask(\''+p.id+'\')">Add</button></div>' +
-      '</div></td></tr>';
     if(showProjectInvoices){
-      html += '<tr class="project-sub-row"><td></td><td colspan="9" style="padding:0 8px 12px 4px;">' + projectBillingSummaryHtml(p) + projectInvoicesHtml(p) + '</td></tr>';
+      html += '<tr class="project-sub-row"><td></td><td colspan="14" style="padding:0 8px 12px 4px;">' + projectBillingSummaryHtml(p) + projectInvoicesHtml(p) + '</td></tr>';
     }
   }
   document.getElementById('projectsTable').innerHTML = (list.length ? html : '<tr><td>' + (q ? 'No projects or clients match "'+q+'".' : 'No projects in this status.') + '</td></tr>');
