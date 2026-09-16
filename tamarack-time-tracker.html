@@ -260,6 +260,8 @@
 
     <main>
 
+      <div id="taskSuggestBox" style="display:none;position:fixed;z-index:999;background:#fff;border:1px solid var(--border);border-radius:6px;box-shadow:0 4px 14px rgba(20,20,40,.18);max-height:180px;overflow-y:auto;"></div>
+
       <div id="reloadBanner" class="banner crit" style="display:none;">
         <b>Save conflict:</b> <span id="reloadBannerText"></span>
       </div>
@@ -272,7 +274,6 @@
         <div id="resumeBanner" class="banner" style="display:none;"></div>
 
         <datalist id="time-options"></datalist>
-        <datalist id="report-task-list"></datalist>
 
         <div class="card">
           <div class="grid">
@@ -3682,13 +3683,46 @@ let lastReportRows = [];
 // Builds the shared task-suggestion list for the Reports table's editable Task field
 // from every task used anywhere (past entries plus each project's own task list) —
 // not scoped to one project, since a report row can be any project.
+let reportTaskOptions = [];
 function buildReportTaskDatalist(){
-  const list = document.getElementById('report-task-list');
-  if(!list) return;
   const tasks = new Set();
   data.entries.forEach(e=>{ if(e.task) tasks.add(e.task); });
   data.projects.forEach(p=>{ (p.tasks||[]).forEach(t=>tasks.add(t)); });
-  list.innerHTML = [...tasks].sort().map(t=>'<option value="'+t.replace(/"/g,'&quot;')+'">').join('');
+  reportTaskOptions = [...tasks].sort();
+}
+// Custom suggestion dropdown for the Reports table's Task field, used instead of a
+// native <datalist> — iOS Safari never renders datalist suggestions at all, which is
+// why typing a new task there wasn't showing up as a pickable option on other rows.
+let activeTaskInput = null;
+function showTaskSuggestions(input){
+  activeTaskInput = input;
+  const box = document.getElementById('taskSuggestBox');
+  if(!box) return;
+  const q = input.value.trim().toLowerCase();
+  const matches = reportTaskOptions.filter(t=> !q || t.toLowerCase().includes(q));
+  if(!matches.length){ box.style.display = 'none'; return; }
+  box.innerHTML = matches.map(t=>
+    '<div onmousedown="event.preventDefault();chooseTaskSuggestion(this.textContent)" ' +
+    'style="padding:7px 10px;font-size:.82rem;cursor:pointer;" ' +
+    'onmouseenter="this.style.background=\'#eef1f6\'" onmouseleave="this.style.background=\'\'">' +
+    t.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</div>'
+  ).join('');
+  const rect = input.getBoundingClientRect();
+  box.style.left = Math.round(rect.left) + 'px';
+  box.style.top = Math.round(rect.bottom + 2) + 'px';
+  box.style.width = Math.max(160, Math.round(rect.width)) + 'px';
+  box.style.display = 'block';
+}
+function hideTaskSuggestions(){
+  const box = document.getElementById('taskSuggestBox');
+  if(box) box.style.display = 'none';
+  activeTaskInput = null;
+}
+function chooseTaskSuggestion(value){
+  if(!activeTaskInput) return;
+  activeTaskInput.value = value;
+  activeTaskInput.dispatchEvent(new Event('change'));
+  hideTaskSuggestions();
 }
 // Task/description edits made directly from the Reports table — saves via the same
 // updateEntryField the All-entries table uses, then re-runs the report so subtotal
@@ -3814,7 +3848,7 @@ function renderReportDetailed(rows){
       projectTotal += subtotal;
       for(const e of group){
         html += '<tr class="' + (e.invoiced?'invoiced':'') + '"><td>' + e.date + '</td><td>' + projectCell(e.projectId) + '</td>' +
-          '<td><input type="text" list="report-task-list" value="' + (e.task||'').replace(/"/g,'&quot;') + '" style="width:100%;min-width:90px;box-sizing:border-box;font-size:.8rem;padding:4px 6px;" onchange="updateReportEntryField(\''+e.id+'\',\'task\',this.value)"></td>' +
+          '<td><input type="text" autocomplete="off" value="' + (e.task||'').replace(/"/g,'&quot;') + '" style="width:100%;min-width:90px;box-sizing:border-box;font-size:.8rem;padding:4px 6px;" onfocus="showTaskSuggestions(this)" oninput="showTaskSuggestions(this)" onblur="setTimeout(hideTaskSuggestions,150)" onchange="updateReportEntryField(\''+e.id+'\',\'task\',this.value)"></td>' +
           '<td><input type="text" value="' + (e.description||'').replace(/"/g,'&quot;') + '" style="width:100%;min-width:110px;box-sizing:border-box;font-size:.8rem;padding:4px 6px;" onchange="updateReportEntryField(\''+e.id+'\',\'description\',this.value)"></td>' +
           '<td><input class="entry-time-edit" type="text" list="time-options" autocomplete="off" style="width:92px;padding:4px 6px;font-size:.8rem;" value="' + fmtTimeOfDay(e.startTime) + '" onchange="updateReportEntryTime(\''+e.id+'\',\'start\',this.value)"></td>' +
           '<td><input class="entry-time-edit" type="text" list="time-options" autocomplete="off" style="width:92px;padding:4px 6px;font-size:.8rem;" value="' + fmtTimeOfDay(e.endTime) + '" onchange="updateReportEntryTime(\''+e.id+'\',\'end\',this.value)"></td>' +
@@ -3902,7 +3936,7 @@ function renderReportOverview(rows){
     const dayTotal = entries.reduce((s,e)=>s+e.roundedMinutes,0);
     for(const e of entries){
       html += '<tr class="' + (e.invoiced?'invoiced':'') + '"><td>' + e.date + '</td>' +
-        '<td><input type="text" list="report-task-list" value="' + (e.task||'').replace(/"/g,'&quot;') + '" style="width:100%;min-width:90px;box-sizing:border-box;font-size:.8rem;padding:4px 6px;" onchange="updateReportEntryField(\''+e.id+'\',\'task\',this.value)"></td>' +
+        '<td><input type="text" autocomplete="off" value="' + (e.task||'').replace(/"/g,'&quot;') + '" style="width:100%;min-width:90px;box-sizing:border-box;font-size:.8rem;padding:4px 6px;" onfocus="showTaskSuggestions(this)" oninput="showTaskSuggestions(this)" onblur="setTimeout(hideTaskSuggestions,150)" onchange="updateReportEntryField(\''+e.id+'\',\'task\',this.value)"></td>' +
         '<td>' + projectCell(e.projectId) + '</td>' +
         '<td><input type="text" value="' + (e.description||'').replace(/"/g,'&quot;') + '" style="width:100%;min-width:110px;box-sizing:border-box;font-size:.8rem;padding:4px 6px;" onchange="updateReportEntryField(\''+e.id+'\',\'description\',this.value)"></td>' +
         '<td><input class="entry-time-edit" type="text" list="time-options" autocomplete="off" style="width:92px;padding:4px 6px;font-size:.8rem;" value="' + fmtTimeOfDay(e.startTime) + '" onchange="updateReportEntryTime(\''+e.id+'\',\'start\',this.value)"></td>' +
