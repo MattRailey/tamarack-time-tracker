@@ -272,6 +272,7 @@
         <div id="resumeBanner" class="banner" style="display:none;"></div>
 
         <datalist id="time-options"></datalist>
+        <datalist id="report-task-list"></datalist>
 
         <div class="card">
           <div class="grid">
@@ -1826,7 +1827,7 @@ function renderTimerUI(){
    while a timer is actually running; otherwise these listeners are just idle
    (pun intended) and do nothing.
    ============================================================ */
-const IDLE_THRESHOLD_MS = 15 * 60 * 1000; // 15 minutes with zero activity in-tab
+const IDLE_THRESHOLD_MS = 3 * 60 * 60 * 1000; // 3 hours with zero activity in-tab
 let lastActivityAt = Date.now();
 let idlePromptShown = false;
 let idlePromptAt = null; // the lastActivityAt value at the moment the prompt fired — used as the "stop at" time
@@ -3678,6 +3679,28 @@ async function deleteEntry(id){
    REPORTS + INVOICING
    ============================================================ */
 let lastReportRows = [];
+// Builds the shared task-suggestion list for the Reports table's editable Task field
+// from every task used anywhere (past entries plus each project's own task list) —
+// not scoped to one project, since a report row can be any project.
+function buildReportTaskDatalist(){
+  const list = document.getElementById('report-task-list');
+  if(!list) return;
+  const tasks = new Set();
+  data.entries.forEach(e=>{ if(e.task) tasks.add(e.task); });
+  data.projects.forEach(p=>{ (p.tasks||[]).forEach(t=>tasks.add(t)); });
+  list.innerHTML = [...tasks].sort().map(t=>'<option value="'+t.replace(/"/g,'&quot;')+'">').join('');
+}
+// Task/description edits made directly from the Reports table — saves via the same
+// updateEntryField the All-entries table uses, then re-runs the report so subtotal
+// grouping (which is keyed by task) and totals reflect the change immediately.
+async function updateReportEntryField(id, field, rawValue){
+  await updateEntryField(id, field, rawValue);
+  runReport();
+}
+async function updateReportEntryTime(id, field, rawValue){
+  await updateEntryTime(id, field, rawValue);
+  runReport();
+}
 let lastReportGroups = []; // [{pid, task, entries}] — one per project/task subtotal in the current report
 let lastReportDayGroups = []; // [{day, entries}] — one per day in the current Overview report
 let reportPeriodOffset = 0;
@@ -3751,6 +3774,7 @@ function runReport(){
     summaryCard(fmtHoursDecimal(totalActual), 'actual hours') +
     summaryCard(uninvoicedCount, 'not yet invoiced');
 
+  buildReportTaskDatalist();
   const view = document.getElementById('r-view').value;
   if(view === 'overview'){
     renderReportOverview(rows);
@@ -3777,7 +3801,7 @@ function renderReportDetailed(rows){
   }
 
   lastReportGroups = [];
-  let html = '<tr><th>Date</th><th>Project</th><th>Task</th><th>Description</th><th>Billed</th><th>Status</th></tr>';
+  let html = '<tr><th>Date</th><th>Project</th><th>Task</th><th>Description</th><th>Start</th><th>End</th><th>Billed</th><th>Status</th></tr>';
   for(const pid of projectOrder){
     const taskMap = byProject[pid];
     const taskKeys = Object.keys(taskMap).sort((a,b)=> a==='(no task)' ? 1 : (b==='(no task)' ? -1 : a.localeCompare(b)));
@@ -3789,7 +3813,12 @@ function renderReportDetailed(rows){
       const subtotal = group.reduce((s,e)=>s+e.roundedMinutes,0);
       projectTotal += subtotal;
       for(const e of group){
-        html += '<tr class="' + (e.invoiced?'invoiced':'') + '"><td>' + e.date + '</td><td>' + projectCell(e.projectId) + '</td><td>' + (e.task||'') + '</td><td>' + (e.description||'') + '</td><td>' + fmtHM(e.roundedMinutes) + '</td><td>' + (e.invoiced?('<span class="pill invoiced">Invoiced' + (e.invoiceRef?(' · QB#'+e.invoiceRef):'') + '</span>'):'<span class="pill uninvoiced">Not invoiced</span>') + '</td></tr>';
+        html += '<tr class="' + (e.invoiced?'invoiced':'') + '"><td>' + e.date + '</td><td>' + projectCell(e.projectId) + '</td>' +
+          '<td><input type="text" list="report-task-list" value="' + (e.task||'').replace(/"/g,'&quot;') + '" style="width:100%;min-width:90px;box-sizing:border-box;font-size:.8rem;padding:4px 6px;" onchange="updateReportEntryField(\''+e.id+'\',\'task\',this.value)"></td>' +
+          '<td><input type="text" value="' + (e.description||'').replace(/"/g,'&quot;') + '" style="width:100%;min-width:110px;box-sizing:border-box;font-size:.8rem;padding:4px 6px;" onchange="updateReportEntryField(\''+e.id+'\',\'description\',this.value)"></td>' +
+          '<td><input class="entry-time-edit" type="text" list="time-options" autocomplete="off" style="width:92px;padding:4px 6px;font-size:.8rem;" value="' + fmtTimeOfDay(e.startTime) + '" onchange="updateReportEntryTime(\''+e.id+'\',\'start\',this.value)"></td>' +
+          '<td><input class="entry-time-edit" type="text" list="time-options" autocomplete="off" style="width:92px;padding:4px 6px;font-size:.8rem;" value="' + fmtTimeOfDay(e.endTime) + '" onchange="updateReportEntryTime(\''+e.id+'\',\'end\',this.value)"></td>' +
+          '<td>' + fmtHM(e.roundedMinutes) + '</td><td>' + (e.invoiced?('<span class="pill invoiced">Invoiced' + (e.invoiceRef?(' · QB#'+e.invoiceRef):'') + '</span>'):'<span class="pill uninvoiced">Not invoiced</span>') + '</td></tr>';
       }
       const anyUninvoiced = group.some(e=>!e.invoiced);
       let actionHtml;
@@ -3800,9 +3829,9 @@ function renderReportDetailed(rows){
         const refs = [...new Set(group.filter(e=>e.invoiceRef).map(e=>e.invoiceRef))];
         actionHtml = '<span class="note" style="font-size:.72rem;">' + (refs.length ? 'Invoiced — QB# ' + refs.join(', ') : 'Invoiced') + '</span>';
       }
-      html += '<tr style="background:#fafbfc;"><td colspan="4">Subtotal — ' + projectName(pid) + ' / ' + taskKey + '</td><td>' + fmtHM(subtotal) + '</td><td>' + actionHtml + '</td></tr>';
+      html += '<tr style="background:#fafbfc;"><td colspan="6">Subtotal — ' + projectName(pid) + ' / ' + taskKey + '</td><td>' + fmtHM(subtotal) + '</td><td>' + actionHtml + '</td></tr>';
     }
-    html += '<tr style="font-weight:700;background:#f0f2f6;"><td colspan="4">Project total — ' + projectName(pid) + '</td><td>' + fmtHM(projectTotal) + '</td><td></td></tr>';
+    html += '<tr style="font-weight:700;background:#f0f2f6;"><td colspan="6">Project total — ' + projectName(pid) + '</td><td>' + fmtHM(projectTotal) + '</td><td></td></tr>';
   }
   document.getElementById('reportTable').innerHTML = html || '<tr><td>No entries match this report.</td></tr>';
   makeTableResizable('reportTable');
@@ -3861,7 +3890,7 @@ function renderReportOverview(rows){
   dayOrder.sort();
 
   lastReportDayGroups = [];
-  let html = '<tr><th>Date</th><th>Task</th><th>Project</th><th>Description</th><th>Billed</th><th>Status</th></tr>';
+  let html = '<tr><th>Date</th><th>Task</th><th>Project</th><th>Description</th><th>Start</th><th>End</th><th>Billed</th><th>Status</th></tr>';
   for(const day of dayOrder){
     const entries = byDay[day].slice().sort((a,b)=>{
       const ta = a.task || '(no task)', tb = b.task || '(no task)';
@@ -3872,7 +3901,13 @@ function renderReportOverview(rows){
     lastReportDayGroups.push({ day, entries });
     const dayTotal = entries.reduce((s,e)=>s+e.roundedMinutes,0);
     for(const e of entries){
-      html += '<tr class="' + (e.invoiced?'invoiced':'') + '"><td>' + e.date + '</td><td>' + (e.task||'(no task)') + '</td><td>' + projectCell(e.projectId) + '</td><td>' + (e.description||'') + '</td><td>' + fmtHM(e.roundedMinutes) + '</td><td>' + (e.invoiced?('<span class="pill invoiced">Invoiced' + (e.invoiceRef?(' · QB#'+e.invoiceRef):'') + '</span>'):'<span class="pill uninvoiced">Not invoiced</span>') + '</td></tr>';
+      html += '<tr class="' + (e.invoiced?'invoiced':'') + '"><td>' + e.date + '</td>' +
+        '<td><input type="text" list="report-task-list" value="' + (e.task||'').replace(/"/g,'&quot;') + '" style="width:100%;min-width:90px;box-sizing:border-box;font-size:.8rem;padding:4px 6px;" onchange="updateReportEntryField(\''+e.id+'\',\'task\',this.value)"></td>' +
+        '<td>' + projectCell(e.projectId) + '</td>' +
+        '<td><input type="text" value="' + (e.description||'').replace(/"/g,'&quot;') + '" style="width:100%;min-width:110px;box-sizing:border-box;font-size:.8rem;padding:4px 6px;" onchange="updateReportEntryField(\''+e.id+'\',\'description\',this.value)"></td>' +
+        '<td><input class="entry-time-edit" type="text" list="time-options" autocomplete="off" style="width:92px;padding:4px 6px;font-size:.8rem;" value="' + fmtTimeOfDay(e.startTime) + '" onchange="updateReportEntryTime(\''+e.id+'\',\'start\',this.value)"></td>' +
+        '<td><input class="entry-time-edit" type="text" list="time-options" autocomplete="off" style="width:92px;padding:4px 6px;font-size:.8rem;" value="' + fmtTimeOfDay(e.endTime) + '" onchange="updateReportEntryTime(\''+e.id+'\',\'end\',this.value)"></td>' +
+        '<td>' + fmtHM(e.roundedMinutes) + '</td><td>' + (e.invoiced?('<span class="pill invoiced">Invoiced' + (e.invoiceRef?(' · QB#'+e.invoiceRef):'') + '</span>'):'<span class="pill uninvoiced">Not invoiced</span>') + '</td></tr>';
     }
     const anyUninvoiced = entries.some(e=>!e.invoiced);
     let actionHtml;
@@ -3883,7 +3918,7 @@ function renderReportOverview(rows){
       const refs = [...new Set(entries.filter(e=>e.invoiceRef).map(e=>e.invoiceRef))];
       actionHtml = '<span class="note" style="font-size:.72rem;">' + (refs.length ? 'Invoiced — QB# ' + refs.join(', ') : 'Invoiced') + '</span>';
     }
-    html += '<tr style="font-weight:700;background:#f0f2f6;"><td colspan="4">Day total — ' + day + '</td><td>' + fmtHM(dayTotal) + '</td><td>' + actionHtml + '</td></tr>';
+    html += '<tr style="font-weight:700;background:#f0f2f6;"><td colspan="6">Day total — ' + day + '</td><td>' + fmtHM(dayTotal) + '</td><td>' + actionHtml + '</td></tr>';
   }
   document.getElementById('reportTable').innerHTML = html || '<tr><td>No entries match this report.</td></tr>';
   makeTableResizable('reportTable');
