@@ -33,6 +33,8 @@
     padding:11px 18px;font-family:var(--sans);font-size:.88rem;color:#aab2c8;cursor:pointer;margin-bottom:1px;}
   nav button:hover{background:var(--navy-light);color:#fff;}
   nav button.active{border-left-color:var(--primary);color:#fff;font-weight:600;background:var(--navy-light);}
+  #mobileNavSelect{ display:none; }
+  .mobile-tabbar{ display:none; }
   main{flex:1;padding:22px 26px 90px;min-width:0;}
   .panel{display:none;} .panel.active{display:block;}
   .sub-tab{background:#eef1f6;border:1px solid var(--border,#dde2ea);color:var(--muted);font-family:var(--sans);font-size:.82rem;font-weight:600;padding:7px 14px;border-radius:6px;cursor:pointer;margin-right:6px;}
@@ -145,7 +147,55 @@
   .summary-card .lbl{font-size:.72rem;color:var(--muted);}
   .checklist{max-height:40vh;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;background:#fff;}
   .checklist label{display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--ink);margin-bottom:4px;font-family:var(--sans);}
-  @media (max-width:820px){ .layout{display:block;} nav{width:100%;display:flex;overflow-x:auto;padding:8px;gap:2px;} nav button{flex:0 0 auto;border-left:none;border-bottom:3px solid transparent;white-space:nowrap;} main{padding:14px;} }
+  @media (max-width:820px){
+    .layout{display:block;}
+    nav{display:none;}
+    main{padding:14px;padding-bottom:78px;}
+    body{padding-bottom:env(safe-area-inset-bottom,0);}
+    #mobileNavSelect{
+      display:block;width:100%;position:sticky;top:0;z-index:10;
+      background:var(--navy);color:#fff;border:none;border-bottom:1px solid var(--navy-light);
+      padding:13px 16px;font-family:var(--sans);font-size:.95rem;font-weight:600;
+      -webkit-appearance:none;appearance:none;min-height:48px;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23aab2c8'%3E%3Cpath d='M5.5 7.5l4.5 4.5 4.5-4.5z'/%3E%3C/svg%3E");
+      background-repeat:no-repeat;background-position:right 14px center;background-size:16px;
+    }
+    /* Rounded, pill-shaped progress bars */
+    .bar-track{border-radius:999px;height:16px;}
+    .bar-fill{border-radius:999px;}
+    .bar-row{align-items:center;}
+    .bar-label{min-width:52px;font-size:.78rem;}
+    .bar-value{min-width:88px;font-size:.76rem;}
+    /* Pill-shaped badge chips for summary numbers (remaining/spent amounts, etc) */
+    .summary-grid{grid-template-columns:repeat(2,1fr);gap:8px;}
+    .summary-card{border-radius:999px;display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:10px;padding:9px 16px;border:1px solid var(--border);border-left:4px solid var(--primary);background:#fff;}
+    .summary-card .num{font-size:1rem;font-weight:700;}
+    .summary-card .lbl{font-size:.64rem;text-transform:uppercase;letter-spacing:.03em;margin:0;}
+    .pill{border-radius:999px;}
+    /* Collapsible cards with a chevron toggle, mirroring #archivedBidsDetails */
+    details.mobile-card{border:1px solid var(--border);border-radius:8px;background:#fff;padding:12px 14px;margin-bottom:14px;}
+    details.mobile-card > summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:8px;font-family:var(--sans);font-weight:700;font-size:1rem;color:var(--navy);}
+    details.mobile-card > summary::-webkit-details-marker{display:none;}
+    details.mobile-card > summary::after{content:'\25BE';font-size:.8rem;color:var(--steel);transition:transform .15s ease;flex-shrink:0;}
+    details.mobile-card:not([open]) > summary::after{transform:rotate(-90deg);}
+    details.mobile-card > summary + *{margin-top:10px;}
+    /* Persistent bottom tab bar */
+    .mobile-tabbar{
+      display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;
+      background:var(--navy);border-top:1px solid var(--navy-light);
+      box-shadow:0 -2px 12px rgba(0,0,0,.18);
+      padding-bottom:env(safe-area-inset-bottom,0);
+    }
+    .mobile-tabbar button{
+      flex:1;background:none;border:none;color:#aab2c8;cursor:pointer;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+      padding:8px 2px 9px;font-family:var(--sans);font-size:.62rem;font-weight:600;
+      min-height:52px;
+    }
+    .mobile-tabbar button svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;}
+    .mobile-tabbar button.active{color:#fff;}
+    .mobile-tabbar button.active svg{stroke:var(--primary);}
+  }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
@@ -171,6 +221,29 @@
       <button data-panel="clients">Clients</button>
       <button data-panel="import">Import</button>
       <button data-panel="datafile">Data File</button>
+    </nav>
+    <select id="mobileNavSelect" aria-label="Jump to section"></select>
+    <nav class="mobile-tabbar" id="mobileTabbar" aria-label="Quick navigation">
+      <button data-panel="tracker" class="active" type="button">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>
+        <span>Tracker</span>
+      </button>
+      <button data-panel="dashboard" type="button">
+        <svg viewBox="0 0 24 24"><path d="M4 20V10M11 20V4M18 20v-7"/></svg>
+        <span>Dashboard</span>
+      </button>
+      <button data-panel="reports" type="button">
+        <svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>
+        <span>Reports</span>
+      </button>
+      <button data-panel="bids" type="button">
+        <svg viewBox="0 0 24 24"><path d="M20.4 12.6 11 22l-9-9L11.6 3.6H20a1 1 0 0 1 1 1v8z"/><circle cx="15.5" cy="7.5" r="1.5"/></svg>
+        <span>Bids</span>
+      </button>
+      <button data-panel="projects" type="button">
+        <svg viewBox="0 0 24 24"><path d="M3 6h6l2 2h10v11H3z"/></svg>
+        <span>Projects</span>
+      </button>
     </nav>
 
     <main>
@@ -201,7 +274,7 @@
             <div><label>Description (optional)</label><input id="t-desc" type="text" placeholder="what are you working on?"></div>
           </div>
           <div class="row" style="align-items:flex-end;">
-            <div style="width:150px;"><label>Actually started at (optional)</label><input id="t-start-override" type="text" list="time-options" autocomplete="off" placeholder="e.g. 8:00 AM"></div>
+            <div style="width:150px;position:relative;"><label>Actually started at (optional)</label><input id="t-start-override" type="text" list="time-options" autocomplete="off" placeholder="e.g. 8:00 AM" style="padding-right:28px;"><button type="button" id="t-start-clear" onclick="clearStartOverride()" title="Clear — use the actual start time instead" style="display:none;position:absolute;right:6px;bottom:9px;background:none;border:none;color:var(--muted);font-size:1rem;line-height:1;cursor:pointer;padding:2px 4px;">&times;</button></div>
             <span id="backdateBadge" class="pill uninvoiced" style="display:none;"></span>
           </div>
           <p class="note" style="margin:0 0 10px;">Leave "Actually started at" blank to start the clock right now. Fill it in if you're clicking Start a bit after you actually began — it backdates the start of this timer to that time today.</p>
@@ -255,9 +328,9 @@
           <div class="row" style="align-items:flex-end;">
             <div><label>Project</label><select id="e-filter-project" onchange="renderEntries()"><option value="">All projects</option></select></div>
             <div><label>Period</label><select id="e-filter-period" onchange="onEntriesPeriodChange()">
-              <option value="" selected>All time</option>
+              <option value="">All time</option>
               <option value="week">Week</option>
-              <option value="month">Month</option>
+              <option value="month" selected>Month</option>
               <option value="year">Year</option>
               <option value="custom">Custom range</option>
             </select></div>
@@ -281,8 +354,8 @@
       <!-- DASHBOARD -->
       <section class="panel" id="dashboard">
         <h2>Dashboard</h2>
-        <div class="card">
-          <h2 style="font-size:1rem;">Calendar</h2>
+        <details class="card mobile-card" open>
+          <summary>Calendar</summary>
           <p class="sub" style="margin-top:0;">A month at a glance, independent of the Period selector below — darker days mean more hours logged, so a blank or pale square jumps right out. Click a day to see what made it up. Read-only here; edit an entry from the Tracker tab's "All entries" table.</p>
           <div class="row" style="align-items:center;">
             <div class="row" id="cal-nav" style="gap:6px;">
@@ -297,11 +370,11 @@
             <h2 style="font-size:1rem;" id="calDayTitle"></h2>
             <div class="table-wrap"><table id="calDayTable"></table></div>
           </div>
-        </div>
+        </details>
         <div class="row" style="align-items:flex-end; flex-wrap:wrap;">
           <div><label>Period</label><select id="dash-period" onchange="onDashPeriodChange()">
-            <option value="week" selected>Week</option>
-            <option value="month">Month</option>
+            <option value="week">Week</option>
+            <option value="month" selected>Month</option>
             <option value="year">Year</option>
             <option value="custom">Custom range</option>
           </select></div>
@@ -317,21 +390,21 @@
         </div>
         <p class="sub">Summary for <b id="dashWeekLabel"></b></p>
         <div class="summary-grid" id="dashSummaryGrid"></div>
-        <div class="card">
-          <h2 style="font-size:1rem;" id="dashSeriesTitle">Time by day</h2>
+        <details class="card mobile-card" open>
+          <summary id="dashSeriesTitle">Time by day</summary>
           <div id="dashDayBars"></div>
-        </div>
-        <div class="card">
-          <h2 style="font-size:1rem;">Time by project</h2>
+        </details>
+        <details class="card mobile-card" open>
+          <summary>Time by project</summary>
           <div id="dashProjectBars"></div>
-        </div>
-        <div class="card">
-          <h2 style="font-size:1rem;">Project status</h2>
+        </details>
+        <details class="card mobile-card" open>
+          <summary>Project status</summary>
           <p class="sub" style="margin-top:0;">Shows the same projects as "Time by project" above (i.e. with time logged in the selected period). The summary row below is scoped to the selected period; the table's own columns (time/invoiced/budget) are cumulative all-time running totals, not period-scoped. "Budget" is a project's Bid amount ($); for a Time &amp; Materials project the Bid amount field (if set) is just a reference figure to burn against, not what it's actually billed at.</p>
           <div class="summary-grid" id="dashStatusSummaryGrid" style="margin-bottom:10px;"></div>
           <input id="dashStatusSearch" type="text" placeholder="Search projects or clients…" style="margin-bottom:8px;" oninput="renderDashboardStatus()">
           <div class="table-wrap"><table id="dashStatusTable"></table></div>
-        </div>
+        </details>
       </section>
 
       <!-- REPORTS -->
@@ -343,9 +416,9 @@
             <div><label>Period</label><select id="r-period" onchange="onReportPeriodChange()">
               <option value="">All time</option>
               <option value="week">Week</option>
-              <option value="month">Month</option>
+              <option value="month" selected>Month</option>
               <option value="year">Year</option>
-              <option value="custom" selected>Custom range</option>
+              <option value="custom">Custom range</option>
             </select></div>
             <div><label>Project</label><select id="r-project"><option value="">All projects</option></select></div>
             <div><label>Client</label><select id="r-client"><option value="">All clients</option></select></div>
@@ -464,17 +537,18 @@
       <!-- BIDS -->
       <section class="panel" id="bids">
         <h2>Bids</h2>
-        <p class="sub">Projects you've quoted but haven't been awarded yet. Every field below is editable any time. Once you land one, mark it active and it turns into a real Bid/Fixed project — everything you entered here (client, bid amount, SF, sheets) carries over automatically. Editing a bid's numbers after it's already been marked active won't change the project it created — go to the Projects tab for that.</p>
+        <p class="sub">Projects you've quoted but haven't been awarded yet. Every field below is editable any time. Once you land one, mark it active and it turns into a real Bid/Fixed project — everything you entered here (client, bid amount, SF, and any time logged working up the bid) carries over automatically. Editing a bid's numbers after it's already been marked active won't change the project it created — go to the Projects tab for that. Didn't win it? Archive it instead of deleting — it's kept below, searchable, in case you want to reference it later.</p>
         <div class="card">
           <h2 style="font-size:1rem;">Add a bid</h2>
           <div class="grid">
-            <div><label>Project name</label><input id="newBidName" type="text"></div>
+            <div style="grid-column:span 2;"><label>Project name</label><input id="newBidName" type="text" style="width:100%;box-sizing:border-box;"></div>
             <div><label>Client</label><select id="newBidClient"></select></div>
             <div><label>Bid amount ($)</label><input id="newBidAmount" type="number" step="0.01" min="0" placeholder="e.g. 8500.00"></div>
             <div><label>Date bid</label><input id="newBidDate" type="date"></div>
             <div><label>Square footage (optional)</label><input id="newBidSF" type="number" step="1" min="0"></div>
-            <div><label>Sheet count (optional)</label><input id="newBidSheets" type="number" step="1" min="0"></div>
+            <div><label>Time spent on this bid (hrs, optional)</label><input id="newBidHours" type="number" step="0.25" min="0" placeholder="e.g. 2.5"></div>
             <div style="grid-column:1/-1;"><label>Notes (optional)</label><input id="newBidNotes" type="text"></div>
+            <div style="grid-column:1/-1;"><label>Attach files (optional)</label><div id="newBidDropzone"></div></div>
           </div>
           <button class="secondary" onclick="addBid()">Add bid</button>
         </div>
@@ -487,6 +561,14 @@
           <input id="bidSearch" type="text" placeholder="Search bids by project or client…" style="max-width:320px;" oninput="renderBidsTable()">
         </div>
         <div class="table-wrap"><table id="bidsTable"></table></div>
+        <details id="archivedBidsDetails" style="margin-top:18px;">
+          <summary style="cursor:pointer;font-weight:600;color:var(--navy);padding:8px 0;">Archived bids (didn't win) — click to expand</summary>
+          <div class="row" style="margin-top:8px;">
+            <input id="archivedBidSearch" type="text" placeholder="Search archived bids by project or client…" style="max-width:320px;" oninput="renderArchivedBidsTable()">
+          </div>
+          <p class="note" style="margin:4px 0 8px;">Archiving a bid you didn't win keeps its numbers and files here for reference — restore it any time, or delete it permanently.</p>
+          <div class="table-wrap"><table id="archivedBidsTable"></table></div>
+        </details>
       </section>
 
       <!-- QUICKBOOKS INVOICES -->
@@ -663,27 +745,7 @@
     </div>
   </div>
 
-  <!-- ATTACH INVOICE PDF PROMPT — shown right after marking entries invoiced
-       (Reports tab), so the invoice PDF gets attached to its project(s) in the
-       same moment it's issued, instead of needing a separate backfill/rescan
-       pass later. Skippable — closing it just means doing it later, same as
-       dragging a PDF onto a project's own invoice dropzone. -->
-  <div id="attachInvoiceOverlay" class="file-viewer-overlay" style="display:none;" onclick="if(event.target===this) closeAttachInvoiceModal();">
-    <div class="file-viewer-modal" style="max-width:600px;height:auto;max-height:85vh;">
-      <div class="file-viewer-header">
-        <span class="file-viewer-title">Attach the invoice PDF?</span>
-        <div class="file-viewer-actions">
-          <button class="secondary" onclick="closeAttachInvoiceModal()">Skip for now</button>
-        </div>
-      </div>
-      <div class="file-viewer-body" style="overflow:auto;padding:16px;">
-        <p class="note" style="margin:0 0 12px;">You just marked these as invoiced. Drag the PDF (or PDFs) for this invoice in now so Bid vs. billed has the exact numbers — no need to come back and re-attach it later.</p>
-        <div id="attachInvoiceRows"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- IDLE TIMER PROMPT — shown when the stopwatch has been running with no keyboard/
+  <div id="attachInvoiceOverlay" class="file-viewer-overlay" style="display:none;" onclick="if(event.target===this) closeAttachInvoiceModal();"><div class="file-viewer-modal" style="max-width:600px;height:auto;max-height:85vh;"><div class="file-viewer-header"><span class="file-viewer-title">Attach the invoice PDF?</span><div class="file-viewer-actions"><button class="secondary" onclick="closeAttachInvoiceModal()">Skip for now</button></div></div><div class="file-viewer-body" style="overflow:auto;padding:16px;"><p class="note" style="margin:0 0 12px;">You just marked these as invoiced. Drag the PDF (or PDFs) for this invoice in now so Bid vs. billed has the exact numbers — no need to come back and re-attach it later.</p><div id="attachInvoiceRows"></div></div></div></div><!-- IDLE TIMER PROMPT — shown when the stopwatch has been running with no keyboard/
        mouse activity in this browser tab for a while, so a timer left running by
        accident doesn't silently bill hours you weren't actually working. -->
   <div id="idleOverlay" class="idle-overlay" style="display:none;">
@@ -1016,25 +1078,7 @@ async function dropboxGetTemporaryLink(path){
   const json = await resp.json();
   return json.link;
 }
-// Fetches a file's actual bytes (not just a link to it) via Dropbox's authenticated
-// download endpoint. Used by the file-viewer modal instead of get_temporary_link:
-// the temporary link is meant for direct browser navigation/download, and Dropbox
-// sometimes serves it with headers (Content-Disposition: attachment, or CORS/framing
-// restrictions on the dl.dropboxusercontent.com domain) that leave an <iframe src="">
-// pointed at it blank with no error — the fetch succeeds, the frame just never draws
-// anything. Downloading the bytes ourselves and handing the iframe a same-origin
-// blob: URL sidesteps all of that.
-async function dropboxDownloadFileBytes(path){
-  const ok = await ensureDropboxToken();
-  if(!ok) throw new Error('Not connected to Dropbox — go to the Data File tab and connect.');
-  const resp = await fetch('https://content.dropboxapi.com/2/files/download', {
-    method:'POST',
-    headers: { 'Authorization': 'Bearer ' + dropboxTokens.access_token, 'Dropbox-API-Arg': JSON.stringify({ path }) }
-  });
-  if(!resp.ok) throw new Error('Could not open that file (HTTP ' + resp.status + ')');
-  return await resp.arrayBuffer();
-}
-async function dropboxDeleteFile(path){
+async function dropboxDownloadFileBytes(path){ const ok = await ensureDropboxToken(); if(!ok) throw new Error('Not connected to Dropbox — go to the Data File tab and connect.'); const resp = await fetch('https://content.dropboxapi.com/2/files/download', { method:'POST', headers: { 'Authorization': 'Bearer ' + dropboxTokens.access_token, 'Dropbox-API-Arg': JSON.stringify({ path }) } }); if(!resp.ok) throw new Error('Could not open that file (HTTP ' + resp.status + ')'); return await resp.arrayBuffer(); } async function dropboxDeleteFile(path){
   const ok = await ensureDropboxToken();
   if(!ok) throw new Error('Not connected to Dropbox — go to the Data File tab and connect.');
   const resp = await fetch('https://api.dropboxapi.com/2/files/delete_v2', {
@@ -1319,6 +1363,7 @@ function showReloadBanner(text){
 function updateFileStatus(){
   const el = document.getElementById('fileStatus');
   const backupsCard = document.getElementById('backupsCard');
+  renderNewBidDropzone();
   if(storageMode === 'dropbox' && dropboxTokens){
     el.innerHTML = 'Connected: <b>Dropbox</b> (v' + (data ? data.version : '?') + ')';
     let detail = 'App-relative path this app reads/writes: <code>' + DROPBOX_FILE_PATH + '</code> — version ' + (data ? data.version : '?');
@@ -1478,12 +1523,41 @@ function showBackdatedState(startedAtMs){
   field.disabled = true;
   badge.textContent = 'Backdated — started ' + field.value;
   badge.style.display = '';
+  updateStartOverrideClearBtn();
 }
 function clearBackdatedState(){
   const field = document.getElementById('t-start-override');
   const badge = document.getElementById('backdateBadge');
   if(field){ field.disabled = false; field.value = ''; }
   if(badge) badge.style.display = 'none';
+  updateStartOverrideClearBtn();
+}
+// Shows the little (x) whenever there's something to clear — either typed text
+// before starting, or an already-applied backdate on a running timer.
+function updateStartOverrideClearBtn(){
+  const field = document.getElementById('t-start-override');
+  const btn = document.getElementById('t-start-clear');
+  if(!field || !btn) return;
+  btn.style.display = field.value.trim() ? '' : 'none';
+}
+// Undoes the "Actually started at" override. Before Start is clicked, this just
+// clears the typed text. If a backdated timer is already running, this resets
+// its start time to right now instead — for "didn't mean to backdate that."
+function clearStartOverride(){
+  const field = document.getElementById('t-start-override');
+  if(!field) return;
+  if(timerState && timerState.backdated){
+    if(!confirm('This timer was backdated to ' + field.value + '. Reset its start time to right now instead?')) return;
+    timerState.startedAt = Date.now();
+    timerState.backdated = false;
+    data.activeTimer = timerState;
+    clearBackdatedState();
+    updateTimerStartedLabel();
+    writeToFile();
+    return;
+  }
+  field.value = '';
+  updateStartOverrideClearBtn();
 }
 // Shows "Started at 2:14 PM" under the running stopwatch, so it's clear when the clock
 // actually began even without doing the elapsed-time math in your head.
@@ -1902,18 +1976,27 @@ async function addBid(){
   const bidAmount = parseFloat(document.getElementById('newBidAmount').value) || 0;
   const dateBid = document.getElementById('newBidDate').value || todayStr();
   const sf = parseFloat(document.getElementById('newBidSF').value) || 0;
-  const sheets = parseFloat(document.getElementById('newBidSheets').value) || 0;
+  const bidHours = parseFloat(document.getElementById('newBidHours').value) || 0;
   const notes = document.getElementById('newBidNotes').value.trim();
   if(!name){ alert('Enter a project name.'); return; }
   if(!clientId){ alert('Add a client first, then pick it here.'); return; }
-  data.bids.push({ id: uid(), name, clientId, bidAmount, dateBid, sf, sheets, notes, status:'pending', wonProjectId:null, wonAt:null, attachments:[] });
+  const newBidId = uid();
+  data.bids.push({ id: newBidId, name, clientId, bidAmount, dateBid, sf, sheets:0, bidHours, notes, status:'pending', wonProjectId:null, wonAt:null, archivedAt:null, attachments:[] });
   const ok = await writeToFile();
   if(!ok){ data.bids.pop(); return; }
   document.getElementById('newBidName').value = '';
   document.getElementById('newBidAmount').value = '';
   document.getElementById('newBidSF').value = '';
-  document.getElementById('newBidSheets').value = '';
+  document.getElementById('newBidHours').value = '';
   document.getElementById('newBidNotes').value = '';
+  // Any PDFs/docs dropped into the form while it was being filled out were only
+  // staged in memory (the bid had no id yet to attach them to) — upload them now
+  // that the bid record actually exists.
+  if(newBidPendingFiles.length){
+    const filesToUpload = newBidPendingFiles;
+    newBidPendingFiles = [];
+    await uploadBidAttachments(newBidId, filesToUpload);
+  }
   renderAll();
 }
 // Turns a pending bid into a real Bid/Fixed project — carries over client, bid
@@ -1926,12 +2009,26 @@ async function markBidActive(id){
   if(!confirm('Mark "' + bid.name + '" as active? This creates a real project (Bid/Fixed, $' + bid.bidAmount.toFixed(2) + ') so you can start tracking time against it.')) return;
   const newProject = { id: uid(), name: bid.name, clientId: bid.clientId, billingType:'Bid', color:'#2f7cf6', favorite:false, hourlyRate:0, bidAmount: bid.bidAmount, sf: bid.sf||0, sheets: bid.sheets||0, tasks:[], invoices:[], status:'Active', budgetAlertAcked:false };
   data.projects.push(newProject);
+  // Time already spent working up the bid transfers over as a one-time entry
+  // against the new project, so it's not lost/re-typed — a snapshot at the
+  // moment the bid is won, not a live link back to the bid's own hrs field.
+  let bidHoursEntry = null;
+  if(bid.bidHours && bid.bidHours > 0){
+    bidHoursEntry = {
+      id: uid(), projectId: newProject.id, date: todayStr(), description: 'Time spent preparing this bid', task: 'Bid prep',
+      startTime: new Date().toISOString(), endTime: new Date().toISOString(),
+      actualMinutes: roundToQuarterHour(bid.bidHours*60), roundedMinutes: roundToQuarterHour(bid.bidHours*60),
+      breakMinutes: 0, billable: true, source: 'bid', invoiced:false, invoiceBatchId:null, invoiceDate:null
+    };
+    data.entries.push(bidHoursEntry);
+  }
   bid.status = 'won';
   bid.wonProjectId = newProject.id;
   bid.wonAt = todayStr();
   const ok = await writeToFile();
   if(!ok){
     data.projects.pop();
+    if(bidHoursEntry) data.entries.pop();
     bid.status = 'pending'; bid.wonProjectId = null; bid.wonAt = null;
     return;
   }
@@ -1940,7 +2037,7 @@ async function markBidActive(id){
 async function deleteBid(id){
   const bid = data.bids.find(b=>b.id===id);
   const hasAttachments = bid && (bid.attachments||[]).length > 0;
-  const msg = 'Delete this bid record? (Use this for bids you lost or that fell through — a bid you already marked active/won can be deleted too, but that will not remove the project it created.)' +
+  const msg = 'Permanently delete this bid record? This cannot be undone. (If you just didn\'t win it, use "Archive" instead — it keeps the record and files around to look back on.)' +
     (hasAttachments ? ' Its ' + bid.attachments.length + ' attached file(s) will also be deleted from Dropbox.' : '');
   if(!confirm(msg)) return;
   if(hasAttachments){
@@ -1949,6 +2046,34 @@ async function deleteBid(id){
   data.bids = data.bids.filter(b=>b.id!==id);
   await writeToFile();
   renderBidsTable();
+}
+// Didn't win it — keep the bid (and its files) around for reference instead of
+// deleting. Moves it out of the main pending/won table into the collapsible
+// "Archived bids" section below, where it can still be searched, reopened, or
+// restored back to pending if it comes back to life.
+async function archiveBid(id){
+  const bid = data.bids.find(b=>b.id===id);
+  if(!bid) return;
+  if(!confirm('Archive "' + bid.name + '"? It\'ll move to the "Archived bids" section below (still searchable, with its files) instead of the main list. You can restore it any time.')) return;
+  const prevStatus = bid.status;
+  bid.status = 'archived';
+  bid.archivedAt = todayStr();
+  const ok = await writeToFile();
+  if(!ok){ bid.status = prevStatus; bid.archivedAt = null; return; }
+  renderAll();
+}
+// Brings an archived bid back into the main pending list — e.g. a client
+// revives a project that had gone quiet.
+async function restoreBid(id){
+  const bid = data.bids.find(b=>b.id===id);
+  if(!bid) return;
+  const prevStatus = bid.status;
+  const prevArchivedAt = bid.archivedAt;
+  bid.status = 'pending';
+  bid.archivedAt = null;
+  const ok = await writeToFile();
+  if(!ok){ bid.status = prevStatus; bid.archivedAt = prevArchivedAt; return; }
+  renderAll();
 }
 // Lets any bid field be edited later, even after it's been marked active/won —
 // e.g. correcting a bid amount, SF, or notes without having to delete and re-add it.
@@ -1960,6 +2085,51 @@ async function setBidField(id, field, value, isNumber){
   const ok = await writeToFile();
   if(!ok){ b[field] = prev; return; }
   renderBidsTable();
+}
+// --- Staging area for files dropped/picked in the "Add a bid" form itself, before
+// the bid has been saved (and so before it has a real id/attachment folder). Files
+// sit here in memory as plain File objects; addBid() uploads them as the new bid's
+// own attachments right after the bid record is created. ---
+let newBidPendingFiles = [];
+function renderNewBidDropzone(){
+  const el = document.getElementById('newBidDropzone');
+  if(!el) return;
+  if(storageMode !== 'dropbox'){
+    el.innerHTML = '<div style="font-size:.78rem;color:var(--muted);">Connect Dropbox (Data File tab) to attach files here.</div>';
+    return;
+  }
+  const chips = newBidPendingFiles.map((f,i) =>
+    '<span class="pill" style="display:inline-flex;align-items:center;gap:5px;background:#eef2fb;color:var(--navy);margin:2px 4px 2px 0;">' +
+      '<span title="'+(f.name||'').replace(/"/g,'&quot;')+'">📎 ' + (f.name && f.name.length>28 ? f.name.slice(0,25)+'…' : (f.name||'file')) + '</span>' +
+      '<span style="color:var(--muted);font-weight:400;">'+fmtFileSize(f.size)+'</span>' +
+      '<a href="#" onclick="removeNewBidPendingFile('+i+');return false;" style="color:var(--rust);text-decoration:none;font-weight:700;padding:0 2px;" title="Remove">&times;</a>' +
+    '</span>'
+  ).join('');
+  el.innerHTML = '<div class="bid-dropzone" id="newBidDropzoneInner" style="font-size:.8rem;border:1px dashed var(--border);border-radius:6px;padding:6px 8px;" ' +
+      'ondragover="event.preventDefault();event.stopPropagation();this.classList.add(\'drag-over\');" ' +
+      'ondragleave="this.classList.remove(\'drag-over\');" ' +
+      'ondrop="handleNewBidFileDrop(event);">' +
+    (chips ? '<div style="margin-bottom:4px;">' + chips + '</div>' : '') +
+    '<label class="secondary" style="display:inline-block;padding:4px 10px;font-size:.72rem;border:1px solid var(--border);border-radius:6px;cursor:pointer;color:var(--primary);" for="newBidFileInput">+ Add file (PDF, doc, photo)</label>' +
+    ' <span style="color:var(--muted);">or drag &amp; drop files here — they upload once you click "Add bid" below.</span>' +
+    '<input id="newBidFileInput" type="file" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.heic,.gif,.txt,.xlsx,.xls" style="display:none;" onchange="addNewBidPendingFiles(this.files); this.value=\'\';">';
+}
+function addNewBidPendingFiles(fileList){
+  if(!fileList || !fileList.length) return;
+  newBidPendingFiles = newBidPendingFiles.concat(Array.from(fileList));
+  renderNewBidDropzone();
+}
+function removeNewBidPendingFile(i){
+  newBidPendingFiles.splice(i,1);
+  renderNewBidDropzone();
+}
+function handleNewBidFileDrop(event){
+  event.preventDefault();
+  event.stopPropagation();
+  const inner = document.getElementById('newBidDropzoneInner');
+  if(inner) inner.classList.remove('drag-over');
+  const files = event.dataTransfer && event.dataTransfer.files;
+  if(files && files.length) addNewBidPendingFiles(files);
 }
 // --- Bid attachments (PDFs/docs/photos) — stored in Dropbox under /bid-attachments/<bidId>/,
 // so there's somewhere to drop files before a bid is won and gets its own real project folder. ---
@@ -2015,20 +2185,78 @@ async function deleteBidAttachment(bidId, attId){
   await writeToFile();
   renderBidsTable();
 }
+// --- Drag-out-to-Explorer/Finder support for bid attachments: Chrome/Edge can drag
+// a file straight onto the desktop or a folder window if dragstart puts a
+// "DownloadURL" entry on the dataTransfer pointing at a real, directly-fetchable
+// URL — the browser itself downloads it when you drop. A Dropbox temporary link
+// (no auth header needed to fetch) is exactly that, so it's fetched ahead of time
+// and cached per attachment — dragstart can't itself await an API call. ---
+let attachmentDragLinks = {};
+function mimeFromFilename(name){
+  const ext = (name || '').split('.').pop().toLowerCase();
+  const map = { pdf:'application/pdf', doc:'application/msword',
+    docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    xls:'application/vnd.ms-excel', xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    jpg:'image/jpeg', jpeg:'image/jpeg', png:'image/png', gif:'image/gif', heic:'image/heic', txt:'text/plain' };
+  return map[ext] || 'application/octet-stream';
+}
+async function prefetchAttachmentDragLink(attId, path){
+  try{
+    const link = await dropboxGetTemporaryLink(path);
+    attachmentDragLinks[attId] = link;
+  }catch(e){ /* dragging just won't work for this one until a retry re-renders the table */ }
+}
+function handleAttachmentDragStart(event, attId, filename){
+  const link = attachmentDragLinks[attId];
+  if(!link){
+    event.preventDefault();
+    alert('Still preparing "' + filename + '" for dragging — wait a couple seconds and try again.');
+    return;
+  }
+  event.dataTransfer.setData('DownloadURL', mimeFromFilename(filename) + ':' + filename + ':' + link);
+  event.dataTransfer.effectAllowed = 'copy';
+}
+// Downloads a bid attachment as a real file on disk (rather than opening the
+// in-app PDF.js viewer) — the point is to hand off to whatever the OS has set as
+// the default PDF app. There's no official way for a web page to launch Bluebeam
+// Revu directly by name (it has no public "open this remote file" URL scheme),
+// but Revu can be set as the Windows default PDF handler, and Chrome's download
+// tray has a one-click "Open" once the file lands — so this gets there in two
+// clicks instead of a manual save-then-browse.
+async function downloadBidAttachmentToOpenExternally(bidId, attId){
+  const bid = data.bids.find(b=>b.id===bidId);
+  const att = bid && (bid.attachments||[]).find(a=>a.id===attId);
+  if(!att) return;
+  try{
+    const bytes = await dropboxDownloadFileBytes(att.path);
+    const blob = new Blob([bytes], { type: mimeFromFilename(att.name) });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = att.name || 'file';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 30000);
+  }catch(e){
+    alert('Could not download "' + (att.name||'file') + '": ' + e.message);
+  }
+}
 // Builds the little "Attachments" strip under each bid row: existing files as
 // removable chips, plus an upload control (disabled with an explanation if Dropbox
 // isn't connected, since that's where the files actually live).
 function bidAttachmentsHtml(b){
   const attachments = b.attachments || [];
-  const chips = attachments.map(a =>
-    '<span class="pill" style="display:inline-flex;align-items:center;gap:5px;background:#eef2fb;color:var(--navy);margin:2px 4px 2px 0;">' +
+  const chips = attachments.map(a => {
+    prefetchAttachmentDragLink(a.id, a.path); // fire-and-forget — ready well before a user manages to grab and drag it
+    const isPdf = /\.pdf$/i.test(a.name || '');
+    return '<span class="pill" draggable="true" ondragstart="handleAttachmentDragStart(event,\''+a.id+'\',\''+(a.name||'file').replace(/\'/g,"\\'")+'\')" title="Drag this onto a folder or your desktop to save it there" style="display:inline-flex;align-items:center;gap:5px;background:#eef2fb;color:var(--navy);margin:2px 4px 2px 0;cursor:grab;">' +
+      '<span style="color:var(--steel);">⠿</span>' +
       '<a href="#" onclick="openBidAttachment(\''+b.id+'\',\''+a.id+'\');return false;" style="color:var(--primary);text-decoration:none;font-weight:600;" title="'+(a.name||'').replace(/"/g,'&quot;')+'">📎 ' +
         (a.name && a.name.length > 28 ? a.name.slice(0,25)+'…' : (a.name||'file')) +
       '</a>' +
       '<span style="color:var(--muted);font-weight:400;">'+fmtFileSize(a.size)+'</span>' +
+      (isPdf ? '<a href="#" onclick="downloadBidAttachmentToOpenExternally(\''+b.id+'\',\''+a.id+'\');return false;" style="color:var(--primary);text-decoration:none;font-weight:600;padding:0 2px;" title="Download this PDF, then open it — if Bluebeam Revu is set as your default PDF app, it\'ll launch there">↗ Bluebeam</a>' : '') +
       '<a href="#" onclick="deleteBidAttachment(\''+b.id+'\',\''+a.id+'\');return false;" style="color:var(--rust);text-decoration:none;font-weight:700;padding:0 2px;" title="Remove">×</a>' +
-    '</span>'
-  ).join('');
+    '</span>';
+  }).join('');
   if(storageMode !== 'dropbox'){
     return '<div style="font-size:.78rem;color:var(--muted);">' + chips +
       (chips ? '<br>' : '') + 'Connect Dropbox (Data File tab) to attach files to bids.</div>';
@@ -2121,102 +2349,7 @@ async function uploadProjectInvoices(projectId, fileList){
   if(!ok){ alert('Files uploaded to Dropbox, but the project record didn\'t save — reload the file (Data File tab) and check before uploading again.'); }
   renderProjectsTable();
 }
-/* ============================================================
-   ATTACH-INVOICE-AFTER-MARKING PROMPT
-   Fired right after markDayGroupInvoiced/markGroupInvoiced/markReportInvoiced
-   successfully save, so the PDF gets attached to its project(s) at the moment
-   the invoice is issued — same drag-and-drop + pdf.js metadata extraction as
-   a project's own invoice dropzone, just surfaced immediately instead of
-   requiring a trip to Projects and a "Read amounts from PDF" backfill later.
-   ============================================================ */
-let attachInvoiceQueue = [];
-function promptAttachInvoicePdf(projectIds, ref, invoiceDate){
-  if(storageMode !== 'dropbox') return; // nothing to attach to without Dropbox
-  const uniqueIds = [...new Set(projectIds)].filter(Boolean);
-  if(!uniqueIds.length) return;
-  attachInvoiceQueue = uniqueIds.map(pid => ({
-    projectId: pid,
-    projectName: projectName(pid),
-    ref, invoiceDate,
-    done: false
-  }));
-  renderAttachInvoiceModal();
-  document.getElementById('attachInvoiceOverlay').style.display = 'flex';
-}
-function closeAttachInvoiceModal(){
-  document.getElementById('attachInvoiceOverlay').style.display = 'none';
-  attachInvoiceQueue = [];
-}
-function renderAttachInvoiceModal(){
-  const box = document.getElementById('attachInvoiceRows');
-  if(!box) return;
-  box.innerHTML = attachInvoiceQueue.map((row, idx) => {
-    if(row.done){
-      return '<div style="padding:8px 10px;margin-bottom:8px;border:1px solid var(--ok);border-radius:6px;background:#eafaf1;color:var(--ok);font-weight:600;">✓ ' + row.projectName + ' — attached</div>';
-    }
-    const inputId = 'attach-invoice-input-' + idx;
-    return '<div class="project-dropzone" id="attach-invoice-dropzone-'+idx+'" style="font-size:.85rem;border:1px dashed var(--border);border-radius:6px;padding:8px 10px;margin-bottom:8px;" ' +
-        'ondragover="event.preventDefault();event.stopPropagation();this.classList.add(\'drag-over\');" ' +
-        'ondragleave="this.classList.remove(\'drag-over\');" ' +
-        'ondrop="handleAttachInvoiceDrop(event,'+idx+');">' +
-      '<div style="font-weight:600;margin-bottom:4px;">' + row.projectName + (row.ref ? ' <span style="color:var(--muted);font-weight:400;">(QB# '+row.ref+')</span>' : '') + '</div>' +
-      '<label class="secondary" style="display:inline-block;padding:4px 10px;font-size:.72rem;border:1px solid var(--border);border-radius:6px;cursor:pointer;color:var(--primary);" for="'+inputId+'">+ Choose PDF</label>' +
-      ' <span style="color:var(--muted);">or drag &amp; drop here</span>' +
-      '<input id="'+inputId+'" type="file" multiple accept=".pdf" style="display:none;" onchange="handleAttachInvoiceFiles('+idx+', this.files); this.value=\'\';">' +
-      ' <span id="attach-invoice-status-'+idx+'" style="color:var(--steel);"></span>' +
-    '</div>';
-  }).join('');
-  // Once every row is attached, there's nothing left to do here.
-  if(attachInvoiceQueue.length && attachInvoiceQueue.every(r=>r.done)){
-    setTimeout(closeAttachInvoiceModal, 900);
-  }
-}
-function handleAttachInvoiceDrop(event, idx){
-  event.preventDefault(); event.stopPropagation();
-  const zone = document.getElementById('attach-invoice-dropzone-'+idx);
-  if(zone) zone.classList.remove('drag-over');
-  const files = event.dataTransfer && event.dataTransfer.files;
-  if(files && files.length) handleAttachInvoiceFiles(idx, files);
-}
-async function handleAttachInvoiceFiles(idx, fileList){
-  const row = attachInvoiceQueue[idx];
-  if(!row || row.done || !fileList || !fileList.length) return;
-  const statusEl = document.getElementById('attach-invoice-status-'+idx);
-  const files = Array.from(fileList);
-  for(let i=0; i<files.length; i++){
-    const file = files[i];
-    if(statusEl) statusEl.textContent = 'Uploading ' + (i+1) + ' of ' + files.length + '…';
-    try{
-      const buf = await file.arrayBuffer();
-      let meta = { number: row.ref || null, date: row.invoiceDate || null, amount: null };
-      if(typeof pdfjsLib !== 'undefined' && /\.pdf$/i.test(file.name)){
-        try{
-          const pdfjsDoc = await pdfjsLib.getDocument({ data: buf.slice(0) }).promise;
-          const content = await (await pdfjsDoc.getPage(1)).getTextContent();
-          const text = content.items.map(it=>it.str).join(' ');
-          meta.number = qbExtractInvoiceNumber(text) || meta.number;
-          meta.date = qbExtractInvoiceDate(text) || meta.date;
-          meta.amount = qbExtractBalanceDue(text);
-        }catch(parseErr){ /* not parseable — still attach with what we already know (ref/date) */ }
-      }
-      await saveProjectInvoiceBytes(row.projectId, file.name, buf, file.size, meta);
-    }catch(e){
-      alert('Failed to attach "' + file.name + '": ' + e.message);
-      if(statusEl) statusEl.textContent = '';
-      return;
-    }
-  }
-  const ok = await writeToFile();
-  if(!ok){
-    alert('The PDF attached, but saving didn\'t go through — check the reload banner and try again from the project\'s own invoice dropzone.');
-    if(statusEl) statusEl.textContent = '';
-    return;
-  }
-  row.done = true;
-  renderAttachInvoiceModal();
-  renderProjectsTable();
-}
-async function openProjectInvoice(projectId, attId){
+let attachInvoiceQueue = []; function promptAttachInvoicePdf(projectIds, ref, invoiceDate){ if(storageMode !== 'dropbox') return; const uniqueIds = [...new Set(projectIds)].filter(Boolean); if(!uniqueIds.length) return; attachInvoiceQueue = uniqueIds.map(pid => ({ projectId: pid, projectName: projectName(pid), ref, invoiceDate, done: false })); renderAttachInvoiceModal(); document.getElementById('attachInvoiceOverlay').style.display = 'flex'; } function closeAttachInvoiceModal(){ document.getElementById('attachInvoiceOverlay').style.display = 'none'; attachInvoiceQueue = []; } function renderAttachInvoiceModal(){ const box = document.getElementById('attachInvoiceRows'); if(!box) return; box.innerHTML = attachInvoiceQueue.map((row, idx) => { if(row.done){ return '<div style="padding:8px 10px;margin-bottom:8px;border:1px solid var(--ok);border-radius:6px;background:#eafaf1;color:var(--ok);font-weight:600;">✓ ' + row.projectName + ' — attached</div>'; } const inputId = 'attach-invoice-input-' + idx; return '<div class="project-dropzone" id="attach-invoice-dropzone-'+idx+'" style="font-size:.85rem;border:1px dashed var(--border);border-radius:6px;padding:8px 10px;margin-bottom:8px;" ' + 'ondragover="event.preventDefault();event.stopPropagation();this.classList.add(\'drag-over\');" ' + 'ondragleave="this.classList.remove(\'drag-over\');" ' + 'ondrop="handleAttachInvoiceDrop(event,'+idx+');">' + '<div style="font-weight:600;margin-bottom:4px;">' + row.projectName + (row.ref ? ' <span style="color:var(--muted);font-weight:400;">(QB# '+row.ref+')</span>' : '') + '</div>' + '<label class="secondary" style="display:inline-block;padding:4px 10px;font-size:.72rem;border:1px solid var(--border);border-radius:6px;cursor:pointer;color:var(--primary);" for="'+inputId+'">+ Choose PDF</label>' + ' <span style="color:var(--muted);">or drag &amp; drop here</span>' + '<input id="'+inputId+'" type="file" multiple accept=".pdf" style="display:none;" onchange="handleAttachInvoiceFiles('+idx+', this.files); this.value=\'\';">' + ' <span id="attach-invoice-status-'+idx+'" style="color:var(--steel);"></span>' + '</div>'; }).join(''); if(attachInvoiceQueue.length && attachInvoiceQueue.every(r=>r.done)){ setTimeout(closeAttachInvoiceModal, 900); } } function handleAttachInvoiceDrop(event, idx){ event.preventDefault(); event.stopPropagation(); const zone = document.getElementById('attach-invoice-dropzone-'+idx); if(zone) zone.classList.remove('drag-over'); const files = event.dataTransfer && event.dataTransfer.files; if(files && files.length) handleAttachInvoiceFiles(idx, files); } async function handleAttachInvoiceFiles(idx, fileList){ const row = attachInvoiceQueue[idx]; if(!row || row.done || !fileList || !fileList.length) return; const statusEl = document.getElementById('attach-invoice-status-'+idx); const files = Array.from(fileList); for(let i=0; i<files.length; i++){ const file = files[i]; if(statusEl) statusEl.textContent = 'Uploading ' + (i+1) + ' of ' + files.length + '…'; try{ const buf = await file.arrayBuffer(); let meta = { number: row.ref || null, date: row.invoiceDate || null, amount: null }; if(typeof pdfjsLib !== 'undefined' && /\.pdf$/i.test(file.name)){ try{ const pdfjsDoc = await pdfjsLib.getDocument({ data: buf.slice(0) }).promise; const content = await (await pdfjsDoc.getPage(1)).getTextContent(); const text = content.items.map(it=>it.str).join(' '); meta.number = qbExtractInvoiceNumber(text) || meta.number; meta.date = qbExtractInvoiceDate(text) || meta.date; meta.amount = qbExtractBalanceDue(text); }catch(parseErr){ } } await saveProjectInvoiceBytes(row.projectId, file.name, buf, file.size, meta); }catch(e){ alert('Failed to attach "' + file.name + '": ' + e.message); if(statusEl) statusEl.textContent = ''; return; } } const ok = await writeToFile(); if(!ok){ alert('The PDF attached, but saving didn\'t go through — check the reload banner and try again from the project\'s own invoice dropzone.'); if(statusEl) statusEl.textContent = ''; return; } row.done = true; renderAttachInvoiceModal(); renderProjectsTable(); } async function openProjectInvoice(projectId, attId){
   const p = data.projects.find(p=>p.id===projectId);
   const list = p ? (p.invoices||[]) : [];
   const idx = list.findIndex(a=>a.id===attId);
@@ -2242,12 +2375,7 @@ async function openFileViewer(list, index){
 function closeFileViewer(){
   document.getElementById('fileViewerOverlay').style.display = 'none';
   document.getElementById('fileViewerFrame').src = '';
-  revokeFileViewerObjectUrl();
-  document.removeEventListener('keydown', fileViewerKeyHandler);
-}
-let fileViewerObjectUrl = null;
-function revokeFileViewerObjectUrl(){
-  if(fileViewerObjectUrl){ URL.revokeObjectURL(fileViewerObjectUrl); fileViewerObjectUrl = null; }
+  revokeFileViewerObjectUrl(); document.removeEventListener('keydown', fileViewerKeyHandler); } let fileViewerObjectUrl = null; function revokeFileViewerObjectUrl(){ if(fileViewerObjectUrl){ URL.revokeObjectURL(fileViewerObjectUrl); fileViewerObjectUrl = null; } } function fileViewerKeyHandler(e){
 }
 function fileViewerKeyHandler(e){
   if(e.key === 'Escape') closeFileViewer();
@@ -2275,16 +2403,13 @@ async function renderFileViewerCurrent(){
   prevBtn.disabled = fileViewerIndex <= 0;
   nextBtn.disabled = fileViewerIndex >= fileViewerList.length-1;
   frame.src = '';
-  revokeFileViewerObjectUrl();
   try{
-    // Download the actual bytes and hand the iframe a same-origin blob: URL —
-    // more reliable than pointing it straight at Dropbox's temporary link, which
-    // sometimes renders blank with no error (see dropboxDownloadFileBytes above).
-    const bytes = await dropboxDownloadFileBytes(att.path);
-    const blob = new Blob([bytes], { type: 'application/pdf' });
-    fileViewerObjectUrl = URL.createObjectURL(blob);
-    frame.src = fileViewerObjectUrl;
-    openTabEl.href = fileViewerObjectUrl;
+    revokeFileViewerObjectUrl(); const bytes = await dropboxDownloadFileBytes(att.path); const blob = new Blob([bytes], { type: 'application/pdf' }); fileViewerObjectUrl = URL.createObjectURL(blob); const link = fileViewerObjectUrl;
+    // Dropbox's temporary link serves the raw PDF with the right content-type,
+    // so the browser's built-in PDF viewer renders it right in the iframe —
+    // no download prompt, no separate tab.
+    frame.src = link;
+    openTabEl.href = link;
   }catch(e){
     frame.srcdoc = '<p style="font-family:sans-serif;padding:20px;color:#a33;">Couldn\'t load "' + (att.name||'').replace(/"/g,'&quot;') + '": ' + e.message.replace(/"/g,'&quot;') + '</p>';
     openTabEl.href = '#';
@@ -2696,71 +2821,7 @@ function qbDetectGroups(pageTexts){
 // NAME at match time (not a baked-in id) so this survives a project rename;
 // if a name below no longer exists, that row just falls through to the
 // normal heuristics/keyword matching below like any unrecognized invoice.
-const QB_CONFIRMED_INVOICE_MAP = {
-  '1155': "ROY RESIDENCE",
-  '1074': "Willamina Sawmill",
-  '1075': "Willamina Sawmill",
-  '1076': "Willamina Sawmill",
-  '1077': "Willamina Sawmill",
-  '1078': "Willamina Sawmill",
-  '1079': "Willamina Sawmill",
-  '1080': "Willamina Sawmill",
-  '1081': "Dryer One",
-  '1082': "Ione School",
-  '1083': "Willamina Sawmill",
-  '1084': "Dryer One",
-  '1085': "Ione School",
-  '1086': "Willamina Sawmill",
-  '1087': "Barnard",
-  '1088': "Willamina Merch PEMB Addition",
-  '1089': "Dryer One",
-  '1090': "Willamina Sawmill",
-  '1091': "Darrington Mill",
-  '1093': "Dryer One",
-  '1095': "Dryer One",
-  '1096': "Darrington Mill",
-  '1097': "Willamina Sawmill",
-  '1098': "Barnard",
-  '1099': "Willamina Sawmill",
-  '1100': "Darrington Mill",
-  '1101': "Dryer One",
-  '1103': "Dryer One",
-  '1102': "Willamina Sawmill",
-  '1104': "Darrington Mill",
-  '1105': "Barbur",
-  '1106': "Dryer One",
-  '1107': "Willamina Sawmill",
-  '1108': "Dryer One",
-  '1109': "Darrington Mill",
-  '1110': "Dryer One",
-  '1111': "Darrington Mill",
-  '1112': "Willamina Sawmill",
-  '1113': "Willamina Sawmill",
-  '1114': "Darrington Mill",
-  '1115': "Dryer One",
-  '1116': "Willamina Sawmill",
-  '1117': "Darrington Mill",
-  '1118': "TILAMOOK",
-  '1119': "Dryer One",
-  '1120': "Darrington Mill",
-  '1121': "Willamina Sawmill",
-  '1122': "Dryer One",
-  '1123': "MMJR Warehouse PEMB",
-  '1124': "Darrington Mill",
-  '1125': "Dryer One",
-  '1126': "Ione School",
-  '1127': "Kennewick Dental",
-  '1128': "Darrington Mill",
-  '1129': "Willamina Sawmill",
-  '1130': "Dryer One",
-  '1131': "24-024 WW POLE BUILDING",
-  '1132': "Darrington Mill",
-  '1133': "Stonecrest PEMB",
-  '1134': "Kanneganti",
-  '1135': "Darrington Mill",
-  '1136': "TILAMOOK"
-
-};
+const QB_CONFIRMED_INVOICE_MAP = {   '1155': "ROY RESIDENCE",   '1074': "Willamina Sawmill",   '1075': "Willamina Sawmill",   '1076': "Willamina Sawmill",   '1077': "Willamina Sawmill",   '1078': "Willamina Sawmill",   '1079': "Willamina Sawmill",   '1080': "Willamina Sawmill",   '1081': "Dryer One",   '1082': "Ione School",   '1083': "Willamina Sawmill",   '1084': "Dryer One",   '1085': "Ione School",   '1086': "Willamina Sawmill",   '1087': "Barnard",   '1088': "Willamina Merch PEMB Addition",   '1089': "Dryer One",   '1090': "Willamina Sawmill",   '1091': "Darrington Mill",   '1093': "Dryer One",   '1095': "Dryer One",   '1096': "Darrington Mill",   '1097': "Willamina Sawmill",   '1098': "Barnard",   '1099': "Willamina Sawmill",   '1100': "Darrington Mill",   '1101': "Dryer One",   '1103': "Dryer One",   '1102': "Willamina Sawmill",   '1104': "Darrington Mill",   '1105': "Barbur",   '1106': "Dryer One",   '1107': "Willamina Sawmill",   '1108': "Dryer One",   '1109': "Darrington Mill",   '1110': "Dryer One",   '1111': "Darrington Mill",   '1112': "Willamina Sawmill",   '1113': "Willamina Sawmill",   '1114': "Darrington Mill",   '1115': "Dryer One",   '1116': "Willamina Sawmill",   '1117': "Darrington Mill",   '1118': "TILAMOOK",   '1119': "Dryer One",   '1120': "Darrington Mill",   '1121': "Willamina Sawmill",   '1122': "Dryer One",   '1123': "MMJR Warehouse PEMB",   '1124': "Darrington Mill",   '1125': "Dryer One",   '1126': "Ione School",   '1127': "Kennewick Dental",   '1128': "Darrington Mill",   '1129': "Willamina Sawmill",   '1130': "Dryer One",   '1131': "24-024 WW POLE BUILDING",   '1132': "Darrington Mill",   '1133': "Stonecrest PEMB",   '1134': "Kanneganti",   '1135': "Darrington Mill",   '1136': "TILAMOOK",   '1137': "Chen Residence",   '1138': "Canyon Lakes Golf Pro Shop",   '1139': "Darrington Mill",   '1140': "Dryer One",   '1141': "Pavlov PEMB",   '1142': "MMJR Warehouse PEMB",   '1143': "Canyon Lakes Golf Pro Shop",   '1144': "Darrington Mill",   '1145': "Morton E-house",   '1146': "Dryer One",   '1147': "Van Giesen PEMB",   '1148': "ROY RESIDENCE",   '1149': "Corwin Spokane Ford Building",   '1150': "Darrington Mill",   '1151': "Canyon Lakes Golf Pro Shop",   '1152': "Corwin Spokane Ford Building",   '1153': "Darrington Mill",   '1154': "Chen Residence",   '1156': "Darrington Mill",   '1157': "St. Thomas Project",   '1158': "Canyon Lakes Maint. Shop Addition",   '1159': "LCR - Corwin Ford Wall Modification",   '1160': "LCR - Canyon Lakes Pro Shop",   '1162': "Canyon Lakes Maint. Shop Addition",   '1163': "LCR - Canyon Lakes Pro Shop",   '1164': "LCR - St. Thomas Project",   '1165': "Darrington Mill",   '1166': "Woodgrain Log Loader Platform",   '1167': "Chen Residence",   '1168': "LCR - St. Thomas Project",   '1169': "LCR - Duck Pond Bar & Grill",   '1170': "Willamina Sawmill",   '1171': "Darrington Mill",   '1172': "Woodgrain Log Loader Platform",   '1173': "Pavlov PEMB",   '1174': "Woodgrain Log Loader Platform",   '1175': "Chen Residence",   '1176': "Darrington Mill",   '1177': "DKEI - Osprey Pointe",   '1178': "Cupertino Pole Building",   '1180': "LCR - Canyon Lakes Pro Shop",   '1181': "LCR - Corwin Spokane",   '1182': "LCR - Corwin Pasco",   '1183': "DKEI - Osprey Pointe",   '1184': "Woodgrain Log Loader Platform",   '1185': "Puri-T Welding PEMB",   '1186': "LCR - St. Thomas Project",   '1187': "LCR - Corwin Pasco",   '1188': "LCR - Corwin Spokane",   '1189': "LCR - Duck Pond",   '1191': "DKEI - Osprey Pointe",   '1192': "LCR - Corwin Spokane",   '1193': "LCR - Duck Pond",   '1194': "LCR - Corwin Pasco",   '1195': "Darrington Mill",   '1196': "Jager PEMB",   '1197': "LCR - Corwin Pasco",   '1198': "Cupertino Pole Building",   '1199': "LCR - St. Thomas Project",   '1200': "LCR - Duck Pond",   '1201': "LCR - Corwin Spokane",   '1202': "LCR - Corwin Spokane",   '1203': "LCR - Corwin Pasco",   '1204': "AZ Dental",   '1205': "Crook PEMB",   '1206': "Swensen Timber Frame",   '1207': "ROY RESIDENCE",   '1208': "LCR - Friends Corner",   '1209': "LCR - Corwin Pasco",   '1210': "LCR - Duck Pond",   '1212': "Equipment Purchase",   '1213': "LCR - Corwin Pasco",   '1214': "LCR - Friends Corner",   '1216': "Bella Vita",   '1218': "LCR - Corwin Pasco",   '1219': "Bella Vita",   '1220': "Valle Commercial Building",   '1221': "Prairie City Bowstring Truss",   '1222': "Econolodge",   '1223': "LCR - Corwin Pasco",   '1224': "Prairie City Bowstring Truss",   '1225': "Desert Sage Dental",   '1226': "Bella Vita",   '1227': "Econolodge",   '1228': "Valle Commercial Building",   '1231': "Agnema Lab Building",   '1232': "Desert Sage Dental",   '1233': "Econolodge",   '1234': "River Ranch - Starter Shack",   '1235': "Valle Commercial Building",   '1161': "Boeing Gantry Mill Foundation Shoring",   '1179': "SW 54th Ave Residence",   '1190': "FBO Historic Columbia River",   '1211': "Barbur",   '1217': "Willamette View Skyline",   '1229': "Willamette View",   '1230': "Pacific City Transfer Station",   '1236': "Barbur",   '1237': "Beaver Creek Pedestrian Bridge",   '1238': "Willamette View" };
 // Distinctive single/short phrases derived from Matt's confirmed batch above —
 // one clearly-unique identifying word per project, cross-checked against every
 // OTHER confirmed project's invoice text so it doesn't also fire on the wrong
@@ -2805,23 +2866,18 @@ const QB_KEYWORD_TEACH = {
 // next time).
 function qbGuessProject(billToText, fullText, invoiceNumber){
   if(invoiceNumber){
-    const num = invoiceNumber.trim();
-    // Cross-reference the live Dropbox data first: if this invoice number is
-    // already attached to (or recorded on) a project from an earlier import,
-    // that's ground truth — trust it over any keyword guess, and it's far
-    // more complete than the old hand-typed QB_CONFIRMED_INVOICE_MAP below
-    // (which only covers invoices #1074-#1155 from one early review pass).
-    for(const p of data.projects){
-      for(const a of (p.invoices||[])){
-        const n = (a.invoiceNumber || qbInvoiceNumberFromFilename(a.name||'') || '').trim();
-        if(n && n === num) return p.id;
-      }
-    }
-    if(QB_CONFIRMED_INVOICE_MAP[num]){
-      const wantName = QB_CONFIRMED_INVOICE_MAP[num];
-      const hit = data.projects.find(p=>p.name === wantName);
-      if(hit) return hit.id;
-    }
+const num = invoiceNumber.trim();
+for(const p of data.projects){
+for(const a of (p.invoices||[])){
+const n = (a.invoiceNumber || qbInvoiceNumberFromFilename(a.name||'') || '').trim();
+if(n && n === num) return p.id;
+}
+}
+if(QB_CONFIRMED_INVOICE_MAP[num]){
+const wantName = QB_CONFIRMED_INVOICE_MAP[num];
+const hit = data.projects.find(p=>p.name === wantName);
+if(hit) return hit.id;
+}
   }
   const nameHay = (fullText || billToText || '').toLowerCase();
   const clientHay = (billToText || '').toLowerCase();
@@ -3074,14 +3130,14 @@ function handleInvoiceCsvFile(evt){
     let headerIdx = 0;
     for(let i=0; i<Math.min(allRows.length, 10); i++){
       const lower = allRows[i].map(c=>(c||'').trim().toLowerCase());
-      if(lower.some(c=>c==='date') && lower.some(c=>['amount','total','open balance','balance','invoice amount'].includes(c))){
+      if(lower.some(c=>c.includes('date')) && lower.some(c=>['amount','total','open balance','balance','invoice amount','sales price'].some(k=>c.includes(k)))){
         headerIdx = i;
         break;
       }
     }
     const headers = allRows[headerIdx];
     const iNum = findCol(headers, 'num', 'invoice no', 'invoice no.', 'invoice #', 'invoice number', 'no.', 'no');
-    const iDate = findCol(headers, 'date', 'invoice date', 'created date', 'txn date');
+    const iDate = findCol(headers, 'date', 'invoice date', 'created date', 'txn date', 'transaction date');     const iDescription = findCol(headers, 'description', 'memo', 'memo/description', 'product/service full name', 'product/service');
     const iCustomer = findCol(headers, 'customer', 'customer full name', 'customer name', 'name', 'bill to');
     const iAmount = findCol(headers, 'amount', 'total', 'open balance', 'balance', 'invoice amount');
     const iType = findCol(headers, 'transaction type', 'type');
@@ -3095,7 +3151,7 @@ function handleInvoiceCsvFile(evt){
       // export includes other transaction types).
       if(iType !== -1 && !/invoice/i.test(row[iType]||'')) continue;
       const invoiceNumber = iNum!==-1 ? (row[iNum]||'').trim() : '';
-      const customer = iCustomer!==-1 ? (row[iCustomer]||'').trim() : '';
+      const customer = iCustomer!==-1 ? (row[iCustomer]||'').trim() : '';       const description = iDescription!==-1 ? (row[iDescription]||'').trim() : '';
       const rawDate = iDate!==-1 ? (row[iDate]||'').trim() : '';
       const rawAmount = (row[iAmount]||'').replace(/[^0-9.\-]/g,'');
       const amount = rawAmount ? parseFloat(rawAmount) : null;
@@ -3106,8 +3162,8 @@ function handleInvoiceCsvFile(evt){
       const dm = /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/.exec(rawDate);
       if(dm){ let [, mo, d, y] = dm; if(y.length===2) y = (Number(y)<70?'20':'19')+y; date = y+'-'+mo.padStart(2,'0')+'-'+d.padStart(2,'0'); }
       else if(/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) date = rawDate;
-      const projectId = qbGuessProject(customer, customer, invoiceNumber);
-      invCsvRows.push({ id: uid(), invoiceNumber, date, customer, amount, projectId });
+      const projectId = qbGuessProject(customer, customer + ' ' + description, invoiceNumber);
+      invCsvRows.push({ id: uid(), invoiceNumber, date, customer, amount, description, projectId });
     }
     if(statusEl) statusEl.textContent = invCsvRows.length + ' row(s) parsed.';
     renderInvCsvReview();
@@ -3125,14 +3181,14 @@ function renderInvCsvReview(){
   card.style.display = invCsvRows.length ? '' : 'none';
   if(!invCsvRows.length){ el.innerHTML = ''; return; }
   const projectOpts = '<option value="">— skip —</option>' + sortedProjects().map(p=>'<option value="'+p.id+'">'+(p.favorite?'★ ':'')+p.name+' ('+clientName(p.clientId)+')</option>').join('');
-  let html = '<tr><th style="width:100px;">Invoice #</th><th style="width:100px;">Date</th><th>Customer (from CSV)</th><th style="width:100px;">Amount</th><th style="width:220px;">Project</th></tr>';
+  let html = '<tr><th style="width:100px;">Invoice #</th><th style="width:100px;">Date</th><th>Customer (from CSV)</th><th>Description</th><th style="width:100px;">Amount</th><th style="width:220px;">Project</th></tr>';
   for(const r of invCsvRows){
     const rowClass = r.projectId ? 'matched' : 'unmatched';
     const optsForRow = projectOpts.replace('value="'+r.projectId+'"', 'value="'+r.projectId+'" selected');
     html += '<tr class="qb-invoice-row '+rowClass+'">' +
       '<td>'+(r.invoiceNumber||'—').replace(/</g,'&lt;')+'</td>' +
       '<td>'+(r.date||'—')+'</td>' +
-      '<td>'+(r.customer||'').replace(/</g,'&lt;')+'</td>' +
+      '<td>'+(r.customer||'').replace(/</g,'&lt;')+'</td>' +       '<td style="font-size:.78rem;color:var(--steel);" title="'+(r.description||'').replace(/"/g,'&quot;')+'">'+(r.description ? (r.description.length>90?r.description.slice(0,87)+'…':r.description) : '<span class="note">—</span>')+'</td>' +
       '<td>$'+r.amount.toFixed(2)+'</td>' +
       '<td><select style="width:100%;box-sizing:border-box;" onchange="invCsvSetRowProject(\''+r.id+'\', this.value)">'+optsForRow+'</select></td>' +
     '</tr>';
@@ -3190,8 +3246,9 @@ function renderBidsTable(){
   if(!data) return;
   const filter = document.getElementById('bidStatusFilter').value;
   const search = (document.getElementById('bidSearch').value || '').trim().toLowerCase();
-  let html = '<tr><th style="width:110px;">Date bid</th><th style="width:200px;">Project</th><th style="width:150px;">Client</th><th style="width:110px;">Bid amount</th><th style="width:75px;">SF</th><th style="width:70px;">Sheets</th><th style="width:80px;">$/SF</th><th style="width:120px;">Status</th><th style="width:150px;"></th></tr>';
+  let html = '<tr><th style="width:110px;">Date bid</th><th style="width:280px;">Project</th><th style="width:150px;">Client</th><th style="width:110px;">Bid amount</th><th style="width:75px;">SF</th><th style="width:80px;">$/SF</th><th style="width:90px;">Bid hrs</th><th style="width:120px;">Status</th><th style="width:190px;"></th></tr>';
   const list = data.bids.filter(b => {
+    if(b.status === 'archived') return false; // archived bids live in their own section below
     if(filter && b.status !== filter) return false;
     if(search){
       const clientN = clientName(b.clientId).toLowerCase();
@@ -3207,6 +3264,7 @@ function renderBidsTable(){
     const actionHtml = b.status === 'won'
       ? '<button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="deleteBid(\''+b.id+'\')">Delete</button>'
       : '<button onclick="markBidActive(\''+b.id+'\')" style="padding:4px 8px;font-size:.72rem;">Mark active</button> ' +
+        '<button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="archiveBid(\''+b.id+'\')" title="Didn\'t win it — keep it for reference instead of deleting">Archive</button> ' +
         '<button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="deleteBid(\''+b.id+'\')">Delete</button>';
     const clientOpts = data.clients.map(c=>'<option value="'+c.id+'"'+(c.id===b.clientId?' selected':'')+'>'+c.name+'</option>').join('');
     html += '<tr class="bid-row">' +
@@ -3215,8 +3273,8 @@ function renderBidsTable(){
       '<td><select style="width:100%;box-sizing:border-box;" onchange="setBidField(\''+b.id+'\',\'clientId\', this.value, false)">'+clientOpts+'</select></td>' +
       '<td><input type="number" step="0.01" min="0" value="'+(b.bidAmount||0)+'" style="width:100%;box-sizing:border-box;" onchange="setBidField(\''+b.id+'\',\'bidAmount\', this.value, true)"></td>' +
       '<td><input type="number" step="1" min="0" value="'+(b.sf||0)+'" style="width:100%;box-sizing:border-box;" onchange="setBidField(\''+b.id+'\',\'sf\', this.value, true)"></td>' +
-      '<td><input type="number" step="1" min="0" value="'+(b.sheets||0)+'" style="width:100%;box-sizing:border-box;" onchange="setBidField(\''+b.id+'\',\'sheets\', this.value, true)"></td>' +
       '<td>'+(dollarPerSF?'$'+dollarPerSF.toFixed(2):'—')+'</td>' +
+      '<td><input type="number" step="0.25" min="0" value="'+(b.bidHours||0)+'" style="width:100%;box-sizing:border-box;" onchange="setBidField(\''+b.id+'\',\'bidHours\', this.value, true)"></td>' +
       '<td>'+statusHtml+'</td><td>'+actionHtml+'</td></tr>' +
       '<tr class="bid-notes-row"><td></td><td colspan="8" style="padding:2px 8px 10px 4px;">' +
         '<input type="text" placeholder="Notes…" value="'+(b.notes||'').replace(/"/g,'&quot;')+'" style="width:100%;box-sizing:border-box;font-size:.85rem;color:var(--steel);" onchange="setBidField(\''+b.id+'\',\'notes\', this.value, false)">' +
@@ -3225,6 +3283,40 @@ function renderBidsTable(){
   }
   document.getElementById('bidsTable').innerHTML = list.length ? html : '<tr><td>No bids match this filter.</td></tr>';
   makeTableResizable('bidsTable');
+  renderNewBidDropzone();
+  renderArchivedBidsTable();
+}
+// Archived (lost) bids — same shape as the main table but read via its own
+// search box, with Restore / Delete permanently actions instead of Mark
+// active / Archive. Attachments stay browsable and draggable here too.
+function renderArchivedBidsTable(){
+  if(!data) return;
+  const el = document.getElementById('archivedBidsTable');
+  if(!el) return;
+  const searchEl = document.getElementById('archivedBidSearch');
+  const search = (searchEl ? searchEl.value : '' || '').trim().toLowerCase();
+  let html = '<tr><th style="width:110px;">Date bid</th><th style="width:220px;">Project</th><th style="width:150px;">Client</th><th style="width:110px;">Bid amount</th><th style="width:100px;">Archived</th><th style="width:170px;"></th></tr>';
+  const list = data.bids.filter(b => {
+    if(b.status !== 'archived') return false;
+    if(search){
+      const clientN = clientName(b.clientId).toLowerCase();
+      if(!(b.name||'').toLowerCase().includes(search) && !clientN.includes(search)) return false;
+    }
+    return true;
+  }).sort((a,b)=> (b.archivedAt||'').localeCompare(a.archivedAt||''));
+  for(const b of list){
+    html += '<tr class="bid-row">' +
+      '<td>'+(b.dateBid||'—')+'</td>' +
+      '<td>'+(b.name||'').replace(/</g,'&lt;')+'</td>' +
+      '<td>'+clientName(b.clientId)+'</td>' +
+      '<td>'+(b.bidAmount?'$'+b.bidAmount.toFixed(2):'—')+'</td>' +
+      '<td>'+(b.archivedAt||'—')+'</td>' +
+      '<td><button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="restoreBid(\''+b.id+'\')">Restore</button> ' +
+        '<button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="deleteBid(\''+b.id+'\')">Delete permanently</button></td></tr>' +
+      '<tr class="bid-notes-row"><td></td><td colspan="5" style="padding:0 8px 12px 4px;">' + bidAttachmentsHtml(b) + '</td></tr>';
+  }
+  el.innerHTML = list.length ? html : '<tr><td>No archived bids' + (search ? ' match that search.' : ' yet.') + '</td></tr>';
+  makeTableResizable('archivedBidsTable');
 }
 async function addProject(){
   const name = document.getElementById('newProjectName').value.trim();
@@ -3781,9 +3873,8 @@ async function markDayGroupInvoiced(idx){
     data.invoiceBatches.pop();
     return;
   }
-  runReport();
+  promptAttachInvoicePdf(toMark.map(e=>e.projectId), ref, invoiceDate); runReport();
   renderEntries();
-  promptAttachInvoicePdf(toMark.map(e=>e.projectId), ref, invoiceDate);
 }
 
 // Tasks that legitimately run past a project's budget without it being a problem —
@@ -3843,9 +3934,8 @@ async function markGroupInvoiced(idx){
     data.invoiceBatches.pop();
     return;
   }
-  runReport();
+  promptAttachInvoicePdf([group.pid], ref, invoiceDate); runReport();
   renderEntries();
-  promptAttachInvoicePdf([group.pid], ref, invoiceDate);
 }
 
 function summaryCard(num, lbl){
@@ -3884,9 +3974,8 @@ async function markReportInvoiced(){
     return;
   }
   document.getElementById('invoiceRef').value = '';
-  runReport();
+  promptAttachInvoicePdf(toMark.map(e=>e.projectId), ref, invoiceDate); runReport();
   renderEntries();
-  promptAttachInvoicePdf(toMark.map(e=>e.projectId), ref, invoiceDate);
 }
 
 function exportReportCSV(){
@@ -5211,9 +5300,10 @@ function renderAll(){
   renderProjectsTable();
   renderBidsTable();
   renderPricingTable();
-  renderEntries();
+  updateEntriesPeriodUI();
   renderBalance();
   renderDashboard();
+  updateReportPeriodUI();
   renderCalendar();
   renderInvoiceTab();
   document.getElementById('m-date').value = todayStr();
@@ -5222,10 +5312,37 @@ function renderAll(){
 function showPanel(name){
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active', b.dataset.panel===name));
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id===name));
+  const mobileSel = document.getElementById('mobileNavSelect');
+  if(mobileSel) mobileSel.value = name;
+  document.querySelectorAll('.mobile-tabbar button').forEach(b=>b.classList.toggle('active', b.dataset.panel===name));
 }
+document.querySelectorAll('.mobile-tabbar button').forEach(btn=>{
+  btn.addEventListener('click', ()=> showPanel(btn.dataset.panel));
+});
+// The collapsible Dashboard cards (details.mobile-card) are only meant to
+// collapse on mobile — keep them forced open whenever the viewport is wide
+// enough that the desktop layout (not the mobile media query) is in effect.
+function enforceMobileCardsOpenOnDesktop(){
+  if(window.innerWidth > 820){
+    document.querySelectorAll('details.mobile-card').forEach(d=>{ d.open = true; });
+  }
+}
+window.addEventListener('resize', enforceMobileCardsOpenOnDesktop);
 document.querySelectorAll('nav button').forEach(btn=>{
   btn.addEventListener('click', ()=> showPanel(btn.dataset.panel));
 });
+(function initMobileNav(){
+  const sel = document.getElementById('mobileNavSelect');
+  if(!sel) return;
+  document.querySelectorAll('nav button').forEach(btn=>{
+    const opt = document.createElement('option');
+    opt.value = btn.dataset.panel;
+    opt.textContent = btn.textContent.trim();
+    if(btn.classList.contains('active')) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', ()=> showPanel(sel.value));
+})();
 buildTimeOptions();
 PROJECT_COMBOS.forEach(initProjectCombo);
 // The browser filters a <datalist> to options that start with whatever text is
@@ -5241,6 +5358,7 @@ PROJECT_COMBOS.forEach(initProjectCombo);
     el.dataset.prevValue = el.value;
     el.value = '';
   });
+document.getElementById('t-start-override').addEventListener('input', updateStartOverrideClearBtn);
   el.addEventListener('input', ()=>refreshTimeOptionsFor(el));
   el.addEventListener('blur', ()=>{
     if(!el.value.trim() && el.dataset.prevValue) el.value = el.dataset.prevValue;
