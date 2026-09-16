@@ -478,16 +478,16 @@
       <!-- BIDS -->
       <section class="panel" id="bids">
         <h2>Bids</h2>
-        <p class="sub">Projects you've quoted but haven't been awarded yet. Every field below is editable any time. Once you land one, mark it active and it turns into a real Bid/Fixed project — everything you entered here (client, bid amount, SF, sheets) carries over automatically. Editing a bid's numbers after it's already been marked active won't change the project it created — go to the Projects tab for that.</p>
+        <p class="sub">Projects you've quoted but haven't been awarded yet. Every field below is editable any time. Once you land one, mark it active and it turns into a real Bid/Fixed project — everything you entered here (client, bid amount, SF, and any time logged working up the bid) carries over automatically. Editing a bid's numbers after it's already been marked active won't change the project it created — go to the Projects tab for that. Didn't win it? Archive it instead of deleting — it's kept below, searchable, in case you want to reference it later.</p>
         <div class="card">
           <h2 style="font-size:1rem;">Add a bid</h2>
           <div class="grid">
-            <div><label>Project name</label><input id="newBidName" type="text"></div>
+            <div style="grid-column:span 2;"><label>Project name</label><input id="newBidName" type="text" style="width:100%;box-sizing:border-box;"></div>
             <div><label>Client</label><select id="newBidClient"></select></div>
             <div><label>Bid amount ($)</label><input id="newBidAmount" type="number" step="0.01" min="0" placeholder="e.g. 8500.00"></div>
             <div><label>Date bid</label><input id="newBidDate" type="date"></div>
             <div><label>Square footage (optional)</label><input id="newBidSF" type="number" step="1" min="0"></div>
-            <div><label>Sheet count (optional)</label><input id="newBidSheets" type="number" step="1" min="0"></div>
+            <div><label>Time spent on this bid (hrs, optional)</label><input id="newBidHours" type="number" step="0.25" min="0" placeholder="e.g. 2.5"></div>
             <div style="grid-column:1/-1;"><label>Notes (optional)</label><input id="newBidNotes" type="text"></div>
             <div style="grid-column:1/-1;"><label>Attach files (optional)</label><div id="newBidDropzone"></div></div>
           </div>
@@ -502,6 +502,14 @@
           <input id="bidSearch" type="text" placeholder="Search bids by project or client…" style="max-width:320px;" oninput="renderBidsTable()">
         </div>
         <div class="table-wrap"><table id="bidsTable"></table></div>
+        <details id="archivedBidsDetails" style="margin-top:18px;">
+          <summary style="cursor:pointer;font-weight:600;color:var(--navy);padding:8px 0;">Archived bids (didn't win) — click to expand</summary>
+          <div class="row" style="margin-top:8px;">
+            <input id="archivedBidSearch" type="text" placeholder="Search archived bids by project or client…" style="max-width:320px;" oninput="renderArchivedBidsTable()">
+          </div>
+          <p class="note" style="margin:4px 0 8px;">Archiving a bid you didn't win keeps its numbers and files here for reference — restore it any time, or delete it permanently.</p>
+          <div class="table-wrap"><table id="archivedBidsTable"></table></div>
+        </details>
       </section>
 
       <!-- QUICKBOOKS INVOICES -->
@@ -1909,18 +1917,18 @@ async function addBid(){
   const bidAmount = parseFloat(document.getElementById('newBidAmount').value) || 0;
   const dateBid = document.getElementById('newBidDate').value || todayStr();
   const sf = parseFloat(document.getElementById('newBidSF').value) || 0;
-  const sheets = parseFloat(document.getElementById('newBidSheets').value) || 0;
+  const bidHours = parseFloat(document.getElementById('newBidHours').value) || 0;
   const notes = document.getElementById('newBidNotes').value.trim();
   if(!name){ alert('Enter a project name.'); return; }
   if(!clientId){ alert('Add a client first, then pick it here.'); return; }
   const newBidId = uid();
-  data.bids.push({ id: newBidId, name, clientId, bidAmount, dateBid, sf, sheets, notes, status:'pending', wonProjectId:null, wonAt:null, attachments:[] });
+  data.bids.push({ id: newBidId, name, clientId, bidAmount, dateBid, sf, sheets:0, bidHours, notes, status:'pending', wonProjectId:null, wonAt:null, archivedAt:null, attachments:[] });
   const ok = await writeToFile();
   if(!ok){ data.bids.pop(); return; }
   document.getElementById('newBidName').value = '';
   document.getElementById('newBidAmount').value = '';
   document.getElementById('newBidSF').value = '';
-  document.getElementById('newBidSheets').value = '';
+  document.getElementById('newBidHours').value = '';
   document.getElementById('newBidNotes').value = '';
   // Any PDFs/docs dropped into the form while it was being filled out were only
   // staged in memory (the bid had no id yet to attach them to) — upload them now
@@ -1942,12 +1950,26 @@ async function markBidActive(id){
   if(!confirm('Mark "' + bid.name + '" as active? This creates a real project (Bid/Fixed, $' + bid.bidAmount.toFixed(2) + ') so you can start tracking time against it.')) return;
   const newProject = { id: uid(), name: bid.name, clientId: bid.clientId, billingType:'Bid', color:'#2f7cf6', favorite:false, hourlyRate:0, bidAmount: bid.bidAmount, sf: bid.sf||0, sheets: bid.sheets||0, tasks:[], invoices:[], status:'Active', budgetAlertAcked:false };
   data.projects.push(newProject);
+  // Time already spent working up the bid transfers over as a one-time entry
+  // against the new project, so it's not lost/re-typed — a snapshot at the
+  // moment the bid is won, not a live link back to the bid's own hrs field.
+  let bidHoursEntry = null;
+  if(bid.bidHours && bid.bidHours > 0){
+    bidHoursEntry = {
+      id: uid(), projectId: newProject.id, date: todayStr(), description: 'Time spent preparing this bid', task: 'Bid prep',
+      startTime: new Date().toISOString(), endTime: new Date().toISOString(),
+      actualMinutes: roundToQuarterHour(bid.bidHours*60), roundedMinutes: roundToQuarterHour(bid.bidHours*60),
+      breakMinutes: 0, billable: true, source: 'bid', invoiced:false, invoiceBatchId:null, invoiceDate:null
+    };
+    data.entries.push(bidHoursEntry);
+  }
   bid.status = 'won';
   bid.wonProjectId = newProject.id;
   bid.wonAt = todayStr();
   const ok = await writeToFile();
   if(!ok){
     data.projects.pop();
+    if(bidHoursEntry) data.entries.pop();
     bid.status = 'pending'; bid.wonProjectId = null; bid.wonAt = null;
     return;
   }
@@ -1956,7 +1978,7 @@ async function markBidActive(id){
 async function deleteBid(id){
   const bid = data.bids.find(b=>b.id===id);
   const hasAttachments = bid && (bid.attachments||[]).length > 0;
-  const msg = 'Delete this bid record? (Use this for bids you lost or that fell through — a bid you already marked active/won can be deleted too, but that will not remove the project it created.)' +
+  const msg = 'Permanently delete this bid record? This cannot be undone. (If you just didn\'t win it, use "Archive" instead — it keeps the record and files around to look back on.)' +
     (hasAttachments ? ' Its ' + bid.attachments.length + ' attached file(s) will also be deleted from Dropbox.' : '');
   if(!confirm(msg)) return;
   if(hasAttachments){
@@ -1965,6 +1987,34 @@ async function deleteBid(id){
   data.bids = data.bids.filter(b=>b.id!==id);
   await writeToFile();
   renderBidsTable();
+}
+// Didn't win it — keep the bid (and its files) around for reference instead of
+// deleting. Moves it out of the main pending/won table into the collapsible
+// "Archived bids" section below, where it can still be searched, reopened, or
+// restored back to pending if it comes back to life.
+async function archiveBid(id){
+  const bid = data.bids.find(b=>b.id===id);
+  if(!bid) return;
+  if(!confirm('Archive "' + bid.name + '"? It\'ll move to the "Archived bids" section below (still searchable, with its files) instead of the main list. You can restore it any time.')) return;
+  const prevStatus = bid.status;
+  bid.status = 'archived';
+  bid.archivedAt = todayStr();
+  const ok = await writeToFile();
+  if(!ok){ bid.status = prevStatus; bid.archivedAt = null; return; }
+  renderAll();
+}
+// Brings an archived bid back into the main pending list — e.g. a client
+// revives a project that had gone quiet.
+async function restoreBid(id){
+  const bid = data.bids.find(b=>b.id===id);
+  if(!bid) return;
+  const prevStatus = bid.status;
+  const prevArchivedAt = bid.archivedAt;
+  bid.status = 'pending';
+  bid.archivedAt = null;
+  const ok = await writeToFile();
+  if(!ok){ bid.status = prevStatus; bid.archivedAt = prevArchivedAt; return; }
+  renderAll();
 }
 // Lets any bid field be edited later, even after it's been marked active/won —
 // e.g. correcting a bid amount, SF, or notes without having to delete and re-add it.
@@ -3112,8 +3162,9 @@ function renderBidsTable(){
   if(!data) return;
   const filter = document.getElementById('bidStatusFilter').value;
   const search = (document.getElementById('bidSearch').value || '').trim().toLowerCase();
-  let html = '<tr><th style="width:110px;">Date bid</th><th style="width:200px;">Project</th><th style="width:150px;">Client</th><th style="width:110px;">Bid amount</th><th style="width:75px;">SF</th><th style="width:70px;">Sheets</th><th style="width:80px;">$/SF</th><th style="width:120px;">Status</th><th style="width:150px;"></th></tr>';
+  let html = '<tr><th style="width:110px;">Date bid</th><th style="width:280px;">Project</th><th style="width:150px;">Client</th><th style="width:110px;">Bid amount</th><th style="width:75px;">SF</th><th style="width:80px;">$/SF</th><th style="width:90px;">Bid hrs</th><th style="width:120px;">Status</th><th style="width:190px;"></th></tr>';
   const list = data.bids.filter(b => {
+    if(b.status === 'archived') return false; // archived bids live in their own section below
     if(filter && b.status !== filter) return false;
     if(search){
       const clientN = clientName(b.clientId).toLowerCase();
@@ -3129,6 +3180,7 @@ function renderBidsTable(){
     const actionHtml = b.status === 'won'
       ? '<button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="deleteBid(\''+b.id+'\')">Delete</button>'
       : '<button onclick="markBidActive(\''+b.id+'\')" style="padding:4px 8px;font-size:.72rem;">Mark active</button> ' +
+        '<button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="archiveBid(\''+b.id+'\')" title="Didn\'t win it — keep it for reference instead of deleting">Archive</button> ' +
         '<button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="deleteBid(\''+b.id+'\')">Delete</button>';
     const clientOpts = data.clients.map(c=>'<option value="'+c.id+'"'+(c.id===b.clientId?' selected':'')+'>'+c.name+'</option>').join('');
     html += '<tr class="bid-row">' +
@@ -3137,8 +3189,8 @@ function renderBidsTable(){
       '<td><select style="width:100%;box-sizing:border-box;" onchange="setBidField(\''+b.id+'\',\'clientId\', this.value, false)">'+clientOpts+'</select></td>' +
       '<td><input type="number" step="0.01" min="0" value="'+(b.bidAmount||0)+'" style="width:100%;box-sizing:border-box;" onchange="setBidField(\''+b.id+'\',\'bidAmount\', this.value, true)"></td>' +
       '<td><input type="number" step="1" min="0" value="'+(b.sf||0)+'" style="width:100%;box-sizing:border-box;" onchange="setBidField(\''+b.id+'\',\'sf\', this.value, true)"></td>' +
-      '<td><input type="number" step="1" min="0" value="'+(b.sheets||0)+'" style="width:100%;box-sizing:border-box;" onchange="setBidField(\''+b.id+'\',\'sheets\', this.value, true)"></td>' +
       '<td>'+(dollarPerSF?'$'+dollarPerSF.toFixed(2):'—')+'</td>' +
+      '<td><input type="number" step="0.25" min="0" value="'+(b.bidHours||0)+'" style="width:100%;box-sizing:border-box;" onchange="setBidField(\''+b.id+'\',\'bidHours\', this.value, true)"></td>' +
       '<td>'+statusHtml+'</td><td>'+actionHtml+'</td></tr>' +
       '<tr class="bid-notes-row"><td></td><td colspan="8" style="padding:2px 8px 10px 4px;">' +
         '<input type="text" placeholder="Notes…" value="'+(b.notes||'').replace(/"/g,'&quot;')+'" style="width:100%;box-sizing:border-box;font-size:.85rem;color:var(--steel);" onchange="setBidField(\''+b.id+'\',\'notes\', this.value, false)">' +
@@ -3148,6 +3200,39 @@ function renderBidsTable(){
   document.getElementById('bidsTable').innerHTML = list.length ? html : '<tr><td>No bids match this filter.</td></tr>';
   makeTableResizable('bidsTable');
   renderNewBidDropzone();
+  renderArchivedBidsTable();
+}
+// Archived (lost) bids — same shape as the main table but read via its own
+// search box, with Restore / Delete permanently actions instead of Mark
+// active / Archive. Attachments stay browsable and draggable here too.
+function renderArchivedBidsTable(){
+  if(!data) return;
+  const el = document.getElementById('archivedBidsTable');
+  if(!el) return;
+  const searchEl = document.getElementById('archivedBidSearch');
+  const search = (searchEl ? searchEl.value : '' || '').trim().toLowerCase();
+  let html = '<tr><th style="width:110px;">Date bid</th><th style="width:220px;">Project</th><th style="width:150px;">Client</th><th style="width:110px;">Bid amount</th><th style="width:100px;">Archived</th><th style="width:170px;"></th></tr>';
+  const list = data.bids.filter(b => {
+    if(b.status !== 'archived') return false;
+    if(search){
+      const clientN = clientName(b.clientId).toLowerCase();
+      if(!(b.name||'').toLowerCase().includes(search) && !clientN.includes(search)) return false;
+    }
+    return true;
+  }).sort((a,b)=> (b.archivedAt||'').localeCompare(a.archivedAt||''));
+  for(const b of list){
+    html += '<tr class="bid-row">' +
+      '<td>'+(b.dateBid||'—')+'</td>' +
+      '<td>'+(b.name||'').replace(/</g,'&lt;')+'</td>' +
+      '<td>'+clientName(b.clientId)+'</td>' +
+      '<td>'+(b.bidAmount?'$'+b.bidAmount.toFixed(2):'—')+'</td>' +
+      '<td>'+(b.archivedAt||'—')+'</td>' +
+      '<td><button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="restoreBid(\''+b.id+'\')">Restore</button> ' +
+        '<button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="deleteBid(\''+b.id+'\')">Delete permanently</button></td></tr>' +
+      '<tr class="bid-notes-row"><td></td><td colspan="5" style="padding:0 8px 12px 4px;">' + bidAttachmentsHtml(b) + '</td></tr>';
+  }
+  el.innerHTML = list.length ? html : '<tr><td>No archived bids' + (search ? ' match that search.' : ' yet.') + '</td></tr>';
+  makeTableResizable('archivedBidsTable');
 }
 async function addProject(){
   const name = document.getElementById('newProjectName').value.trim();
