@@ -449,6 +449,7 @@
             </div>
             <div><label>Client</label><select id="r-client"><option value="">All clients</option></select></div>
             <div><label>Status</label><select id="r-status"><option value="uninvoiced" selected>Not yet invoiced</option><option value="invoiced">Already invoiced</option><option value="">Both</option></select></div>
+            <div><label>Task</label><select id="r-task"><option value="">All tasks</option></select></div>
             <div><label>View</label><select id="r-view" onchange="runReport()">
               <option value="detailed" selected>Detailed (every entry)</option>
               <option value="overview">Overview (by day, then task)</option>
@@ -3738,6 +3739,9 @@ function buildReportTaskDatalist(){
   });
   reportTaskOptionsByProject = {};
   Object.keys(byProject).forEach(pid=>{ reportTaskOptionsByProject[pid] = [...byProject[pid]].sort(); });
+  const allTasks = new Set();
+  Object.values(byProject).forEach(set=> set.forEach(t=>allTasks.add(t)));
+  setSelectOptionsPreserving('r-task', '<option value="">All tasks</option>' + [...allTasks].sort().map(t=>'<option value="'+t.replace(/"/g,'&quot;')+'">'+t.replace(/</g,'&lt;')+'</option>').join(''));
 }
 // Custom suggestion dropdown for the Reports table's Task field, used instead of a
 // native <datalist> — iOS Safari never renders datalist suggestions at all, which is
@@ -3832,6 +3836,7 @@ function runReport(){
   const from = document.getElementById('r-from').value;
   const to = document.getElementById('r-to').value;
   const status = document.getElementById('r-status').value;
+  const taskFilter = document.getElementById('r-task').value;
 
   let rows = data.entries.filter(e=>{
     if(projectId && e.projectId !== projectId) return false;
@@ -3843,6 +3848,7 @@ function runReport(){
     if(to && e.date > to) return false;
     if(status === 'invoiced' && !e.invoiced) return false;
     if(status === 'uninvoiced' && e.invoiced) return false;
+    if(taskFilter && (e.task||'') !== taskFilter) return false;
     return true;
   }).sort((a,b)=> a.date.localeCompare(b.date));
 
