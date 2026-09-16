@@ -3577,9 +3577,22 @@ async function updateEntryField(id, field, rawValue){
   if(!entry) return;
   const prevValue = entry[field];
   entry[field] = (field === 'projectId') ? rawValue : rawValue.trim();
+  // Typing a task name that isn't already one of this project's tasks registers it
+  // there too (defaulting to "Bid" billing, same as adding it from the Projects tab) —
+  // so it shows up as a real task chip, with its own Bid/T&M-extra setting, everywhere
+  // tasks are picked from a project (Tracker, manual entry, Reports suggestions).
+  let addedTaskToProject = null;
+  if(field === 'task' && entry.task){
+    const p = data.projects.find(p=>p.id===entry.projectId);
+    if(p){
+      if(!p.tasks) p.tasks = [];
+      if(!p.tasks.includes(entry.task)){ p.tasks.push(entry.task); addedTaskToProject = p; }
+    }
+  }
   const ok = await writeToFile();
   if(!ok){
     entry[field] = prevValue;
+    if(addedTaskToProject) addedTaskToProject.tasks.pop();
     renderEntries();
     return;
   }
