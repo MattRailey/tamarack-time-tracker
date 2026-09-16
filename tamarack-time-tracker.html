@@ -87,6 +87,12 @@
   tr.bid-row td{border-bottom:none;}
   tr.bid-notes-row td, tr.project-sub-row td{padding-top:0;}
   tr.project-row td{border-bottom:none;}
+  tr.project-summary-row td{border-bottom:1px solid var(--border);padding-top:2px;}
+  .project-summary-bar{display:flex;flex-wrap:wrap;align-items:center;gap:18px;padding:2px 0 6px;}
+  .project-summary-item{display:flex;align-items:center;gap:6px;}
+  .project-summary-item .lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-weight:600;}
+  .project-summary-item .val{font-size:.85rem;color:var(--ink);white-space:nowrap;}
+  .project-summary-tasks{display:flex;align-items:center;flex-wrap:wrap;gap:4px;flex:1;min-width:220px;}
   .bid-dropzone.drag-over, .project-dropzone.drag-over{border-color:var(--primary);background:#eef4ff;}
   .qb-invoice-row.matched{background:#f4fbf7;}
   .qb-invoice-row.unmatched{background:#fdf7ec;}
@@ -4846,7 +4852,7 @@ function setShowProjectInvoices(checked){
 function renderProjectsTable(){
   const q = (document.getElementById('projectSearch') ? document.getElementById('projectSearch').value : '').trim().toLowerCase();
   const statusFilter = document.getElementById('projectStatusFilter') ? document.getElementById('projectStatusFilter').value : 'open';
-  let html = '<tr><th></th><th>Color</th><th>Project</th><th>Status</th><th>Client</th><th>Billing type</th><th>Rate override ($/hr)</th><th>Budget ($)</th><th>SF</th><th>Sheets</th><th>Tracked</th><th>Amount</th><th>Budget used</th><th>Tasks</th><th></th></tr>';
+  let html = '<tr><th></th><th>Color</th><th>Project</th><th>Status</th><th>Client</th><th>Billing type</th><th>Rate override ($/hr)</th><th>Budget ($)</th><th>SF</th><th>Sheets</th><th></th></tr>';
   const list = sortedProjects().filter(p => {
     if(q && !(p.name.toLowerCase().includes(q) || clientName(p.clientId).toLowerCase().includes(q))) return false;
     const status = p.status || 'Active';
@@ -4880,13 +4886,15 @@ function renderProjectsTable(){
       '<td><input type="number" step="0.01" min="0" value="'+(p.bidAmount||0)+'" title="' + (isBid ? 'The fixed fee this project is billed at.' : 'Optional reference figure to burn against — a T&amp;M project isn\'t billed at this number, but you\'ll get a heads-up if tracked hours\' dollar value runs past it.') + '" style="width:100%;box-sizing:border-box;" onchange="setProjectBid(\''+p.id+'\', this.value)"></td>' +
       '<td><input type="number" step="1" min="0" value="'+(p.sf||0)+'" style="width:100%;box-sizing:border-box;" onchange="setProjectField(\''+p.id+'\',\'sf\', this.value, true)"></td>' +
       '<td><input type="number" step="1" min="0" value="'+(p.sheets||0)+'" style="width:100%;box-sizing:border-box;" onchange="setProjectField(\''+p.id+'\',\'sheets\', this.value, true)"></td>' +
-      '<td style="white-space:nowrap;">' + fmtHM(mins) + '</td>' +
-      '<td style="white-space:nowrap;">' + (amount ? '$'+amount.toFixed(2) : '—') + '</td>' +
-      '<td>' + budgetBadgeHtml(bs) + '</td>' +
-      '<td>' + chips + '<div class="row" style="margin-top:4px;"><input id="taskInput-'+p.id+'" type="text" placeholder="Add task…" style="max-width:60%;padding:4px 6px;font-size:.78rem;"><button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="addProjectTask(\''+p.id+'\')">Add</button></div></td>' +
       '<td><button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="deleteProject(\''+p.id+'\')">Delete</button></td></tr>';
+    html += '<tr class="project-summary-row"><td></td><td colspan="9"><div class="project-summary-bar">' +
+      '<div class="project-summary-item"><span class="lbl">Tracked</span><span class="val">' + fmtHM(mins) + '</span></div>' +
+      '<div class="project-summary-item"><span class="lbl">Amount</span><span class="val">' + (amount ? '$'+amount.toFixed(2) : '—') + '</span></div>' +
+      '<div class="project-summary-item"><span class="lbl">Budget used</span><span class="val">' + budgetBadgeHtml(bs) + '</span></div>' +
+      '<div class="project-summary-tasks"><span class="lbl">Tasks</span>' + chips + '<input id="taskInput-'+p.id+'" type="text" placeholder="Add task…" style="max-width:140px;padding:4px 6px;font-size:.78rem;"><button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="addProjectTask(\''+p.id+'\')">Add</button></div>' +
+      '</div></td></tr>';
     if(showProjectInvoices){
-      html += '<tr class="project-sub-row"><td></td><td colspan="14" style="padding:0 8px 12px 4px;">' + projectBillingSummaryHtml(p) + projectInvoicesHtml(p) + '</td></tr>';
+      html += '<tr class="project-sub-row"><td></td><td colspan="9" style="padding:0 8px 12px 4px;">' + projectBillingSummaryHtml(p) + projectInvoicesHtml(p) + '</td></tr>';
     }
   }
   document.getElementById('projectsTable').innerHTML = (list.length ? html : '<tr><td>' + (q ? 'No projects or clients match "'+q+'".' : 'No projects in this status.') + '</td></tr>');
