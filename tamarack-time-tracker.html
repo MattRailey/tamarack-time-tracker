@@ -87,6 +87,12 @@
   tr.bid-row td{border-bottom:none;}
   tr.bid-notes-row td, tr.project-sub-row td{padding-top:0;}
   tr.project-row td{border-bottom:none;}
+  tr.project-summary-row td{border-bottom:1px solid var(--border);padding-top:2px;}
+  .project-summary-bar{display:flex;flex-wrap:wrap;align-items:center;gap:18px;padding:2px 0 6px;}
+  .project-summary-item{display:flex;align-items:center;gap:6px;}
+  .project-summary-item .lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-weight:600;}
+  .project-summary-item .val{font-size:.85rem;color:var(--ink);white-space:nowrap;}
+  .project-summary-tasks{display:flex;align-items:center;flex-wrap:wrap;gap:4px;flex:1;min-width:220px;}
   .bid-dropzone.drag-over, .project-dropzone.drag-over{border-color:var(--primary);background:#eef4ff;}
   .qb-invoice-row.matched{background:#f4fbf7;}
   .qb-invoice-row.unmatched{background:#fdf7ec;}
@@ -624,7 +630,6 @@
             <div><label>Hourly rate ($, optional — overrides client rate)</label><input id="newProjectRate" type="number" step="0.01" min="0" placeholder="e.g. 125.00"></div>
             <div id="newProjectBidRow" style="display:none;"><label>Bid amount ($, fixed fee)</label><input id="newProjectBid" type="number" step="0.01" min="0" placeholder="e.g. 8500.00"></div>
             <div><label>Square footage (optional)</label><input id="newProjectSF" type="number" step="1" min="0" placeholder="e.g. 10000"></div>
-            <div><label>Sheet count (optional)</label><input id="newProjectSheets" type="number" step="1" min="0" placeholder="e.g. 12"></div>
             <div><label>Color</label><input id="newProjectColor" type="color" value="#2f7cf6"></div>
           </div>
           <button class="secondary" onclick="addProject()">Add project</button>
@@ -3362,17 +3367,15 @@ async function addProject(){
   const hourlyRate = parseFloat(document.getElementById('newProjectRate').value) || 0;
   const bidAmount = parseFloat(document.getElementById('newProjectBid').value) || 0;
   const sf = parseFloat(document.getElementById('newProjectSF').value) || 0;
-  const sheets = parseFloat(document.getElementById('newProjectSheets').value) || 0;
   if(!name){ alert('Enter a project name.'); return; }
   if(!clientId){ alert('Add a client first, then pick it here.'); return; }
-  data.projects.push({ id: uid(), name, clientId, billingType, color, favorite:false, hourlyRate, bidAmount, sf, sheets, tasks:[], invoices:[], status:'Active', budgetAlertAcked:false });
+  data.projects.push({ id: uid(), name, clientId, billingType, color, favorite:false, hourlyRate, bidAmount, sf, sheets:0, tasks:[], invoices:[], status:'Active', budgetAlertAcked:false });
   const ok = await writeToFile();
   if(!ok){ data.projects.pop(); return; }
   document.getElementById('newProjectName').value = '';
   document.getElementById('newProjectRate').value = '';
   document.getElementById('newProjectBid').value = '';
   document.getElementById('newProjectSF').value = '';
-  document.getElementById('newProjectSheets').value = '';
   renderAll();
 }
 async function setProjectRate(id, value){
@@ -4972,7 +4975,18 @@ function initProjectCombo(cfg){
    for the rest of the session (re-applied every time that table re-renders),
    but aren't saved to the data file — they're just a viewing convenience.
    ============================================================ */
-const colWidthsByTable = {};
+// Column widths persist in localStorage (per browser/device) so a table looks the
+// way you left it every time you open the app — not just for the rest of the
+// session. Loaded once at startup; each drag re-saves the whole set for that table.
+const COL_WIDTHS_STORAGE_KEY = 'tamarack_tt_col_widths';
+let colWidthsByTable = {};
+try{
+  const stored = localStorage.getItem(COL_WIDTHS_STORAGE_KEY);
+  if(stored) colWidthsByTable = JSON.parse(stored) || {};
+}catch(e){ colWidthsByTable = {}; }
+function saveColWidths(){
+  try{ localStorage.setItem(COL_WIDTHS_STORAGE_KEY, JSON.stringify(colWidthsByTable)); }catch(e){ /* best-effort — a full/blocked localStorage just means widths won't persist */ }
+}
 function makeTableResizable(tableId){
   const table = document.getElementById(tableId);
   if(!table || !table.rows.length) return;
@@ -5000,6 +5014,7 @@ function makeTableResizable(tableId){
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup', onUp);
         handle.classList.remove('active');
+        saveColWidths();
       }
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
@@ -5020,7 +5035,7 @@ function setShowProjectInvoices(checked){
 function renderProjectsTable(){
   const q = (document.getElementById('projectSearch') ? document.getElementById('projectSearch').value : '').trim().toLowerCase();
   const statusFilter = document.getElementById('projectStatusFilter') ? document.getElementById('projectStatusFilter').value : 'open';
-  let html = '<tr><th></th><th>Color</th><th>Project</th><th>Status</th><th>Client</th><th>Billing type</th><th>Rate override ($/hr)</th><th>Budget ($)</th><th>SF</th><th>Sheets</th><th>Tracked</th><th>Amount</th><th>Budget used</th><th>Tasks</th><th></th></tr>';
+  let html = '<tr><th></th><th>Color</th><th>Project</th><th>Status</th><th>Client</th><th>Billing type</th><th>Rate override ($/hr)</th><th>Budget ($)</th><th>SF</th><th></th></tr>';
   const list = sortedProjects().filter(p => {
     if(q && !(p.name.toLowerCase().includes(q) || clientName(p.clientId).toLowerCase().includes(q))) return false;
     const status = p.status || 'Active';
@@ -5047,6 +5062,18 @@ function renderProjectsTable(){
     const mins = projEntries.reduce((s,e)=>s+e.roundedMinutes,0);
     const amount = projectRevenue(p, mins, projEntries);
     const bs = budgetStatus(p, mins, projEntries);
+    // Hours-by-task breakdown for the third summary line — grouped the same way the
+    // Detailed report groups entries (by task, "(no task)" bucket last), each with its
+    // billed hours so it's easy to see where the tracked time on this project went.
+    const minsByTask = {};
+    for(const e of projEntries){
+      const key = e.task || '(no task)';
+      minsByTask[key] = (minsByTask[key]||0) + e.roundedMinutes;
+    }
+    const taskHourKeys = Object.keys(minsByTask).sort((a,b)=> a==='(no task)' ? 1 : (b==='(no task)' ? -1 : a.localeCompare(b)));
+    const taskHoursHtml = taskHourKeys.map(k =>
+      '<div class="project-summary-item"><span class="lbl">'+k.replace(/</g,'&lt;')+'</span><span class="val">'+fmtHM(minsByTask[k])+'</span></div>'
+    ).join('');
     html += '<tr class="project-row' + (status==='Archived' ? ' note' : '') + '"' + (status==='Archived' ? ' style="opacity:.6;"' : '') + '>' +
       '<td><button class="star-btn" title="' + (p.favorite?'Unstar':'Star to pin to top') + '" onclick="toggleFavorite(\''+p.id+'\')">' + (p.favorite?'★':'☆') + '</button></td>' +
       '<td><input type="color" value="'+(p.color||'#2f7cf6')+'" style="width:34px;height:28px;padding:2px;" onchange="setProjectColor(\''+p.id+'\', this.value)"></td>' +
@@ -5062,14 +5089,20 @@ function renderProjectsTable(){
       '<td><input type="number" step="0.01" min="0" value="'+(p.hourlyRate||0)+'" title="Blank/0 uses the client\'s default rate ('+ '$' + ((data.clients.find(c=>c.id===p.clientId)||{}).hourlyRate||0).toFixed(2) +'/hr)" style="width:100%;box-sizing:border-box;" onchange="setProjectRate(\''+p.id+'\', this.value)"></td>' +
       '<td><input type="number" step="0.01" min="0" value="'+(p.bidAmount||0)+'" title="' + (isBid ? 'The fixed fee this project is billed at.' : 'Optional reference figure to burn against — a T&amp;M project isn\'t billed at this number, but you\'ll get a heads-up if tracked hours\' dollar value runs past it.') + '" style="width:100%;box-sizing:border-box;" onchange="setProjectBid(\''+p.id+'\', this.value)"></td>' +
       '<td><input type="number" step="1" min="0" value="'+(p.sf||0)+'" style="width:100%;box-sizing:border-box;" onchange="setProjectField(\''+p.id+'\',\'sf\', this.value, true)"></td>' +
-      '<td><input type="number" step="1" min="0" value="'+(p.sheets||0)+'" style="width:100%;box-sizing:border-box;" onchange="setProjectField(\''+p.id+'\',\'sheets\', this.value, true)"></td>' +
-      '<td style="white-space:nowrap;">' + fmtHM(mins) + '</td>' +
-      '<td style="white-space:nowrap;">' + (amount ? '$'+amount.toFixed(2) : '—') + '</td>' +
-      '<td>' + budgetBadgeHtml(bs) + '</td>' +
-      '<td>' + chips + '<div class="row" style="margin-top:4px;"><input id="taskInput-'+p.id+'" type="text" placeholder="Add task…" style="max-width:60%;padding:4px 6px;font-size:.78rem;"><button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="addProjectTask(\''+p.id+'\')">Add</button></div></td>' +
       '<td><button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="deleteProject(\''+p.id+'\')">Delete</button></td></tr>';
+    html += '<tr class="project-summary-row"><td></td><td colspan="8"><div class="project-summary-bar">' +
+      '<div class="project-summary-item"><span class="lbl">Tracked</span><span class="val">' + fmtHM(mins) + '</span></div>' +
+      '<div class="project-summary-item"><span class="lbl">Amount</span><span class="val">' + (amount ? '$'+amount.toFixed(2) : '—') + '</span></div>' +
+      '<div class="project-summary-item"><span class="lbl">Budget used</span><span class="val">' + budgetBadgeHtml(bs) + '</span></div>' +
+      '<div class="project-summary-tasks"><span class="lbl">Tasks</span>' + chips + '<input id="taskInput-'+p.id+'" type="text" placeholder="Add task…" style="max-width:140px;padding:4px 6px;font-size:.78rem;"><button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="addProjectTask(\''+p.id+'\')">Add</button></div>' +
+      '</div></td></tr>';
+    if(taskHoursHtml){
+      html += '<tr class="project-summary-row"><td></td><td colspan="8"><div class="project-summary-bar">' +
+        '<div class="project-summary-item"><span class="lbl">Hours by task</span></div>' + taskHoursHtml +
+      '</div></td></tr>';
+    }
     if(showProjectInvoices){
-      html += '<tr class="project-sub-row"><td></td><td colspan="14" style="padding:0 8px 12px 4px;">' + projectBillingSummaryHtml(p) + projectInvoicesHtml(p) + '</td></tr>';
+      html += '<tr class="project-sub-row"><td></td><td colspan="8" style="padding:0 8px 12px 4px;">' + projectBillingSummaryHtml(p) + projectInvoicesHtml(p) + '</td></tr>';
     }
   }
   document.getElementById('projectsTable').innerHTML = (list.length ? html : '<tr><td>' + (q ? 'No projects or clients match "'+q+'".' : 'No projects in this status.') + '</td></tr>');
