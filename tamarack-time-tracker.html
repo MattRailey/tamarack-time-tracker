@@ -2157,6 +2157,29 @@ function handleAttachmentDragStart(event, attId, filename){
   event.dataTransfer.setData('DownloadURL', mimeFromFilename(filename) + ':' + filename + ':' + link);
   event.dataTransfer.effectAllowed = 'copy';
 }
+// Downloads a bid attachment as a real file on disk (rather than opening the
+// in-app PDF.js viewer) — the point is to hand off to whatever the OS has set as
+// the default PDF app. There's no official way for a web page to launch Bluebeam
+// Revu directly by name (it has no public "open this remote file" URL scheme),
+// but Revu can be set as the Windows default PDF handler, and Chrome's download
+// tray has a one-click "Open" once the file lands — so this gets there in two
+// clicks instead of a manual save-then-browse.
+async function downloadBidAttachmentToOpenExternally(bidId, attId){
+  const bid = data.bids.find(b=>b.id===bidId);
+  const att = bid && (bid.attachments||[]).find(a=>a.id===attId);
+  if(!att) return;
+  try{
+    const bytes = await dropboxDownloadFileBytes(att.path);
+    const blob = new Blob([bytes], { type: mimeFromFilename(att.name) });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = att.name || 'file';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 30000);
+  }catch(e){
+    alert('Could not download "' + (att.name||'file') + '": ' + e.message);
+  }
+}
 // Builds the little "Attachments" strip under each bid row: existing files as
 // removable chips, plus an upload control (disabled with an explanation if Dropbox
 // isn't connected, since that's where the files actually live).
@@ -2164,12 +2187,14 @@ function bidAttachmentsHtml(b){
   const attachments = b.attachments || [];
   const chips = attachments.map(a => {
     prefetchAttachmentDragLink(a.id, a.path); // fire-and-forget — ready well before a user manages to grab and drag it
+    const isPdf = /\.pdf$/i.test(a.name || '');
     return '<span class="pill" draggable="true" ondragstart="handleAttachmentDragStart(event,\''+a.id+'\',\''+(a.name||'file').replace(/\'/g,"\\'")+'\')" title="Drag this onto a folder or your desktop to save it there" style="display:inline-flex;align-items:center;gap:5px;background:#eef2fb;color:var(--navy);margin:2px 4px 2px 0;cursor:grab;">' +
       '<span style="color:var(--steel);">⠿</span>' +
       '<a href="#" onclick="openBidAttachment(\''+b.id+'\',\''+a.id+'\');return false;" style="color:var(--primary);text-decoration:none;font-weight:600;" title="'+(a.name||'').replace(/"/g,'&quot;')+'">📎 ' +
         (a.name && a.name.length > 28 ? a.name.slice(0,25)+'…' : (a.name||'file')) +
       '</a>' +
       '<span style="color:var(--muted);font-weight:400;">'+fmtFileSize(a.size)+'</span>' +
+      (isPdf ? '<a href="#" onclick="downloadBidAttachmentToOpenExternally(\''+b.id+'\',\''+a.id+'\');return false;" style="color:var(--primary);text-decoration:none;font-weight:600;padding:0 2px;" title="Download this PDF, then open it — if Bluebeam Revu is set as your default PDF app, it\'ll launch there">↗ Bluebeam</a>' : '') +
       '<a href="#" onclick="deleteBidAttachment(\''+b.id+'\',\''+a.id+'\');return false;" style="color:var(--rust);text-decoration:none;font-weight:700;padding:0 2px;" title="Remove">×</a>' +
     '</span>';
   }).join('');
