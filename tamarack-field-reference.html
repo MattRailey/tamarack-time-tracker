@@ -1,0 +1,1593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tamarack Ref">
+<meta name="theme-color" content="#1c2438">
+<title>Tamarack Field Reference</title>
+<style>
+  :root{
+    --blueprint: #2f7cf6;
+    --blueprint-light: #1f63d6;
+    --navy: #1c2438;
+    --navy-light: #2a3450;
+    --line: #e3e5e9;
+    --paper: #f5f6f8;
+    --paper-dim: #ffffff;
+    --ink: #1f2430;
+    --steel: #697086;
+    --rust: #d0453c;
+    --ok: #0ca678;
+    --serif: Arial, Helvetica, 'Segoe UI', sans-serif;
+    --mono: Arial, Helvetica, 'Segoe UI', sans-serif;
+    --sans: Arial, Helvetica, 'Segoe UI', sans-serif;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html{ -webkit-text-size-adjust:100%; }
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:var(--sans); min-height:100vh; padding-bottom:env(safe-area-inset-bottom); }
+  .sheet{ background:var(--paper); min-height:100vh; }
+  header{
+    background:#fff; color:var(--ink); padding:calc(env(safe-area-inset-top) + 14px) 24px 14px;
+    border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;
+  }
+  header h1{ font-family:var(--sans); font-size:1.2rem; font-weight:700; margin:0; color:var(--navy); }
+  header .meta{ font-family:var(--sans); font-size:.72rem; color:var(--steel); text-align:right; line-height:1.5; }
+  .layout{ display:flex; max-width:1180px; margin:0 auto; }
+  /* PDF Compare needs real width for the sheets — go edge to edge on that tab. */
+  body.wide-mode .layout{ max-width:none; }
+  body.wide-mode main{ padding-right:24px; }
+  nav{ width:200px; flex-shrink:0; background:var(--navy); padding:16px 0; }
+  nav button{
+    display:block; width:100%; text-align:left; background:none; border:none; border-left:3px solid transparent;
+    padding:11px 18px; font-family:var(--sans); font-size:.88rem; color:#aab2c8; cursor:pointer; margin-bottom:1px;
+  }
+  nav button:hover{ background:var(--navy-light); color:#fff; }
+  nav button.active{ border-left-color:var(--blueprint); color:#fff; font-weight:600; background:var(--navy-light); }
+  nav .idx{ display:none; }
+  main{ flex:1; padding:22px 26px 90px; min-width:0; }
+  .panel{ display:none; }
+  .panel.active{ display:block; }
+  h2{ font-family:var(--sans); font-size:1.15rem; font-weight:700; margin:0 0 4px; color:var(--ink); }
+  .sub{ color:var(--steel); font-size:.85rem; margin:0 0 16px; max-width:70ch; }
+  .card{ background:#fff; border:1px solid var(--line); border-radius:8px; padding:16px; margin-bottom:16px; box-shadow:0 1px 2px rgba(20,20,40,.04); }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:14px; }
+  label{ display:block; font-size:.76rem; color:var(--steel); margin-bottom:4px; }
+  input, select{
+    width:100%; padding:9px 10px; border:1px solid var(--line); background:#fff;
+    font-family:var(--sans); font-size:.9rem; border-radius:6px; color:var(--ink); min-height:44px;
+  }
+  select{ -webkit-appearance:none; appearance:none; }
+  button.run{
+    background:var(--blueprint); color:#fff; border:none; padding:9px 18px; min-height:44px;
+    font-family:var(--sans); font-size:.88rem; font-weight:600; border-radius:6px; cursor:pointer; margin:2px 8px 2px 0;
+  }
+  button.run:hover{ background:var(--blueprint-light); }
+  button.run.secondary{ background:#fff; color:var(--blueprint); border:1px solid var(--line); }
+  .result{
+    margin-top:16px; padding:14px; background:#fff; border:1px solid var(--line);
+    border-left:4px solid var(--ok); font-family:var(--sans); font-size:.86rem; line-height:1.7; display:none;
+  }
+  .result.warn{ border-left-color:var(--rust); }
+  .result .headline{ font-family:var(--sans); font-weight:700; font-size:1rem; color:var(--ink); margin-bottom:8px; }
+  .flag{ font-family:var(--sans); font-size:.76rem; color:var(--rust); margin-top:20px; border-top:1px dashed var(--line); padding-top:10px; }
+  .table-wrap{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  table{ width:100%; border-collapse:collapse; font-family:var(--sans); font-size:.85rem; min-width:420px; }
+  th, td{ text-align:left; padding:9px 10px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th{ background:#fafbfc; font-family:var(--sans); font-weight:700; color:var(--steel); font-size:.72rem; text-transform:uppercase; letter-spacing:.03em; }
+  .code-item{ border-bottom:1px solid var(--line); padding:14px 0; }
+  .code-item .tag{ font-family:var(--sans); font-size:.74rem; color:var(--rust); font-weight:700; }
+  .code-item h3{ font-family:var(--sans); font-size:1rem; margin:4px 0 4px; color:var(--ink); }
+  .code-item p{ margin:0; font-size:.85rem; color:var(--steel); }
+  #codesearch{ margin-bottom:16px; }
+
+  /* ---- Added for PDF Set Compare panel ---- */
+  .note{ font-family:var(--sans); font-size:.76rem; color:var(--steel); margin-top:6px; }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .dropzone{ border:2px dashed var(--line); border-radius:6px; background:#fff; padding:18px; text-align:center; font-size:.85rem; color:var(--steel); cursor:pointer; transition:border-color .15s, background .15s; }
+  .dropzone.loaded{ border-color:var(--ok); color:var(--ink); }
+  .dropzone.dragover{ border-color:var(--blueprint); background:#eaf1f8; }
+  .dropzone input{ display:none; }
+  .row{ display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
+  button{ background:var(--blueprint); color:#fff; border:none; padding:10px 16px; border-radius:6px; font-size:.85rem; font-weight:600; cursor:pointer; }
+  button.secondary{ background:#fff; color:var(--blueprint); border:1px solid var(--blueprint); }
+  button:disabled{ opacity:.45; cursor:not-allowed; }
+  .pager{ display:flex; align-items:center; gap:8px; }
+  .pager button{ padding:6px 10px; }
+  label.check{ display:flex; align-items:center; gap:6px; font-size:.8rem; color:var(--ink); font-weight:400; margin-bottom:0; }
+  .legend{ display:flex; gap:18px; font-size:.78rem; margin:6px 0 14px; flex-wrap:wrap; }
+  .legend span{ display:inline-flex; align-items:center; gap:6px; }
+  .swatch{ width:13px; height:13px; border-radius:3px; display:inline-block; }
+  .zoom-bar{ display:flex; align-items:center; gap:10px; margin-bottom:8px; font-size:.78rem; color:var(--steel); flex-wrap:wrap; }
+  .zoom-bar button{ padding:4px 10px; font-size:.85rem; }
+  .viewer-wrap{ background:#3a3a3a; border-radius:6px; padding:10px; overflow:auto; max-height:78vh; text-align:center; cursor:grab; }
+  .viewer-wrap.panning{ cursor:grabbing; }
+  .viewer-wrap canvas{ height:auto; background:#fff; box-shadow:0 2px 10px rgba(0,0,0,.4); }
+  .side-by-side{ display:flex; gap:10px; justify-content:center; }
+  .side-by-side .col{ flex:1; min-width:0; }
+  .side-by-side .col h4{ color:#eee; font-family:var(--sans); font-size:.72rem; margin:0 0 6px; text-align:center; }
+  .metric{ font-family:var(--mono); font-size:.9rem; background:#fff; border:1px solid var(--line); border-left:4px solid var(--ok); padding:10px 14px; margin-top:10px; border-radius:4px; }
+  .metric.warn{ border-left-color:var(--rust); }
+  tr.hot{ background:#fbe9e7; }
+  tr:hover{ background:#eef3f8; cursor:pointer; }
+  progress{ width:100%; height:18px; }
+
+  /* ---- Thumbnail rail (Bluebeam-style, left of the compare workspace) ---- */
+  .pdfcompare-layout{ display:flex; gap:16px; align-items:flex-start; }
+  .thumb-rail{ width:190px; flex-shrink:0; position:sticky; top:10px; max-height:calc(100vh - 40px); overflow-y:auto; }
+  .pdfcompare-main{ flex:1; min-width:0; }
+  .thumb-grid{ display:grid; grid-template-columns:1fr; gap:12px; margin-top:4px; }
+  .thumb{ cursor:pointer; text-align:center; }
+  .thumb canvas{ width:100%; height:auto; display:block; border:2px solid var(--line); background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.15); border-radius:3px; }
+  .thumb:hover canvas{ border-color:var(--blueprint); }
+  .thumb.hot canvas{ border-color:var(--rust); border-width:3px; box-shadow:0 0 0 3px rgba(178,76,42,.22); }
+  .thumb.current canvas{ border-color:var(--ok); border-width:3px; box-shadow:0 0 0 3px rgba(60,110,71,.22); }
+  .thumb .lbl{ font-family:var(--sans); font-size:.72rem; color:var(--steel); margin-top:5px; }
+  .thumb.hot .lbl{ color:var(--rust); font-weight:700; }
+  .thumb .pct{ font-family:var(--mono); font-size:.68rem; display:block; }
+  @media (max-width:900px){
+    .pdfcompare-layout{ flex-direction:column; }
+    .thumb-rail{ width:100%; max-height:220px; position:static; }
+    .thumb-grid{ grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); }
+  }
+  /* Full screen target is the WHOLE layout (thumbnail rail + workspace) so the rail never disappears. */
+  #compareCard:fullscreen, #compareCard:-webkit-full-screen{
+    background:var(--paper); padding:16px; gap:16px; height:100vh; align-items:stretch;
+  }
+  #compareCard:fullscreen .thumb-rail, #compareCard:-webkit-full-screen .thumb-rail{ max-height:100%; }
+  #compareCard:fullscreen .pdfcompare-main, #compareCard:-webkit-full-screen .pdfcompare-main{ overflow-y:auto; max-height:100%; }
+  #compareCard:fullscreen .viewer-wrap, #compareCard:-webkit-full-screen .viewer-wrap{ max-height:calc(100vh - 260px); }
+
+  /* ---- Mobile layout ---- */
+  /* ---- Rebar Shapes gallery ---- */
+  .rebar-layout{ display:flex; gap:16px; align-items:flex-start; }
+  .rebar-gallery{ width:260px; flex-shrink:0; }
+  .rebar-gallery input{ margin-bottom:10px; }
+  .rebar-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; max-height:70vh; overflow-y:auto; padding-right:4px; }
+  .rebar-card{ background:#fff; border:2px solid var(--line); border-radius:6px; padding:8px; cursor:pointer; text-align:center; }
+  .rebar-card:hover{ border-color:var(--blueprint); }
+  .rebar-card.sel{ border-color:var(--blueprint); box-shadow:0 0 0 2px rgba(47,124,246,.18); }
+  .rebar-card svg{ width:100%; height:70px; display:block; }
+  .rebar-card .lbl{ font-family:var(--sans); font-size:.7rem; color:var(--steel); margin-top:4px; line-height:1.25; }
+  .rebar-editor{ flex:1; min-width:0; }
+  .rebar-preview{ background:#3a3a3a; border-radius:6px; padding:16px; text-align:center; }
+  .rebar-preview svg{ max-width:100%; height:auto; background:#fff; }
+  @media (max-width:900px){
+    .rebar-layout{ flex-direction:column; }
+    .rebar-gallery{ width:100%; }
+    .rebar-grid{ max-height:280px; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); }
+  }
+
+  @media (max-width: 760px){
+    .layout{ display:block; }
+    nav{
+      width:100%; padding:8px 6px; position:sticky; top:0; z-index:10;
+      display:flex; overflow-x:auto; -webkit-overflow-scrolling:touch; gap:2px;
+    }
+    nav button{
+      flex:0 0 auto; border-left:none; border-bottom:3px solid transparent; margin-bottom:0;
+      padding:10px 12px; min-height:44px; white-space:nowrap; font-size:.85rem;
+    }
+    nav button.active{ border-bottom-color:var(--blueprint); background:var(--navy-light); }
+    main{ padding:16px 14px 40px; }
+    header{ padding:calc(env(safe-area-inset-top) + 14px) 16px 12px; }
+    header h1{ font-size:1.1rem; }
+    .grid{ grid-template-columns:1fr; }
+    button.run{ width:100%; margin:4px 0; }
+    .grid2{ grid-template-columns:1fr; }
+    .side-by-side{ flex-direction:column; }
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <header>
+    <h1>Tamarack Field Reference</h1>
+    <div class="meta">TAMARACK DRAFTING &amp; DESIGN, LLC<br>WOOD FRAMING &amp; CODE REFERENCE</div>
+  </header>
+
+  <div class="layout">
+    <nav>
+      <button class="active" data-panel="glulam"><span class="idx">01</span>Glulam Sizing</button>
+      <button data-panel="joist"><span class="idx">02</span>Joist Spans</button>
+      <button data-panel="spans"><span class="idx">03</span>Section Properties</button>
+      <button data-panel="site"><span class="idx">04</span>Site Data (ZIP)</button>
+      <button data-panel="code"><span class="idx">05</span>Code Reference</button>
+      <button data-panel="pdfcompare"><span class="idx">06</span>PDF Compare</button>
+      <button data-panel="rebar"><span class="idx">07</span>Rebar Shapes</button>
+    </nav>
+
+    <main>
+
+      <!-- GLULAM -->
+      <section class="panel active" id="glulam">
+        <h2>Glulam beam sizing</h2>
+        <p class="sub">Preliminary uniform-load beam check. Gives a starting section — not a substitute for a stamped calculation.</p>
+        <div class="card">
+          <div class="grid">
+            <div><label>Typical load case</label>
+              <select id="g-preset" onchange="applyPreset()">
+                <option value="">— manual entry —</option>
+                <option value="10,40">Residential floor (DL 10 / LL 40)</option>
+                <option value="15,50">Light commercial floor (DL 15 / LL 50)</option>
+                <option value="10,60">Deck (DL 10 / LL 60)</option>
+                <option value="15,25">Roof — low snow (DL 15 / LL 25)</option>
+                <option value="15,45">Roof — moderate snow (DL 15 / LL 45)</option>
+                <option value="15,70">Roof — heavy mountain snow (DL 15 / LL 70)</option>
+              </select>
+            </div>
+            <div><label>Beam width</label>
+              <select id="g-width">
+                <option value="3.125">3-1/8" (Western/DF series)</option>
+                <option value="5.125">5-1/8" (Western/DF series)</option>
+                <option value="5.5" selected>5-1/2" (Southern Pine series — Tamarack default)</option>
+                <option value="6.75">6-3/4" (Western/DF series)</option>
+                <option value="7.5">7-1/2" (Southern Pine series)</option>
+                <option value="8.75">8-3/4" (Western/DF series)</option>
+                <option value="9.5">9-1/2" (Southern Pine series)</option>
+              </select>
+            </div>
+            <div><label>Span (ft)</label><input id="g-span" type="number" inputmode="decimal" value="20" step="0.5"></div>
+            <div><label>Spacing / tributary distance (ft)</label><input id="g-trib" type="number" inputmode="decimal" value="12" step="0.5"></div>
+            <div><label>Dead load (psf)</label><input id="g-dl" type="number" inputmode="decimal" value="15" step="1"></div>
+            <div><label>Live load / snow (psf)</label><input id="g-ll" type="number" inputmode="decimal" value="35" step="1"></div>
+            <div><label>Stress grade (Fb, psi)</label>
+              <select id="g-fb">
+                <option value="1800">24F-V1 DF/DF — Fb 1800</option>
+                <option value="2000">24F-V3 DF/DF — Fb 2000</option>
+                <option value="2400" selected>24F-V4 DF/DF — Fb 2400</option>
+                <option value="2600">24F-V8 DF/DF — Fb 2600</option>
+              </select>
+            </div>
+            <div><label>E (x10^6 psi)</label>
+              <select id="g-e"><option value="1.7">1.7</option><option value="1.8" selected>1.8</option><option value="1.9">1.9</option></select>
+            </div>
+            <div><label>Deflection limit</label>
+              <select id="g-defl">
+                <option value="240">L/240 (total)</option>
+                <option value="360" selected>L/360 (live)</option>
+                <option value="180">L/180 (roof, no ceiling)</option>
+              </select>
+            </div>
+          </div>
+          <button class="run" onclick="calcGlulam()">Check section</button>
+          <div class="result" id="g-result"></div>
+          <div id="g-source" style="font-family:var(--sans); font-size:.76rem; color:var(--steel); margin-top:10px;"></div>
+        </div>
+        <p class="flag">Assumes simple span, uniform load. Width is fixed by your selection above — the calculator solves only for the required depth at that width; it will not swap you to a different width to save material. Default is 5-1/2", Tamarack's typical beam width. Note two separate glulam width families exist: 5-1/2"/7-1/2"/9-1/2" are the Southern Pine series, manufactured net-width to match dimension lumber (flush with a 2x6/2x8/2x10 wall or post); 3-1/8"/5-1/8"/6-3/4"/8-3/4" are the Western species (Douglas Fir) series, which do NOT match dimension lumber widths. Confirm which series your supplier stocks before specifying. Verify bearing, lateral-torsional buckling (CL), and connection design separately.</p>
+      </section>
+
+      <!-- JOIST -->
+      <section class="panel" id="joist">
+        <h2>Sawn lumber joist spans</h2>
+        <p class="sub">Douglas Fir-Larch, 40 psf live load, 10 psf dead load, L/360 — representative values for quick field checks.</p>
+        <div class="card">
+          <div class="grid">
+            <div><label>Grade</label>
+              <select id="j-grade" onchange="renderJoist()">
+                <option value="ss">Select Structural</option>
+                <option value="1" selected>No. 1</option>
+                <option value="2">No. 2</option>
+              </select>
+            </div>
+          </div>
+          <div class="table-wrap"><table id="j-table"></table></div>
+        </div>
+        <p class="flag">Sample reference values — confirm against the current adopted IRC/AWC span tables and Oregon amendments before use in a drawing set.</p>
+      </section>
+
+      <!-- SECTION PROPERTIES -->
+      <section class="panel" id="spans">
+        <h2>Standard glulam section properties</h2>
+        <p class="sub">Sx and I by width and depth, generated on the fly. Covers both the Southern Pine series (5-1/2", 7-1/2", 9-1/2" — matches dimension lumber width) and the Western/DF series (3-1/8", 5-1/8", 6-3/4", 8-3/4" — does not match dimension lumber).</p>
+        <div class="card">
+          <div class="grid">
+            <div><label>Width</label>
+              <select id="s-width" onchange="renderSections()">
+                <option value="all">All widths</option>
+                <option value="3.125">3-1/8" (Western/DF series)</option>
+                <option value="5.125">5-1/8" (Western/DF series)</option>
+                <option value="5.5" selected>5-1/2" (Southern Pine series — Tamarack default)</option>
+                <option value="6.75">6-3/4" (Western/DF series)</option>
+                <option value="7.5">7-1/2" (Southern Pine series)</option>
+                <option value="8.75">8-3/4" (Western/DF series)</option>
+                <option value="9.5">9-1/2" (Southern Pine series)</option>
+              </select>
+            </div>
+          </div>
+          <div class="table-wrap"><table id="s-table"></table></div>
+        </div>
+      </section>
+
+      <!-- SITE DATA / ZIP -->
+      <section class="panel" id="site">
+        <h2>Site design data (by ZIP)</h2>
+        <p class="sub">Rough regional planning values for Oregon, Washington, and Idaho sites, to get you in the ballpark before an EOR pulls exact site-specific hazard data.</p>
+        <div class="card">
+          <div class="grid">
+            <div><label>Project ZIP code (OR / WA / ID)</label><input id="z-zip" type="text" inputmode="numeric" value="97850" maxlength="5"></div>
+            <div><label>Site elevation (ft) — optional</label><input id="z-elev" type="number" inputmode="decimal" placeholder="leave blank for regional default"></div>
+          </div>
+          <button class="run" onclick="lookupZip()">Look up</button>
+          <div class="result" id="z-result"></div>
+        </div>
+        <p class="flag">Values are coarse 3-digit-ZIP regional estimates, not a site-specific hazard report. Ground snow load in the Cascades/Rockies foothills and the eastern Idaho/Yellowstone corridor is strongly elevation- and fault-proximity-dependent — always confirm snow against the state/county-adopted snow load map (SEAO for Oregon; local jurisdiction maps for WA and ID) and confirm wind/seismic against the ASCE 7 Hazard Tool (asce7hazardtool.online) before finalizing a design. Coverage: Oregon (970–979), Washington (980–986, 988–994), and Idaho (832–838) 3-digit ZIP prefixes. Elevations are regional-default (largest city/town in that prefix) — always enter the actual site elevation above when you know it, since it drives the snow load estimate directly.</p>
+      </section>
+
+      <!-- CODE -->
+      <section class="panel" id="code">
+        <h2>Code quick reference</h2>
+        <p class="sub">Jump points to the sections you pull most — not a replacement for the full text.</p>
+        <input id="codesearch" type="text" placeholder="Search: snow, wind, bracing, deflection…" oninput="renderCode()">
+        <div id="code-list"></div>
+      </section>
+
+      <!-- PDF COMPARE -->
+      <section class="panel" id="pdfcompare">
+        <h2>PDF Set Compare</h2>
+        <p class="sub">Client-side comparison of two PDF sets — red/blue overlay and diff highlighting for catching revisions, the kind of overlay/compare Bluebeam Basics doesn't include. Nothing is uploaded; both PDFs stay in your browser.</p>
+
+        <div class="card">
+          <h2 style="font-size:1.05rem;">1. Load two sets</h2>
+          <div class="grid2">
+            <div class="dropzone" id="dzA">
+              <strong>Old / Existing Set</strong>
+              <div class="note">Drag &amp; drop a PDF here, or click to browse</div>
+              <input type="file" id="fileA" accept="application/pdf">
+              <div class="note" id="infoA">No file loaded.</div>
+            </div>
+            <div class="dropzone" id="dzB">
+              <strong>New / Revised Set</strong>
+              <div class="note">Drag &amp; drop a PDF here, or click to browse</div>
+              <input type="file" id="fileB" accept="application/pdf">
+              <div class="note" id="infoB">No file loaded.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pdfcompare-layout" id="compareCard">
+          <div class="thumb-rail card" id="thumbRail">
+            <h2 style="font-size:.95rem;">Sheets</h2>
+            <div class="row" style="margin-bottom:8px;">
+              <button class="secondary" onclick="renderThumbnails()" id="thumbBtn" disabled style="font-size:.76rem;padding:6px 10px;">Refresh</button>
+              <span class="note" style="margin:0;">Auto-generates once both sets are loaded, and shows each sheet's % different.</span>
+            </div>
+            <div id="thumbGrid" class="thumb-grid"></div>
+          </div>
+
+          <div class="pdfcompare-main">
+        <div class="card">
+          <h2 style="font-size:1.05rem;">2. Compare a page pair</h2>
+          <div class="row">
+            <div class="pager">
+              <label style="margin:0">Old set page</label>
+              <button class="secondary" onclick="stepPage('A',-1)">&#8592;</button>
+              <input type="number" id="pageA" value="1" min="1" style="width:64px" onchange="renderPair()">
+              <button class="secondary" onclick="stepPage('A',1)">&#8594;</button>
+              <span id="maxA" class="note"></span>
+            </div>
+            <div class="pager">
+              <label style="margin:0">New set page</label>
+              <button class="secondary" onclick="stepPage('B',-1)">&#8592;</button>
+              <input type="number" id="pageB" value="1" min="1" style="width:64px" onchange="renderPair()">
+              <button class="secondary" onclick="stepPage('B',1)">&#8594;</button>
+              <span id="maxB" class="note"></span>
+            </div>
+            <div class="pager">
+              <label style="margin:0">Advance both together</label>
+              <button onclick="stepBoth(-1)">&#8592; Prev sheet</button>
+              <button onclick="stepBoth(1)">Next sheet &#8594;</button>
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label>View mode</label>
+              <select id="viewMode" onchange="renderPair()">
+                <option value="overlay">Red/Blue overlay (recommended)</option>
+                <option value="diff">Diff highlight</option>
+                <option value="side">Side by side</option>
+              </select>
+            </div>
+            <div style="min-width:160px">
+              <label>Diff sensitivity</label>
+              <input type="range" id="threshold" min="10" max="120" value="40" oninput="renderPair()">
+            </div>
+            <div>
+              <label>&nbsp;</label>
+              <label class="check"><input type="checkbox" id="thinLines" onchange="renderPair()"> Thin lines (erode before comparing)</label>
+            </div>
+            <div style="min-width:200px">
+              <label>Render detail</label>
+              <select id="renderQuality" onchange="renderPair()">
+                <option value="1600">Standard (fast)</option>
+                <option value="2600">High</option>
+                <option value="4000" selected>Maximum (sharpest, slower to render)</option>
+              </select>
+            </div>
+          </div>
+          <div class="legend" id="legend"></div>
+          <div class="zoom-bar">
+            <span>Scroll wheel to zoom to cursor · click and drag to pan</span>
+            <button class="secondary" onclick="setZoom(zoomLevel*0.9091)">&minus;</button>
+            <span id="zoomPct">100%</span>
+            <button class="secondary" onclick="setZoom(zoomLevel*1.1)">+</button>
+            <button class="secondary" onclick="resetZoom()">Reset</button>
+            <button class="secondary" onclick="toggleFullscreen()" id="fsBtn">&#x26F6; Full screen</button>
+          </div>
+          <div class="viewer-wrap" id="viewerWrap">
+            <div class="note" style="color:#ddd;padding:40px;">Load both PDFs above, then this area will show the comparison.</div>
+          </div>
+          <div class="metric" id="pairMetric" style="display:none;"></div>
+          <div class="row" style="margin-top:10px;">
+            <button class="secondary" onclick="downloadCurrentPNG()">Download this view as PNG</button>
+          </div>
+          <p class="flag">Pages align by the page NUMBERS you set above, not by title block or sheet number — if a sheet was inserted or removed mid-set, the two page numbers will drift out of alignment further into the set. Step pages independently on each side to re-sync. On render resolution: a literal 600 DPI render of a full 24"x36"+ sheet is roughly 20,000+ pixels wide — no browser canvas or in-browser pixel diff can hold or process that without crashing the tab. "Maximum" renders at 4000px, which is the highest width this tool can diff at interactively; on a 30"-wide sheet that's about 130 DPI on-screen, and combined with scroll-wheel zoom (up to 6x) gives you well beyond 600 DPI of effective magnification once you're zoomed into a detail — the rendered pixels are just being magnified further, same as zooming into any raster image. For true pixel-level, print-resolution inspection of one specific area, download the current view as PNG and open it in an image viewer at 100%.</p>
+        </div>
+
+        <div class="card">
+          <h2 style="font-size:1.05rem;">3. Scan the whole set for changed sheets</h2>
+          <div class="row">
+            <button id="scanBtn" onclick="scanAll()" disabled>Scan all pages</button>
+            <span class="note">Compares min(pages A, pages B) page pairs at reduced resolution — fast, meant to flag which sheets to look at closely, not a final reading.</span>
+          </div>
+          <progress id="scanProgress" value="0" max="100" style="display:none;"></progress>
+          <div id="scanResults"></div>
+          <div class="row" id="csvRow" style="display:none;">
+            <button class="secondary" onclick="downloadCSV()">Download summary as CSV</button>
+          </div>
+        </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- REBAR SHAPES -->
+      <section class="panel" id="rebar">
+        <h2>Rebar shape designer</h2>
+        <p class="sub">Pick a typical bar shape, set the bar size and leg dimensions, and export it as a masking-region outline to drop straight into a Revit drafting view. No fill, Medium Lines border, no callouts — matches how you draw these by hand. The preview IS the check: if a shape looks wrong here, it'll be wrong in Revit too, so flag it before using it on a real set.</p>
+
+        <div class="rebar-layout">
+          <div class="rebar-gallery card">
+            <input type="text" id="rb-search" placeholder="Search shapes…" oninput="renderRebarGallery()">
+            <div class="rebar-grid" id="rb-grid"></div>
+          </div>
+
+          <div class="rebar-editor">
+            <div class="card">
+              <div class="grid">
+                <div><label>Bar size</label>
+                  <select id="rb-size" onchange="renderRebarPreview()">
+                    <option value="3">#3 (0.375")</option>
+                    <option value="4">#4 (0.500")</option>
+                    <option value="5" selected>#5 (0.625")</option>
+                    <option value="6">#6 (0.750")</option>
+                    <option value="7">#7 (0.875")</option>
+                    <option value="8">#8 (1.000")</option>
+                    <option value="9">#9 (1.128")</option>
+                    <option value="10">#10 (1.270")</option>
+                    <option value="11">#11 (1.410")</option>
+                  </select>
+                </div>
+                <div id="rb-hooktype-wrap" style="display:none;">
+                  <label>Hook angle (ties/stirrups)</label>
+                  <select id="rb-hookangle" onchange="renderRebarPreview()">
+                    <option value="135">135&deg; seismic hook</option>
+                    <option value="90">90&deg; hook</option>
+                  </select>
+                </div>
+              </div>
+              <div class="grid" id="rb-dims"></div>
+              <div class="row">
+                <button class="run" onclick="exportRebarShape()">Export for Revit (.json)</button>
+              </div>
+              <div class="rebar-preview">
+                <svg id="rb-preview-svg" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg"></svg>
+              </div>
+              <div class="note" id="rb-warn" style="color:var(--rust);"></div>
+            </div>
+            <p class="flag">Bend geometry follows ACI 318 Ch. 25 minimum bend diameters (6db for #3&ndash;#8, 8db for #9&ndash;#11, 4db for stirrup/tie bends #3&ndash;#5) and standard hook extensions &mdash; a reasonable field default, not a substitute for checking against the CRSI Manual of Standard Practice or the project's own bar list requirements before fabrication.</p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  function showPanel(name){
+    document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active', b.dataset.panel===name));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id===name));
+    document.body.classList.toggle('wide-mode', name === 'pdfcompare');
+    window.scrollTo(0,0);
+  }
+  document.querySelectorAll('nav button').forEach(btn=>{
+    btn.addEventListener('click', ()=> showPanel(btn.dataset.panel));
+  });
+
+  function applyPreset(){
+    const v = document.getElementById('g-preset').value;
+    if(!v) return;
+    const [dl, ll] = v.split(',');
+    document.getElementById('g-dl').value = dl;
+    document.getElementById('g-ll').value = ll;
+  }
+
+  const widths = [3.125, 5.125, 5.5, 6.75, 7.5, 8.75, 9.5];
+  function depthsForWidth(b){
+    const sizes = [];
+    for(let d=6; d<=30; d+=1.5){
+      sizes.push({b, d, Sx: (b*d*d/6), I: (b*d*d*d/12)});
+    }
+    return sizes;
+  }
+  function standardSizes(){
+    // All widths combined, sorted by area — used only by the Section Properties table.
+    const sizes = [];
+    for(const b of widths) sizes.push(...depthsForWidth(b));
+    return sizes.sort((a,b)=> (a.b*a.d) - (b.b*b.d));
+  }
+
+  function calcGlulam(){
+    const width = parseFloat(document.getElementById('g-width').value);
+    const span = parseFloat(document.getElementById('g-span').value);
+    const trib = parseFloat(document.getElementById('g-trib').value);
+    const dl = parseFloat(document.getElementById('g-dl').value);
+    const ll = parseFloat(document.getElementById('g-ll').value);
+    const fb = parseFloat(document.getElementById('g-fb').value);
+    const E = parseFloat(document.getElementById('g-e').value) * 1e6;
+    const defl = parseFloat(document.getElementById('g-defl').value);
+
+    const w = (dl+ll)*trib;
+    const wIn = w/12;
+    const spanIn = span*12;
+    const M = w*span*span/8;
+    const Sreq = (M*12)/fb;
+    const deflLimit = spanIn/defl;
+    const Ireq = (5*wIn*Math.pow(spanIn,4)) / (384*E*deflLimit);
+
+    // Fixed width — only the depth is solved for, since width is picked to match
+    // the wall/post it lands on, not to minimize material.
+    const sizes = depthsForWidth(width);
+    const fit = sizes.find(s => s.Sx >= Sreq && s.I >= Ireq);
+
+    const box = document.getElementById('g-result');
+    box.style.display = 'block';
+    const wFrac = (width % 1 === 0.5) ? (Math.floor(width)+'-1/2') : (width % 1 === 0.125 ? Math.floor(width)+'-1/8' : (width%1===0.75? Math.floor(width)+'-3/4' : width));
+    if(fit){
+      box.classList.remove('warn');
+      const dFrac = (fit.d % 1 === 0.5) ? (Math.floor(fit.d)+'-1/2') : fit.d;
+      box.innerHTML = `<div class="headline">Suggested: ${wFrac}" x ${dFrac}"</div>
+        w = ${w.toFixed(0)} plf &nbsp; M = ${M.toFixed(0)} ft-lb<br>
+        Sx required = ${Sreq.toFixed(1)} in3 -> provided ${fit.Sx.toFixed(1)} in3<br>
+        I required (defl) = ${Ireq.toFixed(0)} in4 -> provided ${fit.I.toFixed(0)} in4<br>
+        Governs: ${fit.Sx/Sreq < fit.I/Ireq ? 'bending' : 'deflection'}`;
+    } else {
+      box.classList.add('warn');
+      box.innerHTML = `<div class="headline">No depth up to 30" at ${wFrac}" width fits — needs a wider beam, a deeper custom glulam, or a different framing scheme.</div>
+        Sx required = ${Sreq.toFixed(1)} in3, I required = ${Ireq.toFixed(0)} in4 exceed what a 30"-deep ${wFrac}"-wide section provides.`;
+    }
+  }
+
+  const joistData = {
+    ss:  {'2x8':[13.42,12.25,10.75], '2x10':[17.17,15.58,13.08], '2x12':[20.83,18.83,15.42]},
+    '1': {'2x8':[12.92,11.75,10.25], '2x10':[16.5,15.0,12.25],  '2x12':[20.08,17.83,14.58]},
+    '2': {'2x8':[12.58,11.42,9.92],  '2x10':[16.08,14.42,11.75],'2x12':[19.5,17.0,13.92]}
+  };
+  function fmtSpan(v){ const ft = Math.floor(v); const inches = Math.round((v-ft)*12); return `${ft}'-${inches}"`; }
+  function renderJoist(){
+    const grade = document.getElementById('j-grade').value;
+    const rows = ['2x8','2x10','2x12'];
+    let html = '<tr><th>Size</th><th>12" o.c.</th><th>16" o.c.</th><th>24" o.c.</th></tr>';
+    for(const r of rows){
+      const d = joistData[grade][r];
+      html += `<tr><td>${r}</td><td>${fmtSpan(d[0])}</td><td>${fmtSpan(d[1])}</td><td>${fmtSpan(d[2])}</td></tr>`;
+    }
+    document.getElementById('j-table').innerHTML = html;
+  }
+  renderJoist();
+
+  function renderSections(){
+    const sel = document.getElementById('s-width') ? document.getElementById('s-width').value : 'all';
+    let rows = (sel === 'all') ? standardSizes() : depthsForWidth(parseFloat(sel)).sort((a,b)=>a.d-b.d);
+    let html = '<tr><th>Width</th><th>Depth</th><th>Sx (in3)</th><th>I (in4)</th></tr>';
+    for(const s of rows){
+      const dFrac = (s.d % 1 === 0.5) ? (Math.floor(s.d)+'-1/2') : s.d;
+      html += `<tr><td>${s.b}"</td><td>${dFrac}"</td><td>${s.Sx.toFixed(1)}</td><td>${s.I.toFixed(0)}</td></tr>`;
+    }
+    document.getElementById('s-table').innerHTML = html;
+  }
+  renderSections();
+
+  const zipRegions = {
+    // ---- Oregon (970-979) ----
+    '970': {name:'Portland Metro / NW Willamette Valley, OR', elev:100, pg:20, pgRate:6, wind:98, ss:0.95, s1:0.42},
+    '971': {name:'NW Oregon Coast', elev:100, pg:15, pgRate:5, wind:105, ss:1.10, s1:0.50},
+    '972': {name:'Salem / Mid-Willamette Valley, OR', elev:200, pg:18, pgRate:6, wind:97, ss:0.90, s1:0.40},
+    '973': {name:'Eugene / South Willamette Valley, OR', elev:400, pg:15, pgRate:6, wind:97, ss:0.80, s1:0.35},
+    '974': {name:'Eugene foothills / Umpqua, OR', elev:500, pg:15, pgRate:7, wind:97, ss:0.75, s1:0.32},
+    '975': {name:'Rogue Valley / Southern Oregon', elev:1300, pg:12, pgRate:6, wind:100, ss:0.55, s1:0.24},
+    '976': {name:'Klamath Falls / South-Central Oregon', elev:4100, pg:35, pgRate:8, wind:95, ss:0.45, s1:0.18},
+    '977': {name:'Bend / Central Oregon Cascades', elev:3600, pg:40, pgRate:9, wind:95, ss:0.55, s1:0.20},
+    '978': {name:'Pendleton / La Grande / NE Oregon', elev:1500, pg:20, pgRate:7, wind:95, ss:0.30, s1:0.10},
+    '979': {name:'Burns / Harney-Malheur / SE Oregon high desert', elev:4150, pg:30, pgRate:8, wind:95, ss:0.25, s1:0.08},
+
+    // ---- Washington (980-986, 988-994; 987 unused by USPS) ----
+    '980': {name:'Seattle (North/Central) & Shoreline, WA', elev:200, pg:25, pgRate:5, wind:98, ss:1.35, s1:0.50},
+    '981': {name:'Seattle (South) / Bellevue / Eastside, WA', elev:250, pg:25, pgRate:5, wind:98, ss:1.30, s1:0.48},
+    '982': {name:'Everett / Snohomish County, WA', elev:150, pg:25, pgRate:6, wind:100, ss:1.25, s1:0.45},
+    '983': {name:'Tacoma, WA', elev:250, pg:25, pgRate:6, wind:100, ss:1.30, s1:0.48},
+    '984': {name:'Puyallup / South Tacoma / Pierce County, WA', elev:450, pg:25, pgRate:6, wind:98, ss:1.25, s1:0.45},
+    '985': {name:'Olympia / Thurston County, WA', elev:200, pg:25, pgRate:6, wind:98, ss:1.15, s1:0.42},
+    '986': {name:'Vancouver, WA (Columbia River)', elev:200, pg:20, pgRate:6, wind:97, ss:0.90, s1:0.38},
+    '988': {name:'Yakima, WA', elev:1050, pg:25, pgRate:7, wind:95, ss:0.55, s1:0.20},
+    '989': {name:'Wenatchee / North Central WA', elev:780, pg:30, pgRate:8, wind:95, ss:0.60, s1:0.22},
+    '990': {name:'Spokane, WA', elev:1900, pg:40, pgRate:6, wind:95, ss:0.30, s1:0.10},
+    '991': {name:'Spokane Valley / Suburbs, WA', elev:2000, pg:40, pgRate:6, wind:95, ss:0.28, s1:0.09},
+    '992': {name:'Cheney / Spokane County (West), WA', elev:2300, pg:40, pgRate:6, wind:95, ss:0.28, s1:0.09},
+    '993': {name:'Tri-Cities (Pasco / Richland / Kennewick), WA', elev:400, pg:25, pgRate:6, wind:110, ss:0.45, s1:0.13}, // calibrated against a real Desert Sage Dental (Richland) General Notes sheet, 2026-09
+
+    '994': {name:'Clarkston / SE Washington border, WA', elev:750, pg:25, pgRate:7, wind:95, ss:0.30, s1:0.10},
+
+    // ---- Idaho (832-838) ----
+    '832': {name:'Boise, ID', elev:2700, pg:20, pgRate:6, wind:90, ss:0.35, s1:0.13},
+    '833': {name:'Nampa / Caldwell / Boise Valley West, ID', elev:2500, pg:18, pgRate:6, wind:90, ss:0.32, s1:0.12},
+    '834': {name:'Twin Falls / South Central ID', elev:3800, pg:30, pgRate:7, wind:90, ss:0.28, s1:0.10},
+    '835': {name:'Idaho Falls / Eastern ID', elev:4700, pg:45, pgRate:8, wind:95, ss:0.70, s1:0.22},
+    '836': {name:'Pocatello, ID', elev:4450, pg:40, pgRate:8, wind:90, ss:0.45, s1:0.16},
+    '837': {name:'Rexburg / Idaho Falls area, ID', elev:4850, pg:50, pgRate:8, wind:95, ss:0.75, s1:0.24},
+    '838': {name:"Coeur d'Alene / Lewiston / North ID Panhandle", elev:2100, pg:40, pgRate:7, wind:90, ss:0.25, s1:0.09}
+  };
+
+  let lastZipData = null;
+  function lookupZip(){
+    const zip = document.getElementById('z-zip').value.trim();
+    const prefix = zip.slice(0,3);
+    const box = document.getElementById('z-result');
+    box.style.display = 'block';
+    const region = zipRegions[prefix];
+    if(!region){
+      box.classList.add('warn');
+      box.innerHTML = `<div class="headline">No data for this ZIP.</div>Covered prefixes: Oregon (970-979), Washington (980-986, 988-994), Idaho (832-838).`;
+      return;
+    }
+    box.classList.remove('warn');
+    const elevInput = document.getElementById('z-elev').value;
+    const elev = elevInput ? parseFloat(elevInput) : region.elev;
+    const pg = Math.max(15, region.pg + region.pgRate*((elev-region.elev)/1000));
+    const ps = 0.7*pg;
+
+    lastZipData = {region: region.name, pg, ps};
+
+    box.innerHTML = `<div class="headline">${region.name}</div>
+      Elevation used: ${elev.toFixed(0)} ft ${elevInput? '' : '(regional default — enter actual site elevation for a better estimate)'}<br>
+      Ground snow load (Pg) ~ ${pg.toFixed(0)} psf<br>
+      Flat-roof snow load (Ps, simplified 0.7 x Pg, Ce=Ct=Is=1.0) ~ ${ps.toFixed(0)} psf<br>
+      Basic wind speed (Risk II, 3-sec gust) ~ ${region.wind} mph<br>
+      Seismic Ss ~ ${region.ss}g &nbsp; S1 ~ ${region.s1}g<br><br>
+      <button class="run secondary" onclick="sendSnowToGlulam()">Use this snow load in Glulam calc</button>`;
+  }
+  function sendSnowToGlulam(){
+    if(!lastZipData) return;
+    document.getElementById('g-preset').value = '';
+    document.getElementById('g-ll').value = Math.round(lastZipData.ps);
+    document.getElementById('g-source').innerHTML = `Live load set from ${lastZipData.region} site data (Ps ~ ${lastZipData.ps.toFixed(0)} psf).`;
+    showPanel('glulam');
+  }
+
+  const codeRefs = [
+    {tag:'IBC 2021 sec 1607.1', title:'Minimum uniformly distributed live loads', body:'Table of live loads by occupancy/use — offices, residential, storage, assembly, etc.'},
+    {tag:'ASCE 7-22 Ch. 7', title:'Snow loads', body:'Ground snow load, exposure/thermal factors, and roof snow load calculation procedure.'},
+    {tag:'ASCE 7-22 Ch. 26-30', title:'Wind loads', body:'Wind speed maps, exposure categories, and MWFRS/C&C pressure procedures.'},
+    {tag:'ASCE 7-22 Ch. 12', title:'Seismic design (ELF procedure)', body:'Base shear, response coefficients, and vertical/horizontal distribution of seismic force.'},
+    {tag:'NDS 2018 Ch. 3', title:'Design values for wood members', body:'Reference design values, adjustment factors (CD, CM, Ct, CL, CF) for sawn lumber and glulam.'},
+    {tag:'NDS 2018 Ch. 5', title:'Structural glued laminated timber', body:'Glulam-specific adjustment factors, volume factor (CV), and layup combinations.'},
+    {tag:'IRC 2021 R502.3.1', title:'Floor joist spans', body:'Span tables for sawn lumber floor joists by species, grade, and spacing.'},
+    {tag:'IRC 2021 R602.10', title:'Wall bracing', body:'Bracing methods, minimum lengths, and bracing amount tables by wind/seismic design category.'},
+    {tag:'OSSC / Oregon amendments', title:'State-specific structural amendments', body:'Oregon Structural Specialty Code deviations from the base IBC — check current adopted edition.'},
+  ];
+  function renderCode(){
+    const q = document.getElementById('codesearch').value.toLowerCase();
+    const filtered = codeRefs.filter(c => (c.tag+c.title+c.body).toLowerCase().includes(q));
+    document.getElementById('code-list').innerHTML = filtered.map(c => `
+      <div class="code-item"><span class="tag">${c.tag}</span><h3>${c.title}</h3><p>${c.body}</p></div>
+    `).join('') || '<p class="sub">No matches.</p>';
+  }
+  renderCode();
+
+  /* =========================================================
+     PDF SET COMPARE — merged in from the standalone tool
+     ========================================================= */
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+  let pdfA = null, pdfB = null;
+  let lastCompositeCanvas = null;
+
+  setupDropzone('A'); setupDropzone('B');
+
+  function setupDropzone(side){
+    const dz = document.getElementById('dz'+side);
+    const input = document.getElementById('file'+side);
+
+    input.addEventListener('change', e => { if(e.target.files[0]) loadFile(e.target.files[0], side); });
+    dz.addEventListener('click', () => { input.click(); });
+
+    ['dragenter','dragover'].forEach(evt => {
+      dz.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); dz.classList.add('dragover'); });
+    });
+    ['dragleave','drop'].forEach(evt => {
+      dz.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); dz.classList.remove('dragover'); });
+    });
+    dz.addEventListener('drop', e => {
+      const files = e.dataTransfer.files;
+      if(!files || !files.length) return;
+      const file = files[0];
+      if(file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')){
+        document.getElementById('info'+side).textContent = 'That file is not a PDF — dropped: ' + file.name;
+        return;
+      }
+      loadFile(file, side);
+    });
+  }
+
+  async function loadFile(file, side){
+    const info = document.getElementById('info'+side);
+    const dz = document.getElementById('dz'+side);
+    info.textContent = 'Loading ' + file.name + ' ...';
+    try{
+      const buf = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({data: buf}).promise;
+      if(side==='A') pdfA = pdf; else pdfB = pdf;
+      info.textContent = file.name + ' — ' + pdf.numPages + ' page(s)';
+      dz.classList.add('loaded');
+      document.getElementById('max'+side).textContent = '/ ' + pdf.numPages;
+      if(pdfA && pdfB){
+        document.getElementById('scanBtn').disabled = false;
+        document.getElementById('thumbBtn').disabled = false;
+        renderPair();
+        renderThumbnails();
+      }
+    }catch(err){
+      info.textContent = 'Failed to load: ' + err.message;
+    }
+  }
+
+  function stepPage(side, delta){
+    const el = document.getElementById('page'+side);
+    let v = parseInt(el.value||'1',10) + delta;
+    const pdf = side==='A'?pdfA:pdfB;
+    if(pdf) v = Math.max(1, Math.min(pdf.numPages, v));
+    el.value = v;
+    renderPair();
+  }
+
+  function stepBoth(delta){
+    if(!pdfA || !pdfB) return;
+    const elA = document.getElementById('pageA'), elB = document.getElementById('pageB');
+    let vA = parseInt(elA.value||'1',10) + delta;
+    let vB = parseInt(elB.value||'1',10) + delta;
+    vA = Math.max(1, Math.min(pdfA.numPages, vA));
+    vB = Math.max(1, Math.min(pdfB.numPages, vB));
+    elA.value = vA; elB.value = vB;
+    renderPair();
+  }
+
+  async function renderToCanvas(pdf, pageNum, targetWidth){
+    const page = await pdf.getPage(pageNum);
+    const vp1 = page.getViewport({scale:1});
+    const scale = targetWidth / vp1.width;
+    const viewport = page.getViewport({scale});
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(viewport.width);
+    canvas.height = Math.round(viewport.height);
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    await page.render({canvasContext: ctx, viewport}).promise;
+    // Effective DPI at this render width, for a page whose real width (in points, 72/in) is vp1.width.
+    canvas.dataset.dpi = (targetWidth / (vp1.width / 72)).toFixed(0);
+    return canvas;
+  }
+
+  function toGray(canvas){
+    const ctx = canvas.getContext('2d');
+    const img = ctx.getImageData(0,0,canvas.width,canvas.height);
+    const g = new Float32Array(canvas.width*canvas.height);
+    const d = img.data;
+    for(let i=0, p=0; i<d.length; i+=4, p++){
+      g[p] = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+    }
+    return g;
+  }
+
+  function erodeGray(gray, w, h){
+    const ink = new Float32Array(w*h);
+    for(let i=0;i<w*h;i++) ink[i] = 255 - gray[i];
+    const out = new Float32Array(w*h);
+    for(let y=0;y<h;y++){
+      const rowUp = y>0 ? (y-1)*w : -1, row = y*w, rowDn = y<h-1 ? (y+1)*w : -1;
+      for(let x=0;x<w;x++){
+        let m = ink[row+x];
+        const xL = x>0?x-1:x, xR = x<w-1?x+1:x;
+        if(rowUp>=0){ if(ink[rowUp+xL]<m) m=ink[rowUp+xL]; if(ink[rowUp+x]<m) m=ink[rowUp+x]; if(ink[rowUp+xR]<m) m=ink[rowUp+xR]; }
+        if(ink[row+xL]<m) m=ink[row+xL]; if(ink[row+xR]<m) m=ink[row+xR];
+        if(rowDn>=0){ if(ink[rowDn+xL]<m) m=ink[rowDn+xL]; if(ink[rowDn+x]<m) m=ink[rowDn+x]; if(ink[rowDn+xR]<m) m=ink[rowDn+xR]; }
+        out[row+x] = m;
+      }
+    }
+    const outGray = new Float32Array(w*h);
+    for(let i=0;i<w*h;i++) outGray[i] = 255 - out[i];
+    return outGray;
+  }
+
+  function alignGray(canvasA, canvasB){
+    const w = Math.max(canvasA.width, canvasB.width);
+    const h = Math.max(canvasA.height, canvasB.height);
+    function pad(c){
+      const p = document.createElement('canvas'); p.width=w; p.height=h;
+      const ctx = p.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0,0,w,h);
+      ctx.drawImage(c,0,0);
+      return p;
+    }
+    const pA = pad(canvasA), pB = pad(canvasB);
+    return {grayA: toGray(pA), grayB: toGray(pB), w, h};
+  }
+
+  function buildOverlay(grayA, grayB, w, h){
+    const out = new ImageData(w,h);
+    const d = out.data;
+    for(let p=0, i=0; p<w*h; p++, i+=4){
+      const inkA = 255 - grayA[p];
+      const inkB = 255 - grayB[p];
+      const common = Math.min(inkA, inkB);
+      const onlyA = Math.max(inkA-inkB, 0);
+      const onlyB = Math.max(inkB-inkA, 0);
+      let r = 255 - common, g = 255 - common, b = 255 - common;
+      g = Math.max(g - onlyA, 0); b = Math.max(b - onlyA, 0);
+      r = Math.max(r - onlyB, 0); g = Math.max(g - onlyB, 0);
+      d[i]=r; d[i+1]=g; d[i+2]=b; d[i+3]=255;
+    }
+    return out;
+  }
+
+  function buildDiff(grayA, grayB, w, h, threshold){
+    const out = new ImageData(w,h);
+    const d = out.data;
+    let changed = 0, total = 0;
+    for(let p=0, i=0; p<w*h; p++, i+=4){
+      const diff = Math.abs(grayA[p]-grayB[p]);
+      const base = 200 + grayB[p]*0.2;
+      if(diff > threshold){
+        d[i]=230; d[i+1]=30; d[i+2]=100; d[i+3]=255;
+        changed++;
+      } else {
+        const v = Math.min(255, base);
+        d[i]=v; d[i+1]=v; d[i+2]=v; d[i+3]=255;
+      }
+      total++;
+    }
+    return {imgData: out, pct: (changed/total*100)};
+  }
+
+  function changedPctOnly(grayA, grayB, w, h, threshold){
+    let changed=0, total=w*h;
+    for(let p=0;p<total;p++){ if(Math.abs(grayA[p]-grayB[p])>threshold) changed++; }
+    return changed/total*100;
+  }
+
+  function updateLegend(mode){
+    const el = document.getElementById('legend');
+    if(mode==='overlay'){
+      el.innerHTML = `<span><span class="swatch" style="background:#999"></span>Unchanged linework (present in both)</span>
+        <span><span class="swatch" style="background:#C0392B"></span>Old set only (removed / superseded)</span>
+        <span><span class="swatch" style="background:#2461B3"></span>New set only (added / revised)</span>`;
+    } else if(mode==='diff'){
+      el.innerHTML = `<span><span class="swatch" style="background:#e5e5e5"></span>Dimmed new-set page (unchanged)</span>
+        <span><span class="swatch" style="background:#e61e64"></span>Flagged difference</span>`;
+    } else {
+      el.innerHTML = `<span><span class="swatch" style="background:#C0392B"></span>Old set (left)</span>
+        <span><span class="swatch" style="background:#2461B3"></span>New set (right)</span>`;
+    }
+  }
+
+  async function renderPair(){
+    if(!pdfA || !pdfB) return;
+    const pA = Math.max(1, Math.min(pdfA.numPages, parseInt(document.getElementById('pageA').value||'1',10)));
+    const pB = Math.max(1, Math.min(pdfB.numPages, parseInt(document.getElementById('pageB').value||'1',10)));
+    const mode = document.getElementById('viewMode').value;
+    const threshold = parseInt(document.getElementById('threshold').value,10);
+    updateLegend(mode);
+    markCurrentThumb(pB);
+
+    const wrap = document.getElementById('viewerWrap');
+    wrap.innerHTML = '<div class="note" style="color:#ddd;padding:40px;">Rendering at high resolution — this can take a few seconds at Maximum detail…</div>';
+
+    const targetWidth = parseInt(document.getElementById('renderQuality').value, 10);
+    const [canvasA, canvasB] = await Promise.all([
+      renderToCanvas(pdfA, pA, targetWidth),
+      renderToCanvas(pdfB, pB, targetWidth)
+    ]);
+
+    if(mode === 'side'){
+      wrap.innerHTML = '';
+      const sbs = document.createElement('div'); sbs.className='side-by-side';
+      const colA = document.createElement('div'); colA.className='col';
+      colA.innerHTML = '<h4>OLD — page '+pA+'</h4>';
+      colA.appendChild(canvasA);
+      const colB = document.createElement('div'); colB.className='col';
+      colB.innerHTML = '<h4>NEW — page '+pB+'</h4>';
+      colB.appendChild(canvasB);
+      sbs.appendChild(colA); sbs.appendChild(colB);
+      wrap.appendChild(sbs);
+      document.getElementById('pairMetric').style.display='none';
+      lastCompositeCanvas = null;
+      applyZoom();
+      return;
+    }
+
+    let {grayA, grayB, w, h} = alignGray(canvasA, canvasB);
+    if(document.getElementById('thinLines').checked){
+      grayA = erodeGray(grayA, w, h);
+      grayB = erodeGray(grayB, w, h);
+    }
+    const out = document.createElement('canvas'); out.width=w; out.height=h;
+    const ctx = out.getContext('2d');
+    let pct;
+    if(mode==='overlay'){
+      ctx.putImageData(buildOverlay(grayA, grayB, w, h), 0, 0);
+      pct = changedPctOnly(grayA, grayB, w, h, threshold);
+    } else {
+      const res = buildDiff(grayA, grayB, w, h, threshold);
+      ctx.putImageData(res.imgData, 0, 0);
+      pct = res.pct;
+    }
+    wrap.innerHTML = '';
+    wrap.appendChild(out);
+    lastCompositeCanvas = out;
+    applyZoom();
+
+    const metric = document.getElementById('pairMetric');
+    metric.style.display = 'block';
+    metric.classList.toggle('warn', pct > 2);
+    const dpiA = canvasA.dataset.dpi, dpiB = canvasB.dataset.dpi;
+    metric.innerHTML = `Old page ${pA} vs New page ${pB} — <strong>${pct.toFixed(2)}%</strong> of pixels differ at this sensitivity. ${pct>2 ? 'Likely a real revision — review closely.' : 'Likely unchanged (rendering noise / anti-aliasing only).'}<br>Rendered at ~${dpiA} DPI (old) / ~${dpiB} DPI (new) — zoom in with the scroll wheel for a closer look at this resolution.`;
+  }
+
+  function downloadCurrentPNG(){
+    if(!lastCompositeCanvas){ alert('Switch to Overlay or Diff mode first — side-by-side view has nothing to export as one image.'); return; }
+    const a = document.createElement('a');
+    a.download = 'pdf-compare-pageA' + document.getElementById('pageA').value + '-pageB' + document.getElementById('pageB').value + '.png';
+    a.href = lastCompositeCanvas.toDataURL('image/png');
+    a.click();
+  }
+
+  let scanRows = [];
+  async function scanAll(){
+    if(!pdfA || !pdfB) return;
+    const btn = document.getElementById('scanBtn');
+    btn.disabled = true;
+    const prog = document.getElementById('scanProgress');
+    prog.style.display = 'block'; prog.value = 0;
+    const n = Math.min(pdfA.numPages, pdfB.numPages);
+    const threshold = parseInt(document.getElementById('threshold').value,10);
+    const thinLinesOn = document.getElementById('thinLines').checked;
+    scanRows = [];
+    const scanWidth = 500;
+    for(let i=1;i<=n;i++){
+      const [ca, cb] = await Promise.all([
+        renderToCanvas(pdfA, i, scanWidth),
+        renderToCanvas(pdfB, i, scanWidth)
+      ]);
+      let {grayA, grayB, w, h} = alignGray(ca, cb);
+      if(thinLinesOn){ grayA = erodeGray(grayA, w, h); grayB = erodeGray(grayB, w, h); }
+      const pct = changedPctOnly(grayA, grayB, w, h, threshold);
+      scanRows.push({page: i, pct});
+      prog.value = (i/n)*100;
+    }
+    if(pdfA.numPages !== pdfB.numPages){
+      scanRows.push({page: 'note', pct: null, note: `Sets have different page counts (old ${pdfA.numPages}, new ${pdfB.numPages}) — pages beyond ${n} were not scanned; page-number alignment may already be off before that point if a sheet was inserted/removed.`});
+    }
+    renderScanTable();
+    document.getElementById('csvRow').style.display = 'flex';
+    btn.disabled = false;
+  }
+
+  function renderScanTable(){
+    const rows = scanRows.filter(r=>r.pct!==null).sort((a,b)=>b.pct-a.pct);
+    const noteRow = scanRows.find(r=>r.note);
+    let html = '<div class="table-wrap"><table><tr><th>Page (both sets)</th><th>% Different</th><th>Flag</th></tr>';
+    for(const r of rows){
+      const hot = r.pct > 2;
+      html += `<tr class="${hot?'hot':''}" onclick="jumpTo(${r.page})"><td>${r.page}</td><td>${r.pct.toFixed(2)}%</td><td>${hot?'REVIEW':'—'}</td></tr>`;
+    }
+    html += '</table></div>';
+    if(noteRow) html += `<p class="flag">${noteRow.note}</p>`;
+    document.getElementById('scanResults').innerHTML = html;
+  }
+
+  function jumpTo(page){
+    document.getElementById('pageA').value = page;
+    document.getElementById('pageB').value = page;
+    document.getElementById('viewMode').value = 'overlay';
+    renderPair();
+    document.getElementById('viewerWrap').scrollIntoView({behavior:'smooth'});
+  }
+
+  function downloadCSV(){
+    let csv = 'Page,Percent Different,Flag\n';
+    for(const r of scanRows){
+      if(r.pct===null) continue;
+      csv += `${r.page},${r.pct.toFixed(2)},${r.pct>2?'REVIEW':''}\n`;
+    }
+    const blob = new Blob([csv], {type:'text/csv'});
+    const a = document.createElement('a');
+    a.download = 'pdf-compare-summary.csv';
+    a.href = URL.createObjectURL(blob);
+    a.click();
+  }
+
+  // ---- Bluebeam-style thumbnail grid, flagged pages highlighted ----
+  async function renderThumbnails(){
+    if(!pdfA || !pdfB) return;
+    const btn = document.getElementById('thumbBtn');
+    const grid = document.getElementById('thumbGrid');
+    btn.disabled = true;
+
+    // Reuse the Section 3 scan if it's already been run; otherwise run it now so the
+    // highlight data exists. scanAll() manages its own button/progress bar state.
+    if(scanRows.length === 0){
+      grid.innerHTML = '<div class="note">Running the change scan first…</div>';
+      await scanAll();
+    }
+    const diffByPage = {};
+    scanRows.forEach(r => { if(r.pct !== null) diffByPage[r.page] = r.pct; });
+
+    grid.innerHTML = '<div class="note">Rendering ' + pdfB.numPages + ' thumbnail(s)…</div>';
+    const built = [];
+    for(let i=1; i<=pdfB.numPages; i++){
+      const canvas = await renderToCanvas(pdfB, i, 240);
+      built.push({page: i, canvas, pct: diffByPage[i]});
+    }
+
+    grid.innerHTML = '';
+    const currentPage = parseInt(document.getElementById('pageB').value||'0',10);
+    built.forEach(t => {
+      const hot = t.pct !== undefined && t.pct > 2;
+      const div = document.createElement('div');
+      div.className = 'thumb' + (hot ? ' hot' : '') + (t.page === currentPage ? ' current' : '');
+      div.dataset.page = t.page;
+      div.title = 'Open page ' + t.page + ' in the compare view';
+      div.onclick = () => jumpTo(t.page);
+      div.appendChild(t.canvas);
+      const lbl = document.createElement('div');
+      lbl.className = 'lbl';
+      lbl.innerHTML = 'Page ' + t.page + '<span class="pct">' + (t.pct !== undefined ? t.pct.toFixed(1) + '% different' + (hot ? ' — REVIEW' : '') : 'not scanned') + '</span>';
+      div.appendChild(lbl);
+      grid.appendChild(div);
+    });
+    btn.disabled = false;
+  }
+
+  // Toggles the "you are here" highlight on the thumbnail rail without re-rendering it.
+  function markCurrentThumb(page){
+    document.querySelectorAll('#thumbGrid .thumb').forEach(el => {
+      el.classList.toggle('current', parseInt(el.dataset.page,10) === page);
+    });
+  }
+
+  // ---- Zoom (scroll wheel, anchored to cursor) and pan (click-drag) over the viewer ----
+  let zoomLevel = 1;
+  const viewerWrap = document.getElementById('viewerWrap');
+
+  function applyZoom(){
+    document.getElementById('zoomPct').textContent = Math.round(zoomLevel*100) + '%';
+    const canvases = viewerWrap.querySelectorAll('canvas');
+    canvases.forEach(c => {
+      if(!c.dataset.fitWidth){
+        const container = c.parentElement && c.parentElement.classList.contains('col') ? c.parentElement : viewerWrap;
+        const avail = container.clientWidth - 20;
+        c.dataset.fitWidth = Math.min(c.width, avail > 40 ? avail : c.width);
+      }
+      c.style.width = (parseFloat(c.dataset.fitWidth) * zoomLevel) + 'px';
+    });
+  }
+
+  function zoomAtPoint(newZoomRaw, mouseX, mouseY){
+    if(!viewerWrap.querySelector('canvas')) return;
+    const oldZoom = zoomLevel;
+    const newZoom = Math.min(6, Math.max(0.25, newZoomRaw));
+    if(Math.abs(newZoom - oldZoom) < 0.001) return;
+    const contentX = viewerWrap.scrollLeft + mouseX;
+    const contentY = viewerWrap.scrollTop + mouseY;
+    const ratio = newZoom / oldZoom;
+    zoomLevel = newZoom;
+    applyZoom();
+    viewerWrap.scrollLeft = contentX * ratio - mouseX;
+    viewerWrap.scrollTop = contentY * ratio - mouseY;
+  }
+
+  function setZoom(z){
+    zoomAtPoint(z, viewerWrap.clientWidth / 2, viewerWrap.clientHeight / 2);
+  }
+
+  function resetZoom(){
+    zoomLevel = 1;
+    applyZoom();
+    viewerWrap.scrollLeft = 0;
+    viewerWrap.scrollTop = 0;
+  }
+
+  viewerWrap.addEventListener('wheel', function(e){
+    if(!viewerWrap.querySelector('canvas')) return;
+    e.preventDefault();
+    const rect = viewerWrap.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const factor = e.deltaY < 0 ? 1.1 : 0.9091;
+    zoomAtPoint(zoomLevel * factor, mouseX, mouseY);
+  }, {passive:false});
+
+  function toggleFullscreen(){
+    const el = document.getElementById('compareCard');
+    const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+    if(!fsEl){
+      const req = el.requestFullscreen || el.webkitRequestFullscreen;
+      if(req) req.call(el).catch(err => alert('Full screen not available: ' + err.message));
+    } else {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if(exit) exit.call(document);
+    }
+  }
+  document.addEventListener('fullscreenchange', () => {
+    document.getElementById('fsBtn').textContent = document.fullscreenElement ? '✕ Exit full screen' : '⛶ Full screen';
+  });
+  document.addEventListener('webkitfullscreenchange', () => {
+    document.getElementById('fsBtn').textContent = document.webkitFullscreenElement ? '✕ Exit full screen' : '⛶ Full screen';
+  });
+
+  let isPanning = false, panStartX = 0, panStartY = 0, scrollStartX = 0, scrollStartY = 0;
+  viewerWrap.addEventListener('mousedown', function(e){
+    if(!viewerWrap.querySelector('canvas')) return;
+    isPanning = true;
+    panStartX = e.clientX; panStartY = e.clientY;
+    scrollStartX = viewerWrap.scrollLeft; scrollStartY = viewerWrap.scrollTop;
+    viewerWrap.classList.add('panning');
+  });
+  window.addEventListener('mousemove', function(e){
+    if(!isPanning) return;
+    viewerWrap.scrollLeft = scrollStartX - (e.clientX - panStartX);
+    viewerWrap.scrollTop = scrollStartY - (e.clientY - panStartY);
+  });
+  window.addEventListener('mouseup', function(){
+    isPanning = false;
+    viewerWrap.classList.remove('panning');
+  });
+
+  // =====================================================================
+  // REBAR SHAPE DESIGNER
+  // Path B (2026-09-17): the browser computes real bend geometry itself
+  // (ACI 318 Ch.25 bend diameters + standard hook extensions) and offsets
+  // the centerline to the bar's true outline, for export as a masking-
+  // region boundary. No Revit API involvement on this side at all - see
+  // "2 Rebar Masking from Browser Export.pushbutton" for the Revit half.
+  //
+  // GEOMETRY MODEL: a shape's centerline is a polyline (ordered vertices,
+  // inches) with a bend radius at each interior vertex, plus an optional
+  // hook (angle + extension) appended at either open end. buildCenterline()
+  // turns that into a chain of trimmed straight segments + fillet arcs.
+  // offsetPath() then generates the RIGHT-side and LEFT-side offset curves
+  // at +/- half the bar diameter, and the two are stitched together with
+  // straight end caps into one closed loop - that closed loop is the
+  // masking region boundary.
+  //
+  // OFFSET SIGN CONVENTION (derive once, trust everywhere): for a path
+  // segment with unit direction d=(dx,dy), the RIGHT-normal is
+  // n=(dy,-dx). At a fillet arc, if the turn is CCW (left turn), the
+  // RIGHT side is the OUTSIDE of that turn, so right-offset radius =
+  // R + w; if the turn is CW (right turn), right side is the INSIDE, so
+  // right-offset radius = R - w. The LEFT-offset curve is just the same
+  // formula with w negated. Verified by hand against a simple 90-degree
+  // corner (path going +X then turning left to go +Y: right-normal at
+  // the first segment is -Y, i.e. "below" the corner, which IS the
+  // outside of a left turn - offset radius correctly comes out larger).
+  // =====================================================================
+
+  const REBAR_BAR_DIAM = {3:.375,4:.5,5:.625,6:.75,7:.875,8:1.0,9:1.128,10:1.27,11:1.41};
+
+  function rbBendMultiplier(size, isStirrupTie){
+    if(isStirrupTie && size<=5) return 4;
+    if(size<=8) return 6;
+    return 8; // #9-#11 (and a conservative fallback beyond, though the
+              // size dropdown stops at #11)
+  }
+  function rbCenterlineRadius(size, isStirrupTie){
+    const db = REBAR_BAR_DIAM[size];
+    const D = rbBendMultiplier(size, isStirrupTie) * db; // min INSIDE bend diameter
+    return D/2 + db/2; // centerline radius = inside radius + half the bar
+  }
+  function rbHookExtension(size, angleDeg, isStirrupTie){
+    const db = REBAR_BAR_DIAM[size];
+    if(angleDeg===180) return Math.max(4*db, 2.5);
+    if(angleDeg===135) return Math.max(6*db, 3);
+    if(angleDeg===90) return isStirrupTie ? Math.max(6*db,3) : 12*db;
+    return 12*db;
+  }
+
+  function v2(x,y){ return {x,y}; }
+  function vsub(a,b){ return v2(a.x-b.x, a.y-b.y); }
+  function vadd(a,b){ return v2(a.x+b.x, a.y+b.y); }
+  function vscale(a,s){ return v2(a.x*s, a.y*s); }
+  function vlen(a){ return Math.hypot(a.x,a.y); }
+  function vunit(a){ const L=vlen(a)||1; return v2(a.x/L, a.y/L); }
+  function vrot(a, rad){ const c=Math.cos(rad), s=Math.sin(rad); return v2(a.x*c-a.y*s, a.x*s+a.y*c); }
+  function rightNormal(d){ return v2(d.y, -d.x); } // rotate(-90deg)
+
+  // Build the filleted centerline: `verts` = polyline corner points,
+  // `radii[i]` = bend radius at verts[i+1] (interior vertices only, so
+  // radii.length === verts.length-2). Optional startHook/endHook =
+  // {angle, extension, side} appended at either open end - side is +1 or
+  // -1 choosing which way the hook curls (kept as an explicit per-shape
+  // choice rather than guessed, so it can be flipped per shape if a
+  // preview looks backwards).
+  function buildCenterline(verts, radii, startHook, endHook){
+    const segs = []; // {type:'line',p0,p1} | {type:'arc',center,r,a0,a1,ccw}
+    const trimmedStart = []; // per-vertex trim point going INTO vertex i
+    const trimmedEnd = [];   // per-vertex trim point coming OUT of vertex i
+
+    for(let i=1; i<verts.length-1; i++){
+      const R = radii[i-1];
+      const A = verts[i-1], B = verts[i], C = verts[i+1];
+      const dIn = vunit(vsub(B,A));
+      const dOut = vunit(vsub(C,B));
+      const cross = dIn.x*dOut.y - dIn.y*dOut.x;
+      const dot = Math.max(-1,Math.min(1, dIn.x*dOut.x+dIn.y*dOut.y));
+      const turn = Math.atan2(cross, dot); // signed turn angle, + = CCW/left
+      const ccw = turn > 0;
+      if(Math.abs(turn) < 1e-6 || R<=0){
+        // straight through / no fillet - just pass through B directly
+        trimmedEnd[i-1] = B; trimmedStart[i] = B;
+        continue;
+      }
+      const halfTurn = Math.abs(turn)/2;
+      const tangentLen = R / Math.tan(halfTurn);
+      const p1 = vsub(B, vscale(dIn, tangentLen));   // trim point on incoming seg
+      const p2 = vadd(B, vscale(dOut, tangentLen));  // trim point on outgoing seg
+      // Arc center: offset from B along the internal angle bisector, on
+      // the side the path turns toward, at distance R/sin(halfTurn).
+      const bisectDir = vunit(vadd(vscale(dIn,-1), dOut)); // points "into" the turn
+      const centerDist = R / Math.sin(halfTurn);
+      const normalSign = ccw ? 1 : -1;
+      const inward = vunit(v2(-dIn.y, dIn.x)); // left-normal of dIn, i.e. CCW side
+      // bisectDir already points INTO the turn (toward the concave/inside
+      // of the corner) by construction (-dIn + dOut), for either turn
+      // direction - no extra sign flip needed here. (Fixed 2026-09-17:
+      // an earlier version multiplied by normalSign*-1, which put the
+      // arc center on the OUTSIDE of every corner instead of the inside -
+      // confirmed via a hand-checked L-bar test where the arc bulged out
+      // past the corner instead of rounding into it, inflating every
+      // shape's bounding box well past its dimensioned size.)
+      let center = vadd(B, vscale(bisectDir, centerDist));
+      // Safety fallback if the bisector degenerates (near-180 turn) - use
+      // the perpendicular-offset construction instead.
+      if(!isFinite(center.x) || !isFinite(center.y)){
+        center = vadd(p1, vscale(inward, R*normalSign));
+      }
+      const a1 = Math.atan2(p1.y-center.y, p1.x-center.x);
+      const a2 = Math.atan2(p2.y-center.y, p2.x-center.x);
+      trimmedEnd[i-1] = p1; trimmedStart[i] = p2;
+      segs.push({vtxIndex:i, type:'arc', center, r:R, a0:a1, a1:a2, ccw});
+    }
+
+    // Assemble final ordered segment list: line(verts[0]->trim), arcs,
+    // line(trim->trim), ..., line(trim->verts[last]).
+    const ordered = [];
+    let cursor = verts[0];
+    for(let i=1; i<verts.length; i++){
+      const arc = segs.find(s=>s.vtxIndex===i);
+      const segEndPoint = (i<verts.length-1 && trimmedEnd[i-1]) ? trimmedEnd[i-1] : verts[i];
+      if(vlen(vsub(segEndPoint,cursor))>1e-7){
+        ordered.push({type:'line', p0:cursor, p1:segEndPoint});
+      }
+      cursor = segEndPoint;
+      if(arc){
+        ordered.push({type:'arc', center:arc.center, r:arc.r, a0:arc.a0, a1:arc.a1, ccw:arc.ccw});
+        cursor = trimmedStart[i];
+      }
+    }
+
+    function appendHook(atStart, hook){
+      if(!hook) return;
+      const R = hook.radius;
+      const refSeg = atStart ? ordered[0] : ordered[ordered.length-1];
+      const d = atStart
+        ? vunit(vsub(refSeg.p1 || v2(0,0), refSeg.p0 || v2(0,0)))
+        : vunit(vsub(refSeg.p1 || v2(0,0), refSeg.p0 || v2(0,0)));
+      // Hook direction: outward from the bar at that end (reverse of d for
+      // the start end, same as d for the end end).
+      const outDir = atStart ? vscale(d,-1) : d;
+      const endPt = atStart ? ordered[0].p0 : ordered[ordered.length-1].p1;
+      const turnRad = hook.angle * Math.PI/180 * (hook.side||1);
+      const ccw = turnRad>0;
+      const normal = vunit(v2(-outDir.y, outDir.x));
+      const center = vadd(endPt, vscale(normal, R*(hook.side||1)));
+      const a0 = Math.atan2(endPt.y-center.y, endPt.x-center.x);
+      const a1 = a0 + turnRad;
+      const tipAngle = a1;
+      const arcTip = vadd(center, v2(R*Math.cos(tipAngle), R*Math.sin(tipAngle)));
+      const tailDir = vunit(vsub(arcTip, center));
+      const tailNormal = v2(-tailDir.y, tailDir.x); // tangent direction at tip
+      const tailUnit = vunit(vscale(tailNormal, (hook.side||1)*(ccw?1:-1)));
+      const tailEnd = vadd(arcTip, vscale(tailUnit, hook.extension));
+      const hookSegs = [
+        {type:'arc', center, r:R, a0, a1, ccw},
+        {type:'line', p0:arcTip, p1:tailEnd}
+      ];
+      if(atStart){ ordered.unshift(...hookSegs.reverse().map(s=> s.type==='line' ? {type:'line',p0:s.p1,p1:s.p0} : {type:'arc',center:s.center,r:s.r,a0:s.a1,a1:s.a0,ccw:!s.ccw})); }
+      else { ordered.push(...hookSegs); }
+    }
+    appendHook(true, startHook);
+    appendHook(false, endHook);
+    return ordered;
+  }
+
+  // Offset an ordered centerline (from buildCenterline) by signed distance
+  // w (+ = right side of travel direction, see convention note above).
+  function offsetSide(ordered, w){
+    return ordered.map(seg=>{
+      if(seg.type==='line'){
+        const d = vunit(vsub(seg.p1, seg.p0));
+        const n = rightNormal(d);
+        return {type:'line', p0:vadd(seg.p0, vscale(n,w)), p1:vadd(seg.p1, vscale(n,w))};
+      } else {
+        const r2 = seg.ccw ? seg.r + w : seg.r - w;
+        return {type:'arc', center:seg.center, r:Math.max(r2,0.01), a0:seg.a0, a1:seg.a1, ccw:seg.ccw};
+      }
+    });
+  }
+
+  function segStart(seg){ return seg.type==='line' ? seg.p0 : v2(seg.center.x+seg.r*Math.cos(seg.a0), seg.center.y+seg.r*Math.sin(seg.a0)); }
+  function segEnd(seg){ return seg.type==='line' ? seg.p1 : v2(seg.center.x+seg.r*Math.cos(seg.a1), seg.center.y+seg.r*Math.sin(seg.a1)); }
+
+  // Build the full closed masking-region loop: right-offset forward, cap,
+  // left-offset backward, cap.
+  function buildMaskOutline(centerline, halfWidth){
+    const right = offsetSide(centerline, halfWidth);
+    const left = offsetSide(centerline, -halfWidth).map(seg=>{
+      if(seg.type==='line') return {type:'line', p0:seg.p1, p1:seg.p0};
+      return {type:'arc', center:seg.center, r:seg.r, a0:seg.a1, a1:seg.a0, ccw:!seg.ccw};
+    }).reverse();
+    const loop = [];
+    loop.push(...right);
+    loop.push({type:'line', p0:segEnd(right[right.length-1]), p1:segStart(left[0])}); // end cap
+    loop.push(...left);
+    loop.push({type:'line', p0:segEnd(left[left.length-1]), p1:segStart(right[0])}); // start cap
+    return loop;
+  }
+
+  function outlineToSvgPath(loop){
+    let d = '';
+    loop.forEach((seg,i)=>{
+      const p0 = segStart(seg);
+      if(i===0) d += `M ${p0.x.toFixed(3)} ${p0.y.toFixed(3)} `;
+      if(seg.type==='line'){
+        const p1 = seg.p1;
+        d += `L ${p1.x.toFixed(3)} ${p1.y.toFixed(3)} `;
+      } else {
+        const p1 = segEnd(seg);
+        const sweep = seg.ccw ? 1 : 0;
+        let delta = seg.a1 - seg.a0;
+        if(seg.ccw && delta<0) delta += Math.PI*2;
+        if(!seg.ccw && delta>0) delta -= Math.PI*2;
+        const large = Math.abs(delta) > Math.PI ? 1 : 0;
+        d += `A ${seg.r.toFixed(3)} ${seg.r.toFixed(3)} 0 ${large} ${sweep} ${p1.x.toFixed(3)} ${p1.y.toFixed(3)} `;
+      }
+    });
+    d += 'Z';
+    return d;
+  }
+
+  function outlineBounds(loop){
+    let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+    loop.forEach(seg=>{
+      const pts = seg.type==='line' ? [seg.p0,seg.p1] :
+        [segStart(seg), segEnd(seg), v2(seg.center.x-seg.r,seg.center.y-seg.r), v2(seg.center.x+seg.r,seg.center.y+seg.r)];
+      pts.forEach(p=>{ minX=Math.min(minX,p.x); minY=Math.min(minY,p.y); maxX=Math.max(maxX,p.x); maxY=Math.max(maxY,p.y); });
+    });
+    return {minX,minY,maxX,maxY};
+  }
+
+  // --- Shape catalog ------------------------------------------------------
+  // Each shape: id, name, code (CRSI-style label), dims (editable fields
+  // with defaults, inches), isStirrupTie (drives bend-radius table + hook
+  // defaults), hooks: {start,end} each null or {angle,side}, and
+  // vertsFn(dims, R) -> polyline vertices using bend radius R for spacing.
+  const REBAR_SHAPES = [
+    {
+      id:'straight', name:'Straight Bar', code:'Type 00', isStirrupTie:false,
+      dims:[{key:'len', label:'Length (in)', def:36}],
+      hooks:{start:null, end:null},
+      verts:(d)=> [v2(0,0), v2(d.len,0)],
+      radii:(d,R)=> []
+    },
+    {
+      id:'hook1', name:'One-End Hook', code:'Type 01', isStirrupTie:false,
+      dims:[{key:'len', label:'Straight Length (in)', def:30}],
+      hooks:{start:null, end:{angle:180, side:1}},
+      verts:(d)=> [v2(0,0), v2(d.len,0)],
+      radii:(d,R)=> []
+    },
+    {
+      id:'hook2', name:'Both-End Hooks', code:'Type 08', isStirrupTie:false,
+      dims:[{key:'len', label:'Straight Length (in)', def:30}],
+      hooks:{start:{angle:180, side:-1}, end:{angle:180, side:1}},
+      verts:(d)=> [v2(0,0), v2(d.len,0)],
+      radii:(d,R)=> []
+    },
+    {
+      id:'lbar', name:'L-Bar', code:'Type 02', isStirrupTie:false,
+      dims:[{key:'leg1', label:'Leg 1 (in)', def:24},{key:'leg2', label:'Leg 2 (in)', def:12}],
+      hooks:{start:null, end:null},
+      verts:(d)=> [v2(0,0), v2(d.leg1,0), v2(d.leg1,d.leg2)],
+      radii:(d,R)=> [R]
+    },
+    {
+      id:'zcrank', name:'Offset / Step Crank', code:'Type 03', isStirrupTie:false,
+      dims:[{key:'leg1', label:'Leg 1 (in)', def:24},{key:'step', label:'Step Offset (in)', def:6},{key:'leg2', label:'Leg 2 (in)', def:24}],
+      hooks:{start:null, end:null},
+      verts:(d)=> [v2(0,0), v2(d.leg1,0), v2(d.leg1,d.step), v2(d.leg1+d.leg2,d.step)],
+      radii:(d,R)=> [R,R]
+    },
+    {
+      id:'ubar', name:'U-Bar / Open Stirrup', code:'Type 16', isStirrupTie:true,
+      dims:[{key:'width', label:'Width (in)', def:12},{key:'height', label:'Height (in)', def:18}],
+      hooks:{start:null, end:null},
+      verts:(d)=> [v2(0,d.height), v2(0,0), v2(d.width,0), v2(d.width,d.height)],
+      radii:(d,R)=> [R,R]
+    },
+    {
+      id:'tie90', name:'Closed Rect. Tie — 90° Hooks', code:'Type 12', isStirrupTie:true,
+      dims:[{key:'width', label:'Width (in)', def:12},{key:'height', label:'Height (in)', def:18}],
+      hooks:{start:{angle:90, side:-1}, end:{angle:90, side:1}},
+      verts:(d)=> [v2(0,0.001), v2(0,d.height), v2(d.width,d.height), v2(d.width,0), v2(0.001,0)],
+      radii:(d,R)=> [R,R,R]
+    },
+    {
+      id:'tie135', name:'Closed Rect. Tie — 135° Seismic Hooks', code:'Type 11', isStirrupTie:true,
+      dims:[{key:'width', label:'Width (in)', def:12},{key:'height', label:'Height (in)', def:18}],
+      hooks:{start:{angle:135, side:-1}, end:{angle:135, side:1}},
+      verts:(d)=> [v2(0,0.001), v2(0,d.height), v2(d.width,d.height), v2(d.width,0), v2(0.001,0)],
+      radii:(d,R)=> [R,R,R]
+    },
+  ];
+
+  let rbSelected = REBAR_SHAPES[0];
+
+  function rbCurrentBarSize(){ return parseInt(document.getElementById('rb-size').value,10); }
+  function rbCurrentHookAngle(){ const el=document.getElementById('rb-hookangle'); return el?parseInt(el.value,10):135; }
+
+  function rbComputeOutline(shape, dims, size){
+    const db = REBAR_BAR_DIAM[size];
+    const R = rbCenterlineRadius(size, shape.isStirrupTie);
+    let verts = shape.verts(dims);
+    let radii = shape.radii(dims,R);
+    let startHook=null, endHook=null;
+    if(shape.hooks.start){
+      const angle = shape.isStirrupTie ? rbCurrentHookAngle() : shape.hooks.start.angle;
+      startHook = {angle, side:shape.hooks.start.side, radius:R, extension:rbHookExtension(size, angle, shape.isStirrupTie)};
+    }
+    if(shape.hooks.end){
+      const angle = shape.isStirrupTie ? rbCurrentHookAngle() : shape.hooks.end.angle;
+      endHook = {angle, side:shape.hooks.end.side, radius:R, extension:rbHookExtension(size, angle, shape.isStirrupTie)};
+    }
+    const centerline = buildCenterline(verts, radii, startHook, endHook);
+    const loop = buildMaskOutline(centerline, db/2);
+    return loop;
+  }
+
+  function rbBuildDimsForm(shape){
+    const wrap = document.getElementById('rb-dims');
+    wrap.innerHTML = '';
+    shape.dims.forEach(f=>{
+      const div = document.createElement('div');
+      div.innerHTML = `<label>${f.label}</label><input type="number" inputmode="decimal" id="rbdim-${f.key}" value="${f.def}" step="0.25" oninput="renderRebarPreview()">`;
+      wrap.appendChild(div);
+    });
+    document.getElementById('rb-hooktype-wrap').style.display = shape.isStirrupTie ? '' : 'none';
+  }
+
+  function rbReadDims(shape){
+    const dims = {};
+    shape.dims.forEach(f=>{
+      const el = document.getElementById('rbdim-'+f.key);
+      dims[f.key] = el ? (parseFloat(el.value)||f.def) : f.def;
+    });
+    return dims;
+  }
+
+  function renderRebarGallery(){
+    const q = (document.getElementById('rb-search').value||'').toLowerCase();
+    const grid = document.getElementById('rb-grid');
+    grid.innerHTML = '';
+    REBAR_SHAPES.filter(s=> !q || s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q)).forEach(shape=>{
+      const card = document.createElement('div');
+      card.className = 'rebar-card' + (shape.id===rbSelected.id ? ' sel' : '');
+      card.onclick = ()=>{ rbSelected = shape; rbBuildDimsForm(shape); renderRebarGallery(); renderRebarPreview(); };
+      const dims = {}; shape.dims.forEach(f=> dims[f.key]=f.def);
+      let svgInner = '';
+      try{
+        const loop = rbComputeOutline(shape, dims, 5);
+        const b = outlineBounds(loop);
+        const w = b.maxX-b.minX, h=b.maxY-b.minY;
+        const pad = Math.max(w,h)*0.12 || 1;
+        svgInner = `<svg viewBox="${b.minX-pad} ${-(b.maxY+pad)} ${w+pad*2} ${h+pad*2}" xmlns="http://www.w3.org/2000/svg">
+          <g transform="scale(1,-1)"><path d="${outlineToSvgPath(loop)}" fill="none" stroke="#1c2438" stroke-width="${Math.max(w,h)*0.02}"/></g></svg>`;
+      } catch(ex){ svgInner = '<svg></svg>'; }
+      card.innerHTML = svgInner + `<div class="lbl">${shape.code}<br>${shape.name}</div>`;
+      grid.appendChild(card);
+    });
+  }
+
+  function renderRebarPreview(){
+    const size = rbCurrentBarSize();
+    const dims = rbReadDims(rbSelected);
+    const warnEl = document.getElementById('rb-warn');
+    warnEl.textContent = '';
+    let loop;
+    try{
+      loop = rbComputeOutline(rbSelected, dims, size);
+    } catch(ex){
+      warnEl.textContent = 'Could not build this shape with the current dimensions: ' + ex.message;
+      return;
+    }
+    const svg = document.getElementById('rb-preview-svg');
+    const b = outlineBounds(loop);
+    const w = b.maxX-b.minX, h = b.maxY-b.minY;
+    const pad = Math.max(w,h)*0.15 || 2;
+    svg.setAttribute('viewBox', `${b.minX-pad} ${-(b.maxY+pad)} ${w+pad*2} ${h+pad*2}`);
+    svg.innerHTML = `<g transform="scale(1,-1)"><path d="${outlineToSvgPath(loop)}" fill="#e8ecf3" stroke="#1c2438" stroke-width="${Math.max(w,h)*0.01||0.05}"/></g>`;
+    svg.dataset.loop = JSON.stringify(loop);
+  }
+
+  function exportRebarShape(){
+    const size = rbCurrentBarSize();
+    const dims = rbReadDims(rbSelected);
+    let loop;
+    try{
+      loop = rbComputeOutline(rbSelected, dims, size);
+    } catch(ex){
+      alert('Could not build this shape: ' + ex.message);
+      return;
+    }
+    const segments = loop.map(seg=>{
+      if(seg.type==='line') return {type:'line', p:[seg.p0.x, seg.p0.y], q:[seg.p1.x, seg.p1.y]};
+      const p0=segStart(seg), p1=segEnd(seg);
+      return {type:'arc', c:[seg.center.x, seg.center.y], r:seg.r,
+              p:[p0.x,p0.y], q:[p1.x,p1.y], ccw:!!seg.ccw};
+    });
+    const payload = {
+      schema: 'tamarack-rebar-mask-v1',
+      shape: rbSelected.name,
+      code: rbSelected.code,
+      bar_size: '#'+size,
+      bar_diameter_in: REBAR_BAR_DIAM[size],
+      dims_in: dims,
+      outline_in: segments
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rebar-${rbSelected.id}-${size}-${Date.now()}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  rbBuildDimsForm(rbSelected);
+  renderRebarGallery();
+  renderRebarPreview();
+</script>
+</body>
+</html>
