@@ -181,7 +181,34 @@
     .table-wrap{max-height:none;overflow-y:hidden;touch-action:pan-x pan-y;}
     table.resizable{width:auto;min-width:640px;}
     table:not(.resizable){width:auto;min-width:480px;}
-    th{position:sticky;top:40px;z-index:30;box-shadow:0 1px 0 var(--border);}
+    /* Sticking the column-HEADER ROW to the top while the page scrolls turns out to
+       be a genuine CSS dead end here, confirmed by testing: .table-wrap needs
+       overflow-x:auto so the table can scroll sideways, but the instant an ancestor
+       has any non-"visible" overflow, position:sticky inside it stops tracking the
+       page scroll at all (it only tracks that ancestor's own scrolling, which this
+       one never does vertically) -- so the header row was never really sticking, it
+       just scrolled away like everything else. There's no CSS-only fix for "sticky
+       header row" + "independently horizontally-scrollable body" at the same time.
+       th{position:static;} below removes that dead attempt cleanly. Instead, the
+       Project/identifying column is frozen to the left edge (see .col-freeze) --
+       that stays in view through both vertical AND horizontal scrolling, which is
+       the more useful "what row is this" anchor anyway. */
+    th{position:static;}
+    table.resizable th{position:relative;}
+    .table-wrap td:first-child, .table-wrap th:first-child,
+    .col-freeze{
+      position:sticky;left:0;z-index:25;
+      background:#fff;box-shadow:2px 0 5px rgba(20,20,40,.08);
+    }
+    .table-wrap th:first-child{background:#fafbfc;z-index:26;}
+    /* Projects' first real column is a tiny star-favorite button, not the project
+       name -- freeze the actual "Project" column (3rd cell) there instead so the
+       frozen column shows something worth seeing while scrolled sideways. */
+    #projectsTable td:first-child, #projectsTable th:first-child{position:static;box-shadow:none;background:transparent;}
+    #projectsTable td:nth-child(3), #projectsTable th:nth-child(3){
+      position:sticky;left:0;z-index:25;background:#fff;box-shadow:2px 0 5px rgba(20,20,40,.08);
+    }
+    #projectsTable th:nth-child(3){background:#fafbfc;z-index:26;}
     /* Rounded, pill-shaped progress bars */
     .bar-track{border-radius:999px;height:16px;}
     .bar-fill{border-radius:999px;}
