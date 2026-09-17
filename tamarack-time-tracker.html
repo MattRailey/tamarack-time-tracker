@@ -443,7 +443,7 @@
             <div><label>Project</label>
               <div class="proj-combo">
                 <input type="text" id="r-project-search" autocomplete="off" placeholder="Search projects…">
-                <select id="r-project"><option value="">All projects</option></select>
+                <select id="r-project" onchange="refreshReportTaskFilter()"><option value="">All projects</option></select>
                 <div class="proj-combo-panel" id="r-project-panel"></div>
               </div>
             </div>
@@ -866,7 +866,18 @@ function uid(){
   if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
   return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,10);
 }
-function todayStr(){ return new Date().toISOString().slice(0,10); }
+// Formats a Date using its LOCAL calendar fields (never toISOString(), which is UTC
+// and can silently shift the date by a day for anyone not on UTC — this was the cause
+// of "today" being mislabeled as "yesterday" in the evening). Every date-string helper
+// in this file (todayStr, addDaysStr, period/report boundaries, the calendar) should
+// route through this so "what day is it" is answered the same, correct way everywhere.
+function localDateStr(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return y + '-' + m + '-' + day;
+}
+function todayStr(){ return localDateStr(new Date()); }
 function roundToQuarterHour(minutes){ return Math.round(minutes/15)*15; }
 function fmtHM(minutes){
   const h = Math.floor(minutes/60), m = Math.round(minutes%60);
@@ -1774,7 +1785,7 @@ async function stopTimer(endedAtOverride){
   const entry = {
     id: uid(),
     projectId,
-    date: new Date(timerState.startedAt).toISOString().slice(0,10),
+    date: localDateStr(new Date(timerState.startedAt)),
     description,
     task,
     startTime: new Date(timerState.startedAt).toISOString(),
@@ -3567,7 +3578,8 @@ function updateEntriesPeriodUI(){
 function dayLabel(dateStr){
   const d = new Date(dateStr + 'T00:00:00');
   const today = todayStr();
-  const yest = new Date(Date.now() - 86400000).toISOString().slice(0,10);
+  const yestD = new Date(); yestD.setDate(yestD.getDate()-1);
+  const yest = localDateStr(yestD);
   let prefix = '';
   if(dateStr === today) prefix = 'Today — ';
   else if(dateStr === yest) prefix = 'Yesterday — ';
@@ -3739,9 +3751,23 @@ function buildReportTaskDatalist(){
   });
   reportTaskOptionsByProject = {};
   Object.keys(byProject).forEach(pid=>{ reportTaskOptionsByProject[pid] = [...byProject[pid]].sort(); });
-  const allTasks = new Set();
-  Object.values(byProject).forEach(set=> set.forEach(t=>allTasks.add(t)));
-  setSelectOptionsPreserving('r-task', '<option value="">All tasks</option>' + [...allTasks].sort().map(t=>'<option value="'+t.replace(/"/g,'&quot;')+'">'+t.replace(/</g,'&lt;')+'</option>').join(''));
+  refreshReportTaskFilter();
+}
+// Repopulates the Reports "Task" filter dropdown, scoped to whichever project is
+// currently selected in the Reports "Project" filter — so picking a project only
+// offers that project's tasks, instead of every task from every project at once.
+// With no project selected, it falls back to the full list across all projects.
+function refreshReportTaskFilter(){
+  const projectId = document.getElementById('r-project').value;
+  let tasks;
+  if(projectId){
+    tasks = reportTaskOptionsByProject[projectId] || [];
+  } else {
+    const all = new Set();
+    Object.values(reportTaskOptionsByProject).forEach(list=> list.forEach(t=>all.add(t)));
+    tasks = [...all].sort();
+  }
+  setSelectOptionsPreserving('r-task', '<option value="">All tasks</option>' + tasks.map(t=>'<option value="'+t.replace(/"/g,'&quot;')+'">'+t.replace(/</g,'&lt;')+'</option>').join(''));
 }
 // Custom suggestion dropdown for the Reports table's Task field, used instead of a
 // native <datalist> — iOS Safari never renders datalist suggestions at all, which is
@@ -4436,7 +4462,7 @@ function computeNextInvoiceNumber(){
 function addDaysStr(dateStr, days){
   const d = new Date(dateStr + 'T00:00:00');
   d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0,10);
+  return localDateStr(d);
 }
 function onInvoiceClientChange(){
   const clientId = document.getElementById('inv-client').value;
@@ -4824,7 +4850,7 @@ function handleImportFile(evt){
         const end = new Date(row[iEndDate] + ' ' + (row[iEndTime]||'00:00'));
         if(!isNaN(start) && !isNaN(end)){
           actualMinutes = (end-start)/60000;
-          date = row[iStartDate].length===10 && row[iStartDate].includes('-') ? row[iStartDate] : start.toISOString().slice(0,10);
+          date = row[iStartDate].length===10 && row[iStartDate].includes('-') ? row[iStartDate] : localDateStr(start);
           startISO = start.toISOString(); endISO = end.toISOString();
         }
       }
@@ -5122,7 +5148,7 @@ function renderProjectsTable(){
 // in whole periods from the current one (e.g. -1 = last week/month/year).
 function periodBounds(type, offset){
   const now = new Date();
-  const toStr = d => d.toISOString().slice(0,10);
+  const toStr = d => localDateStr(d);
   if(type === 'week'){
     const day = now.getDay(); // 0=Sun..6=Sat
     const mondayOffset = (day===0 ? -6 : 1-day);
@@ -5153,15 +5179,15 @@ function dashTimeSeries(start, end, rows){
   if(spanDays <= 31){
     for(let i=0;i<spanDays;i++){
       const d = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()+i);
-      const dStr = d.toISOString().slice(0,10);
+      const dStr = localDateStr(d);
       buckets.push({ label: d.toLocaleDateString('en-US',{month:'short', day:'numeric'}), mins: rows.filter(e=>e.date===dStr).reduce((s,e)=>s+e.roundedMinutes,0) });
     }
     return { buckets, byDay: true };
   }
   let cur = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
   while(cur <= endDate){
-    const monStart = new Date(cur.getFullYear(), cur.getMonth(), 1).toISOString().slice(0,10);
-    const monEnd = new Date(cur.getFullYear(), cur.getMonth()+1, 0).toISOString().slice(0,10);
+    const monStart = localDateStr(new Date(cur.getFullYear(), cur.getMonth(), 1));
+    const monEnd = localDateStr(new Date(cur.getFullYear(), cur.getMonth()+1, 0));
     buckets.push({ label: cur.toLocaleDateString('en-US',{month:'short', year:'numeric'}), mins: rows.filter(e=>e.date>=monStart && e.date<=monEnd).reduce((s,e)=>s+e.roundedMinutes,0) });
     cur = new Date(cur.getFullYear(), cur.getMonth()+1, 1);
   }
@@ -5206,8 +5232,8 @@ function renderCalendar(){
   const daysInMonth = new Date(first.getFullYear(), first.getMonth()+1, 0).getDate();
   // Monday-first, matching periodBounds('week', ...) elsewhere in the app.
   const firstWeekday = (first.getDay()===0) ? 6 : first.getDay()-1;
-  const monthStart = first.toISOString().slice(0,10);
-  const monthEnd = new Date(first.getFullYear(), first.getMonth(), daysInMonth).toISOString().slice(0,10);
+  const monthStart = localDateStr(first);
+  const monthEnd = localDateStr(new Date(first.getFullYear(), first.getMonth(), daysInMonth));
   const monthEntries = data.entries.filter(e=>e.date>=monthStart && e.date<=monthEnd);
 
   const byDate = {}; // dateStr -> { mins, projectIds:Set }
@@ -5222,7 +5248,7 @@ function renderCalendar(){
   let html = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=>'<div class="cal-dow">'+d+'</div>').join('');
   for(let i=0;i<firstWeekday;i++) html += '<div class="cal-day cal-empty"></div>';
   for(let day=1; day<=daysInMonth; day++){
-    const dateStr = new Date(first.getFullYear(), first.getMonth(), day).toISOString().slice(0,10);
+    const dateStr = localDateStr(new Date(first.getFullYear(), first.getMonth(), day));
     const info = byDate[dateStr];
     const mins = info ? info.mins : 0;
     // Square-root scaling instead of linear — otherwise one long 8+ hour day maxes the
