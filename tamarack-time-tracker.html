@@ -169,7 +169,13 @@
     /* Tables no longer squeeze every column down to unreadable slivers on a
        narrow screen — they keep a real minimum width and scroll sideways
        inside their existing .table-wrap instead. */
-    .table-wrap{-webkit-overflow-scrolling:touch;max-height:none;overflow-y:visible;}
+    /* overflow-y:hidden (not "visible") here on purpose: pairing overflow-x:auto with
+       overflow-y:visible gets silently corrected by the browser to overflow-y:auto,
+       which re-creates a second vertical scroll region inside the table and is why a
+       sideways swipe kept getting captured as a page scroll instead of a horizontal
+       one. touch-action:pan-x tells the browser this box is for horizontal panning,
+       so a sideways drag scrolls the table instead of being handed to the page. */
+    .table-wrap{-webkit-overflow-scrolling:touch;max-height:none;overflow-y:hidden;touch-action:pan-x;}
     table.resizable{width:auto;min-width:640px;}
     table:not(.resizable){width:auto;min-width:480px;}
     th{position:sticky;top:40px;z-index:30;box-shadow:0 1px 0 var(--border);}
