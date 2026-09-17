@@ -169,14 +169,16 @@
     /* Tables no longer squeeze every column down to unreadable slivers on a
        narrow screen — they keep a real minimum width and scroll sideways
        inside their existing .table-wrap instead. */
-    /* overflow-y:hidden (not "visible") here on purpose: pairing overflow-x:auto with
-       overflow-y:visible gets silently corrected by the browser to overflow-y:auto,
-       which re-creates a second vertical scroll region inside the table and is why a
-       sideways swipe kept getting captured as a page scroll instead of a horizontal
-       one. touch-action:pan-x pan-y explicitly allows both: a horizontal drag scrolls
-       this box, and a vertical drag still passes through to scroll the page (since
-       this box itself never scrolls vertically) -- pan-x alone blocked vertical too. */
-    .table-wrap{-webkit-overflow-scrolling:touch;max-height:none;overflow-y:hidden;touch-action:pan-x pan-y;}
+    /* overflow-y:hidden (not "visible") here on purpose -- see note above. No
+       -webkit-overflow-scrolling:touch here: on iOS Safari that legacy hint promotes
+       the box to its own momentum-scrolling layer, and iOS then frequently captures
+       an ENTIRE touch drag for that layer the moment it starts inside it -- vertical
+       included -- no matter what touch-action says. That's the actual reason a
+       vertical drag over the table still wasn't reaching the page. Direction is now
+       decided in JS instead (see enableTableWrapDirectionalTouch below): a mostly-
+       vertical drag switches this box to overflow-x:hidden for the rest of that touch
+       so it can't claim it, then restores it once the touch ends. */
+    .table-wrap{max-height:none;overflow-y:hidden;touch-action:pan-x pan-y;}
     table.resizable{width:auto;min-width:640px;}
     table:not(.resizable){width:auto;min-width:480px;}
     th{position:sticky;top:40px;z-index:30;box-shadow:0 1px 0 var(--border);}
@@ -5670,6 +5672,43 @@ document.querySelectorAll('.mobile-more-panel button[data-panel]').forEach(btn=>
   }
   if(backdrop) backdrop.addEventListener('click', closeMobileMoreSheet);
 })();
+// A table's .table-wrap needs to scroll sideways (to reveal extra columns) but must
+// NOT swallow an ordinary vertical scroll of the page. CSS alone (touch-action) isn't
+// reliable enough for this on iOS Safari, so the drag direction is decided here, on
+// the first real movement of each touch: mostly horizontal keeps this box's own
+// overflow-x:auto in charge (it scrolls sideways); mostly vertical flips it to
+// overflow-x:hidden for the rest of that one touch, so the browser can't grab it and
+// the drag falls through to scroll the page instead, same as touching anywhere else.
+function enableTableWrapDirectionalTouch(wrap){
+  if(wrap.dataset.dirTouchBound) return;
+  wrap.dataset.dirTouchBound = '1';
+  let startX = 0, startY = 0, decided = false;
+  wrap.addEventListener('touchstart', (e)=>{
+    if(e.touches.length !== 1) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    decided = false;
+    wrap.style.overflowX = 'auto';
+  }, {passive:true});
+  wrap.addEventListener('touchmove', (e)=>{
+    if(decided || e.touches.length !== 1) return;
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+    if(Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+    decided = true;
+    if(Math.abs(dy) > Math.abs(dx)) wrap.style.overflowX = 'hidden';
+  }, {passive:true});
+  const restore = ()=>{ wrap.style.overflowX = 'auto'; };
+  wrap.addEventListener('touchend', restore, {passive:true});
+  wrap.addEventListener('touchcancel', restore, {passive:true});
+}
+function bindAllTableWrapTouch(){
+  document.querySelectorAll('.table-wrap').forEach(enableTableWrapDirectionalTouch);
+}
+bindAllTableWrapTouch();
+// Tables get rebuilt (innerHTML replaced) constantly as data changes, but a
+// .table-wrap div itself is part of the static page markup, not regenerated — so
+// binding once on load covers every table without needing to re-bind after renders.
 // The collapsible Dashboard cards (details.mobile-card) are only meant to
 // collapse on mobile — keep them forced open whenever the viewport is wide
 // enough that the desktop layout (not the mobile media query) is in effect.
