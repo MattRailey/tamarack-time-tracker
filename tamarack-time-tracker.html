@@ -1493,21 +1493,15 @@ async function backupNowClick(){
   if(note) note.textContent = ok ? ('Backed up as of ' + new Date().toLocaleString()) : 'Backup failed — try again in a moment.';
 }
 
-/* Detects a timer that was left running when the app/browser closed unexpectedly. */
+/* Picks a still-running timer back up automatically after a page refresh/reopen —
+   a reload is never itself a reason to stop tracking, so there's nothing to ask.
+   The running clock and "Started at ..." label are the visible confirmation that
+   it kept going; Stop & Save / the Discard option below still let you end it. */
 function checkForActiveTimer(){
   const banner = document.getElementById('resumeBanner');
   if(data.activeTimer){
-    const started = new Date(data.activeTimer.startedAt);
-    banner.style.display = 'block';
-    banner.innerHTML = 'A timer was left running, started ' + started.toLocaleString() +
-      ' on project "' + projectName(data.activeTimer.projectId) + '". ' +
-      '<button class="secondary" onclick="resumeTimer()">Resume it</button> ' +
-      '<button class="danger" onclick="stopTimer()">Stop it now</button> ' +
-      '<button class="secondary" onclick="discardTimer()">Discard (don\'t log it)</button>';
     timerState = data.activeTimer;
-    applyLocalTimerDraft(); // pick up anything typed since the last Dropbox save went out
-    repopulateTimerFields(); // so "Stop it now" (no Resume click) also saves the real task/description, not a blank field
-    if(data.activeTimer.backdated) showBackdatedState(data.activeTimer.startedAt);
+    resumeTimer();
   } else {
     banner.style.display = 'none';
   }
