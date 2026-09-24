@@ -33,9 +33,6 @@
     padding:11px 18px;font-family:var(--sans);font-size:.88rem;color:#aab2c8;cursor:pointer;margin-bottom:1px;}
   nav button:hover{background:var(--navy-light);color:#fff;}
   nav button.active{border-left-color:var(--primary);color:#fff;font-weight:600;background:var(--navy-light);}
-  #mobileNavSelect{ display:none; }
-  .mobile-topbar{ display:none; }
-  .mobile-more-sheet{ display:none; }
   main{flex:1;padding:22px 26px 90px;min-width:0;}
   .panel{display:none;} .panel.active{display:block;}
   .sub-tab{background:#eef1f6;border:1px solid var(--border,#dde2ea);color:var(--muted);font-family:var(--sans);font-size:.82rem;font-weight:600;padding:7px 14px;border-radius:6px;cursor:pointer;margin-right:6px;}
@@ -88,12 +85,6 @@
   tr.bid-row td{border-bottom:none;}
   tr.bid-notes-row td, tr.project-sub-row td{padding-top:0;}
   tr.project-row td{border-bottom:none;}
-  tr.project-summary-row td{border-bottom:1px solid var(--border);padding-top:2px;}
-  .project-summary-bar{display:flex;flex-wrap:wrap;align-items:center;gap:18px;padding:2px 0 6px;}
-  .project-summary-item{display:flex;align-items:center;gap:6px;}
-  .project-summary-item .lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-weight:600;}
-  .project-summary-item .val{font-size:.85rem;color:var(--ink);white-space:nowrap;}
-  .project-summary-tasks{display:flex;align-items:center;flex-wrap:wrap;gap:4px;flex:1;min-width:220px;}
   .bid-dropzone.drag-over, .project-dropzone.drag-over{border-color:var(--primary);background:#eef4ff;}
   .qb-invoice-row.matched{background:#f4fbf7;}
   .qb-invoice-row.unmatched{background:#fdf7ec;}
@@ -154,97 +145,7 @@
   .summary-card .lbl{font-size:.72rem;color:var(--muted);}
   .checklist{max-height:40vh;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;background:#fff;}
   .checklist label{display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--ink);margin-bottom:4px;font-family:var(--sans);}
-  @media (max-width:820px){
-    .layout{display:block;}
-    nav{display:none;}
-    main{padding:14px;padding-bottom:110px;}
-    body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px));}
-    #mobileNavSelect{ display:none; }
-    /* App header stays visible while scrolling long lists/tables, instead of
-       scrolling away with the content. */
-    header{position:sticky;top:0;z-index:45;padding:10px 14px;}
-    header h1{font-size:1.02rem;}
-    header p{display:none;}
-    #fileStatus{font-size:.7rem;}
-    /* Tables no longer squeeze every column down to unreadable slivers on a
-       narrow screen — they keep a real minimum width and scroll sideways
-       inside their existing .table-wrap instead. */
-    /* overflow-y:hidden (not "visible") here on purpose -- see note above. No
-       -webkit-overflow-scrolling:touch here: on iOS Safari that legacy hint promotes
-       the box to its own momentum-scrolling layer, and iOS then frequently captures
-       an ENTIRE touch drag for that layer the moment it starts inside it -- vertical
-       included -- no matter what touch-action says. That's the actual reason a
-       vertical drag over the table still wasn't reaching the page. Direction is now
-       decided in JS instead (see enableTableWrapDirectionalTouch below): a mostly-
-       vertical drag switches this box to overflow-x:hidden for the rest of that touch
-       so it can't claim it, then restores it once the touch ends. */
-    .table-wrap{max-height:none;overflow-y:hidden;touch-action:pan-x pan-y;}
-    table.resizable{width:auto;min-width:640px;}
-    table:not(.resizable){width:auto;min-width:480px;}
-    /* Plain and simple on purpose: the column-header row can't stay stuck to the top
-       while the table also scrolls sideways (a real CSS conflict, confirmed by
-       testing), and a frozen left column turned out to be more complexity than
-       wanted. So: tables just scroll sideways for extra columns, and scroll down
-       with the rest of the page like normal, full length, nothing pinned. */
-    th{position:static;}
-    table.resizable th{position:relative;}
-    /* Rounded, pill-shaped progress bars */
-    .bar-track{border-radius:999px;height:16px;}
-    .bar-fill{border-radius:999px;}
-    .bar-row{align-items:center;}
-    .bar-label{min-width:52px;font-size:.78rem;}
-    .bar-value{min-width:88px;font-size:.76rem;}
-    /* Pill-shaped badge chips for summary numbers (remaining/spent amounts, etc) */
-    .summary-grid{grid-template-columns:repeat(2,1fr);gap:8px;}
-    .summary-card{border-radius:999px;display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:10px;padding:9px 16px;border:1px solid var(--border);border-left:4px solid var(--primary);background:#fff;}
-    .summary-card .num{font-size:1rem;font-weight:700;}
-    .summary-card .lbl{font-size:.64rem;text-transform:uppercase;letter-spacing:.03em;margin:0;}
-    .pill{border-radius:999px;}
-    /* Collapsible cards with a chevron toggle, mirroring #archivedBidsDetails */
-    details.mobile-card{border:1px solid var(--border);border-radius:8px;background:#fff;padding:12px 14px;margin-bottom:14px;}
-    details.mobile-card > summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:8px;font-family:var(--sans);font-weight:700;font-size:1rem;color:var(--navy);}
-    details.mobile-card > summary::-webkit-details-marker{display:none;}
-    details.mobile-card > summary::after{content:'\25BE';font-size:.8rem;color:var(--steel);transition:transform .15s ease;flex-shrink:0;}
-    details.mobile-card:not([open]) > summary::after{transform:rotate(-90deg);}
-    details.mobile-card > summary + *{margin-top:10px;}
-    /* Bottom tab bar (replacing the old top strip): the 5 most-used sections
-       get a full-size icon + visible label; everything else lives one tap away
-       behind "More", instead of 10 cramped icons squeezed into one row. */
-    .mobile-topbar{
-      display:flex;position:fixed;left:0;right:0;bottom:0;z-index:50;width:100%;
-      background:var(--navy);border-top:1px solid var(--navy-light);
-      padding-bottom:calc(14px + env(safe-area-inset-bottom,0px));
-      box-shadow:0 -2px 10px rgba(0,0,0,.18);
-    }
-    .mobile-topbar button{
-      flex:1 1 0;min-width:0;background:none;border:none;color:#aab2c8;cursor:pointer;
-      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-      padding:8px 2px 7px;min-height:56px;border-top:2px solid transparent;
-    }
-    .mobile-topbar button span{display:block;font-family:var(--sans);font-size:.62rem;font-weight:600;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
-    .mobile-topbar button svg{width:21px;height:21px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.8;}
-    .mobile-topbar button.active{color:#fff;border-top-color:var(--primary);background:var(--navy-light);}
-    .mobile-topbar button.active svg{stroke:var(--primary);}
-    .mobile-topbar button.more-btn.open{color:#fff;background:var(--navy-light);}
-    /* "More" bottom sheet: backdrop + slide-up panel listing the overflow tabs */
-    .mobile-more-sheet{display:none;position:fixed;inset:0;z-index:55;}
-    .mobile-more-sheet.open{display:block;}
-    .mobile-more-backdrop{position:absolute;inset:0;background:rgba(15,20,32,.5);}
-    .mobile-more-panel{
-      position:absolute;left:0;right:0;bottom:calc(70px + env(safe-area-inset-bottom,0px));
-      background:var(--panel);border-radius:14px 14px 0 0;
-      box-shadow:0 -6px 24px rgba(0,0,0,.25);padding:8px 8px calc(10px + env(safe-area-inset-bottom,0px));
-      max-height:60vh;overflow-y:auto;
-    }
-    .mobile-more-panel button{
-      width:100%;background:none;border:none;color:var(--ink);cursor:pointer;
-      display:flex;align-items:center;gap:12px;text-align:left;
-      padding:13px 12px;border-radius:8px;font-family:var(--sans);font-size:.95rem;font-weight:600;
-    }
-    .mobile-more-panel button:active{background:#eef1f6;}
-    .mobile-more-panel button.active{color:var(--primary-dark);background:#eef4ff;}
-    .mobile-more-panel button svg{width:20px;height:20px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.8;}
-  }
+  @media (max-width:820px){ .layout{display:block;} nav{width:100%;display:flex;overflow-x:auto;padding:8px;gap:2px;} nav button{flex:0 0 auto;border-left:none;border-bottom:3px solid transparent;white-space:nowrap;} main{padding:14px;} }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
@@ -253,7 +154,7 @@
   <header>
     <div>
       <h1>Tamarack Time Tracker</h1>
-      <p>Time tracking &amp; invoicing, synced via Dropbox. No subscription, no server.</p>
+      <p>Quarter-hour time tracking and invoicing reports, stored as a single JSON file in your Dropbox folder — no subscription, no server. Everything runs in your browser.</p>
     </div>
     <div id="fileStatus">No data file connected</div>
   </header>
@@ -271,62 +172,8 @@
       <button data-panel="import">Import</button>
       <button data-panel="datafile">Data File</button>
     </nav>
-    <select id="mobileNavSelect" aria-label="Jump to section"></select>
-    <nav class="mobile-topbar" id="mobileTopbar" aria-label="Quick navigation">
-      <button data-panel="tracker" class="active primary" type="button" aria-label="Tracker" title="Tracker">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>
-        <span>Tracker</span>
-      </button>
-      <button data-panel="dashboard" class="primary" type="button" aria-label="Dashboard" title="Dashboard">
-        <svg viewBox="0 0 24 24"><path d="M4 20V10M11 20V4M18 20v-7"/></svg>
-        <span>Dashboard</span>
-      </button>
-      <button data-panel="reports" class="primary" type="button" aria-label="Reports" title="Reports">
-        <svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>
-        <span>Reports</span>
-      </button>
-      <button data-panel="projects" class="primary" type="button" aria-label="Projects" title="Projects">
-        <svg viewBox="0 0 24 24"><path d="M3 6h6l2 2h10v11H3z"/></svg>
-        <span>Projects</span>
-      </button>
-      <button data-panel="invoice" class="primary" type="button" aria-label="Invoice" title="Invoice">
-        <svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>
-        <span>Invoice</span>
-      </button>
-      <button type="button" class="more-btn" id="mobileMoreBtn" aria-label="More" title="More" aria-haspopup="true" aria-expanded="false">
-        <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
-        <span>More</span>
-      </button>
-    </nav>
-    <div class="mobile-more-sheet" id="mobileMoreSheet">
-      <div class="mobile-more-backdrop" id="mobileMoreBackdrop"></div>
-      <div class="mobile-more-panel">
-        <button data-panel="bids" type="button">
-          <svg viewBox="0 0 24 24"><path d="M20.4 12.6 11 22l-9-9L11.6 3.6H20a1 1 0 0 1 1 1v8z"/><circle cx="15.5" cy="7.5" r="1.5"/></svg>
-          Bids
-        </button>
-        <button data-panel="clients" type="button">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg>
-          Clients
-        </button>
-        <button data-panel="pricing" type="button">
-          <svg viewBox="0 0 24 24"><path d="M12 2v20M17 6H9.5a2.5 2.5 0 0 0 0 5h5a2.5 2.5 0 0 1 0 5H7"/></svg>
-          Pricing Analysis
-        </button>
-        <button data-panel="import" type="button">
-          <svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>
-          Import
-        </button>
-        <button data-panel="datafile" type="button">
-          <svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M4 9h16"/></svg>
-          Data File
-        </button>
-      </div>
-    </div>
 
     <main>
-
-      <div id="taskSuggestBox" style="display:none;position:fixed;z-index:999;background:#fff;border:1px solid var(--border);border-radius:6px;box-shadow:0 4px 14px rgba(20,20,40,.18);max-height:180px;overflow-y:auto;"></div>
 
       <div id="reloadBanner" class="banner crit" style="display:none;">
         <b>Save conflict:</b> <span id="reloadBannerText"></span>
@@ -335,7 +182,7 @@
       <!-- TRACKER -->
       <section class="panel active" id="tracker">
         <h2>Track time</h2>
-        <p class="sub">Start a stopwatch or log a block directly. Rounds to 15 min.</p>
+        <p class="sub">Run a live stopwatch, or add a block of time directly. Everything gets rounded to the nearest 15 minutes when it's saved.</p>
 
         <div id="resumeBanner" class="banner" style="display:none;"></div>
 
@@ -354,13 +201,14 @@
             <div><label>Description (optional)</label><input id="t-desc" type="text" placeholder="what are you working on?"></div>
           </div>
           <div class="row" style="align-items:flex-end;">
-            <div style="width:150px;position:relative;"><label>Actually started at (optional)</label><input id="t-start-override" type="text" list="time-options" autocomplete="off" placeholder="e.g. 8:00 AM" style="padding-right:28px;"><button type="button" id="t-start-clear" onclick="clearStartOverride()" title="Clear — use the actual start time instead" style="display:none;position:absolute;right:6px;bottom:9px;background:none;border:none;color:var(--muted);font-size:1rem;line-height:1;cursor:pointer;padding:2px 4px;">&times;</button></div>
+            <div style="width:150px;"><label>Actually started at (optional)</label><input id="t-start-override" type="text" list="time-options" autocomplete="off" placeholder="e.g. 8:00 AM"></div>
             <span id="backdateBadge" class="pill uninvoiced" style="display:none;"></span>
           </div>
           <p class="note" style="margin:0 0 10px;">Leave "Actually started at" blank to start the clock right now. Fill it in if you're clicking Start a bit after you actually began — it backdates the start of this timer to that time today.</p>
           <div class="timer-display" id="timerDisplay">00:00:00</div>
           <p class="note" id="timerStartedLabel" style="text-align:center;margin:-6px 0 10px;display:none;"></p>
           <p class="note" id="timerBreakLabel" style="text-align:center;margin:-6px 0 10px;display:none;color:var(--steel);"></p>
+          <div id="staleTimerBanner" class="banner crit" style="display:none;"></div>
           <div class="row" style="justify-content:center;">
             <button id="startBtn" onclick="startTimer()">Start</button>
             <button id="breakBtn" onclick="toggleBreak()" class="secondary" disabled>Take a break</button>
@@ -404,13 +252,13 @@
 
         <div class="card">
           <h2 style="font-size:1rem;">All entries</h2>
-          <p class="sub">All logged time. Edit or delete anytime — saves instantly.</p>
+          <p class="sub">Every logged block of time. Edit or delete corrects mistakes — every change re-saves the data file. Updates the moment you hit Stop &amp; Save or add a manual entry.</p>
           <div class="row" style="align-items:flex-end;">
             <div><label>Project</label><select id="e-filter-project" onchange="renderEntries()"><option value="">All projects</option></select></div>
             <div><label>Period</label><select id="e-filter-period" onchange="onEntriesPeriodChange()">
-              <option value="">All time</option>
+              <option value="" selected>All time</option>
               <option value="week">Week</option>
-              <option value="month" selected>Month</option>
+              <option value="month">Month</option>
               <option value="year">Year</option>
               <option value="custom">Custom range</option>
             </select></div>
@@ -434,9 +282,9 @@
       <!-- DASHBOARD -->
       <section class="panel" id="dashboard">
         <h2>Dashboard</h2>
-        <details class="card mobile-card" open>
-          <summary>Calendar</summary>
-          <p class="sub" style="margin-top:0;">Month view — darker days mean more hours. Click a day for details.</p>
+        <div class="card">
+          <h2 style="font-size:1rem;">Calendar</h2>
+          <p class="sub" style="margin-top:0;">A month at a glance, independent of the Period selector below — darker days mean more hours logged, so a blank or pale square jumps right out. Click a day to see what made it up. Read-only here; edit an entry from the Tracker tab's "All entries" table.</p>
           <div class="row" style="align-items:center;">
             <div class="row" id="cal-nav" style="gap:6px;">
               <button class="secondary" onclick="shiftCalendarMonth(-1)">&larr; Prev month</button>
@@ -450,11 +298,11 @@
             <h2 style="font-size:1rem;" id="calDayTitle"></h2>
             <div class="table-wrap"><table id="calDayTable"></table></div>
           </div>
-        </details>
+        </div>
         <div class="row" style="align-items:flex-end; flex-wrap:wrap;">
           <div><label>Period</label><select id="dash-period" onchange="onDashPeriodChange()">
-            <option value="week">Week</option>
-            <option value="month" selected>Month</option>
+            <option value="week" selected>Week</option>
+            <option value="month">Month</option>
             <option value="year">Year</option>
             <option value="custom">Custom range</option>
           </select></div>
@@ -470,50 +318,42 @@
         </div>
         <p class="sub">Summary for <b id="dashWeekLabel"></b></p>
         <div class="summary-grid" id="dashSummaryGrid"></div>
-        <details class="card mobile-card" open>
-          <summary id="dashSeriesTitle">Time by day</summary>
+        <div class="card">
+          <h2 style="font-size:1rem;" id="dashSeriesTitle">Time by day</h2>
           <div id="dashDayBars"></div>
-        </details>
-        <details class="card mobile-card" open>
-          <summary>Time by project</summary>
+        </div>
+        <div class="card">
+          <h2 style="font-size:1rem;">Time by project</h2>
           <div id="dashProjectBars"></div>
-        </details>
-        <details class="card mobile-card" open>
-          <summary>Project status</summary>
-          <p class="sub" style="margin-top:0;">Same projects as above. Table totals are all-time; "Budget" is the project's Bid amount.</p>
+        </div>
+        <div class="card">
+          <h2 style="font-size:1rem;">Project status</h2>
+          <p class="sub" style="margin-top:0;">Shows the same projects as "Time by project" above (i.e. with time logged in the selected period). The summary row below is scoped to the selected period; the table's own columns (time/invoiced/budget) are cumulative all-time running totals, not period-scoped. "Budget" is a project's Bid amount ($); for a Time &amp; Materials project the Bid amount field (if set) is just a reference figure to burn against, not what it's actually billed at.</p>
           <div class="summary-grid" id="dashStatusSummaryGrid" style="margin-bottom:10px;"></div>
           <input id="dashStatusSearch" type="text" placeholder="Search projects or clients…" style="margin-bottom:8px;" oninput="renderDashboardStatus()">
           <div class="table-wrap"><table id="dashStatusTable"></table></div>
-        </details>
+        </div>
       </section>
 
       <!-- REPORTS -->
       <section class="panel" id="reports">
-        <h2>Reports &amp; Invoicing</h2>
-        <p class="sub">Build a per-project summary, then mark it invoiced once billed in QuickBooks.</p>
+        <h2>Reports &amp; invoicing</h2>
+        <p class="sub">Build an invoice-ready summary per project, then mark it invoiced once it's actually been billed in QuickBooks. Marked entries are stamped with the invoice date and excluded from future "not yet invoiced" totals — they never silently disappear, they just move column.</p>
         <div class="card">
           <div class="grid">
             <div><label>Period</label><select id="r-period" onchange="onReportPeriodChange()">
               <option value="">All time</option>
               <option value="week">Week</option>
-              <option value="month" selected>Month</option>
+              <option value="month">Month</option>
               <option value="year">Year</option>
-              <option value="custom">Custom range</option>
+              <option value="custom" selected>Custom range</option>
             </select></div>
-            <div><label>Project</label>
-              <div class="proj-combo">
-                <input type="text" id="r-project-search" autocomplete="off" placeholder="Search projects…">
-                <select id="r-project" onchange="refreshReportTaskFilter()"><option value="">All projects</option></select>
-                <div class="proj-combo-panel" id="r-project-panel"></div>
-              </div>
-            </div>
+            <div><label>Project</label><select id="r-project"><option value="">All projects</option></select></div>
             <div><label>Client</label><select id="r-client"><option value="">All clients</option></select></div>
             <div><label>Status</label><select id="r-status"><option value="uninvoiced" selected>Not yet invoiced</option><option value="invoiced">Already invoiced</option><option value="">Both</option></select></div>
-            <div><label>Task</label><select id="r-task"><option value="">All tasks</option></select></div>
             <div><label>View</label><select id="r-view" onchange="runReport()">
               <option value="detailed" selected>Detailed (every entry)</option>
               <option value="overview">Overview (by day, then task)</option>
-              <option value="summary">Project summary (one line per project)</option>
             </select></div>
           </div>
           <div class="row" id="r-periodNav" style="display:none; align-items:center;">
@@ -547,7 +387,7 @@
       <!-- INVOICE MAKER -->
       <section class="panel" id="invoice">
         <h2>Invoice Maker</h2>
-        <p class="sub">Generate a client-ready PDF invoice from tracked time. Doesn't touch QuickBooks.</p>
+        <p class="sub">Generate a client-ready PDF invoice straight from your tracked time, styled like a QuickBooks invoice, for whenever you'd rather send this instead of billing through QuickBooks. It doesn't touch QuickBooks or your existing invoice-matching setup either way — use whichever route makes sense for a given invoice.</p>
 
         <div class="card">
           <h2 style="font-size:1rem;">Your business info (shown in the invoice header)</h2>
@@ -608,7 +448,7 @@
       <!-- PRICING ANALYSIS -->
       <section class="panel" id="pricing">
         <h2>Project pricing analysis</h2>
-        <p class="sub">Effective $/hr per project, all-time, vs. your required rate.</p>
+        <p class="sub">All-time, per project: effective $/hr actually earned, and how that compares against your required rate — same idea as the Tamarack Project Tracker spreadsheet. Revenue is hours &times; rate for T&amp;M projects, or the bid amount for Bid/Fixed projects.</p>
         <div class="card">
           <div class="grid">
             <div><label>Required rate ($/hr — your break-even/target)</label><input id="requiredRate" type="number" step="0.01" min="0" placeholder="e.g. 148.00" onchange="saveRequiredRate()"></div>
@@ -625,18 +465,17 @@
       <!-- BIDS -->
       <section class="panel" id="bids">
         <h2>Bids</h2>
-        <p class="sub">Quoted projects awaiting an answer — fully editable. Mark active to convert to a real project. Didn't win it? Archive instead of delete.</p>
+        <p class="sub">Projects you've quoted but haven't been awarded yet. Every field below is editable any time. Once you land one, mark it active and it turns into a real Bid/Fixed project — everything you entered here (client, bid amount, SF, sheets) carries over automatically. Editing a bid's numbers after it's already been marked active won't change the project it created — go to the Projects tab for that.</p>
         <div class="card">
           <h2 style="font-size:1rem;">Add a bid</h2>
           <div class="grid">
-            <div style="grid-column:span 2;"><label>Project name</label><input id="newBidName" type="text" style="width:100%;box-sizing:border-box;"></div>
+            <div><label>Project name</label><input id="newBidName" type="text"></div>
             <div><label>Client</label><select id="newBidClient"></select></div>
             <div><label>Bid amount ($)</label><input id="newBidAmount" type="number" step="0.01" min="0" placeholder="e.g. 8500.00"></div>
             <div><label>Date bid</label><input id="newBidDate" type="date"></div>
             <div><label>Square footage (optional)</label><input id="newBidSF" type="number" step="1" min="0"></div>
-            <div><label>Time spent on this bid (hrs, optional)</label><input id="newBidHours" type="number" step="0.25" min="0" placeholder="e.g. 2.5"></div>
+            <div><label>Sheet count (optional)</label><input id="newBidSheets" type="number" step="1" min="0"></div>
             <div style="grid-column:1/-1;"><label>Notes (optional)</label><input id="newBidNotes" type="text"></div>
-            <div style="grid-column:1/-1;"><label>Attach files (optional)</label><div id="newBidDropzone"></div></div>
           </div>
           <button class="secondary" onclick="addBid()">Add bid</button>
         </div>
@@ -649,21 +488,13 @@
           <input id="bidSearch" type="text" placeholder="Search bids by project or client…" style="max-width:320px;" oninput="renderBidsTable()">
         </div>
         <div class="table-wrap"><table id="bidsTable"></table></div>
-        <details id="archivedBidsDetails" style="margin-top:18px;">
-          <summary style="cursor:pointer;font-weight:600;color:var(--navy);padding:8px 0;">Archived bids (didn't win) — click to expand</summary>
-          <div class="row" style="margin-top:8px;">
-            <input id="archivedBidSearch" type="text" placeholder="Search archived bids by project or client…" style="max-width:320px;" oninput="renderArchivedBidsTable()">
-          </div>
-          <p class="note" style="margin:4px 0 8px;">Archiving a bid you didn't win keeps its numbers and files here for reference — restore it any time, or delete it permanently.</p>
-          <div class="table-wrap"><table id="archivedBidsTable"></table></div>
-        </details>
       </section>
 
       <!-- QUICKBOOKS INVOICES -->
       <!-- CLIENTS -->
       <section class="panel" id="clients">
         <h2>Clients</h2>
-        <p class="sub">Default hourly rate per client — projects use it unless overridden.</p>
+        <p class="sub">Set a default hourly rate per client. Projects use this rate automatically unless you set a rate on the project itself to override it.</p>
         <div class="card">
           <h2 style="font-size:1rem;">Add a client</h2>
           <div class="grid">
@@ -681,7 +512,7 @@
       <!-- PROJECTS -->
       <section class="panel" id="projects">
         <h2>Projects</h2>
-        <p class="sub">Rename anytime — entries link by ID, not name. Set a rate to see $ totals.</p>
+        <p class="sub">Entries reference a project by ID, so renaming a project or client here never breaks past entries. "Tracked" and "Amount" (all-time, rounded hours &times; hourly rate) are shown right in the table below — set a rate to see amounts.</p>
         <div class="card">
           <h2 style="font-size:1rem;">Add a project</h2>
           <div class="grid">
@@ -691,6 +522,7 @@
             <div><label>Hourly rate ($, optional — overrides client rate)</label><input id="newProjectRate" type="number" step="0.01" min="0" placeholder="e.g. 125.00"></div>
             <div id="newProjectBidRow" style="display:none;"><label>Bid amount ($, fixed fee)</label><input id="newProjectBid" type="number" step="0.01" min="0" placeholder="e.g. 8500.00"></div>
             <div><label>Square footage (optional)</label><input id="newProjectSF" type="number" step="1" min="0" placeholder="e.g. 10000"></div>
+            <div><label>Sheet count (optional)</label><input id="newProjectSheets" type="number" step="1" min="0" placeholder="e.g. 12"></div>
             <div><label>Color</label><input id="newProjectColor" type="color" value="#2f7cf6"></div>
           </div>
           <button class="secondary" onclick="addProject()">Add project</button>
@@ -713,13 +545,13 @@
           </label>
         </div>
         <div class="table-wrap"><table id="projectsTable"></table></div>
-        <p class="flag">Tasks (right-most column above) are the categories you bill time toward within a project — e.g. "Const Admin," "Redlines." Add them per project here; they'll show up as suggestions when you track time against that project. Each task's dropdown sets whether it counts toward the bid amount (default) or is billed T&amp;M as extra on top of it.</p>
+        <p class="flag">Tasks (right-most column above) are the categories you bill time toward within a project — e.g. "Const Admin," "Redlines." Add them per project here; they'll show up as suggestions when you track time against that project.</p>
       </section>
 
       <!-- IMPORT -->
       <section class="panel" id="import">
         <h2>Import</h2>
-        <p class="sub">Import time from Clockify, or invoices/amounts from QuickBooks.</p>
+        <p class="sub">Bring in time entries from Clockify, split and attach invoice PDFs exported from QuickBooks, or import exact invoice amounts from a QuickBooks invoice-list CSV.</p>
         <div class="row" style="margin-bottom:14px;">
           <button class="sub-tab active" data-import-tab="clockify" onclick="switchImportTab('clockify')">Import from Clockify</button>
           <button class="sub-tab" data-import-tab="qb" onclick="switchImportTab('qb')">QuickBooks Invoices</button>
@@ -727,7 +559,7 @@
         </div>
 
         <div class="import-subpanel" id="import-clockify">
-          <p class="sub">Export Clockify time as CSV (Reports → Detailed → Export), then load it here.</p>
+          <p class="sub">Export your Clockify time entries as CSV (Clockify → Reports → Detailed → Export → CSV), then load that file here. Nothing is written until you review the preview and confirm.</p>
           <div class="card">
             <input type="file" id="importFile" accept=".csv" onchange="handleImportFile(event)">
             <div id="importPreview"></div>
@@ -736,7 +568,7 @@
         </div>
 
         <div class="import-subpanel" id="import-qb" style="display:none;">
-          <p class="sub">Upload a QuickBooks PDF (single or batch) — splits it per invoice, auto-matches by project, and attaches each one.</p>
+          <p class="sub">Upload PDF(s) exported from QuickBooks — a single invoice, or a combined batch-print of many invoices back to back — and this splits it into one PDF per invoice, guesses which project each belongs to from the "Bill To" text on the page, and attaches the results directly to those projects (same place shown on the Projects tab, under each project's row). Everything runs in your browser; files go straight to your own Dropbox, nowhere else.</p>
           <div class="card">
             <h2 style="font-size:1rem;">1. Choose PDF(s)</h2>
             <input id="qbFileInput" type="file" accept=".pdf" multiple onchange="handleQbFiles(this.files)">
@@ -744,7 +576,7 @@
           </div>
           <div class="card" id="qbReviewCard" style="display:none;">
             <h2 style="font-size:1rem;">2. Review &amp; confirm matches</h2>
-            <p class="sub" style="margin-top:0;">Green = auto-matched, double-check. Amber = pick a project or skip. Wrong page range? Edit Pages, then Re-slice.</p>
+            <p class="sub" style="margin-top:0;">Green rows matched a project automatically from the extracted "Bill To" text on the page — double-check them before saving. Amber rows couldn't be matched confidently; pick a project yourself, or leave "— skip —" to not save that one. This is page-text-based guessing, not exact — if a row's page range looks wrong (an invoice got split in the wrong spot), edit "Pages" (e.g. "3-4") and click that row's Re-slice button.</p>
             <div class="table-wrap"><table id="qbReviewTable"></table></div>
             <button onclick="saveQbMatches()">Save matched invoices to their projects</button>
             <p class="note" id="qbSaveStatus" style="margin-top:8px;"></p>
@@ -752,7 +584,7 @@
         </div>
 
         <div class="import-subpanel" id="import-invcsv" style="display:none;">
-          <p class="sub">Most accurate way to import exact invoice numbers/dates/amounts. Export invoice list as CSV in QuickBooks, then load it here.</p>
+          <p class="sub">The most reliable way to get exact invoice numbers/dates/amounts into Bid vs. billed — no PDF text-reading involved. In QuickBooks, export your invoice list as CSV (Reports → Invoice List, or Sales → Invoices → Export), then load that file here. Column names are matched flexibly — it looks for something like Invoice No./Num, Date, Customer/Name, and Amount/Total/Balance — check the preview before saving, especially the first time.</p>
           <div class="card">
             <h2 style="font-size:1rem;">1. Choose CSV</h2>
             <input id="invCsvFileInput" type="file" accept=".csv" onchange="handleInvoiceCsvFile(event)">
@@ -760,7 +592,7 @@
           </div>
           <div class="card" id="invCsvReviewCard" style="display:none;">
             <h2 style="font-size:1rem;">2. Review &amp; confirm matches</h2>
-            <p class="sub" style="margin-top:0;">Green = auto-matched. Amber = pick a project or skip.</p>
+            <p class="sub" style="margin-top:0;">Green rows matched a project automatically from the customer/description text (same matching QuickBooks Invoices import uses, including any taught phrases). Amber rows couldn't be matched — pick a project yourself, or leave "— skip —" to not save that row. Saving updates the matching invoice already attached to a project (matched by invoice number) if there is one, or adds a lightweight record with no PDF attached otherwise — either way it's what Bid vs. billed reads from.</p>
             <div class="table-wrap"><table id="invCsvReviewTable"></table></div>
             <button onclick="saveInvoiceCsvMatches()">Save matched invoice amounts to their projects</button>
             <p class="note" id="invCsvSaveStatus" style="margin-top:8px;"></p>
@@ -771,7 +603,7 @@
       <!-- DATA FILE -->
       <section class="panel" id="datafile">
         <h2>Data file</h2>
-        <p class="sub">Connect Dropbox on every device to share the same data file. Warns you before overwriting a conflict.</p>
+        <p class="sub">Connect to Dropbox on every device (desktop included) so they all read and write the exact same data. Every save re-checks nothing changed since you last loaded it and warns you instead of silently overwriting.</p>
 
         <div class="card">
           <h2 style="font-size:1rem;">Connect to Dropbox — use this on every device</h2>
@@ -832,7 +664,27 @@
     </div>
   </div>
 
-  <div id="attachInvoiceOverlay" class="file-viewer-overlay" style="display:none;" onclick="if(event.target===this) closeAttachInvoiceModal();"><div class="file-viewer-modal" style="max-width:600px;height:auto;max-height:85vh;"><div class="file-viewer-header"><span class="file-viewer-title">Attach the invoice PDF?</span><div class="file-viewer-actions"><button class="secondary" onclick="closeAttachInvoiceModal()">Skip for now</button></div></div><div class="file-viewer-body" style="overflow:auto;padding:16px;"><p class="note" style="margin:0 0 12px;">You just marked these as invoiced. Drag the PDF (or PDFs) for this invoice in now so Bid vs. billed has the exact numbers — no need to come back and re-attach it later.</p><div id="attachInvoiceRows"></div></div></div></div><!-- IDLE TIMER PROMPT — shown when the stopwatch has been running with no keyboard/
+  <!-- ATTACH INVOICE PDF PROMPT — shown right after marking entries invoiced
+       (Reports tab), so the invoice PDF gets attached to its project(s) in the
+       same moment it's issued, instead of needing a separate backfill/rescan
+       pass later. Skippable — closing it just means doing it later, same as
+       dragging a PDF onto a project's own invoice dropzone. -->
+  <div id="attachInvoiceOverlay" class="file-viewer-overlay" style="display:none;" onclick="if(event.target===this) closeAttachInvoiceModal();">
+    <div class="file-viewer-modal" style="max-width:600px;height:auto;max-height:85vh;">
+      <div class="file-viewer-header">
+        <span class="file-viewer-title">Attach the invoice PDF?</span>
+        <div class="file-viewer-actions">
+          <button class="secondary" onclick="closeAttachInvoiceModal()">Skip for now</button>
+        </div>
+      </div>
+      <div class="file-viewer-body" style="overflow:auto;padding:16px;">
+        <p class="note" style="margin:0 0 12px;">You just marked these as invoiced. Drag the PDF (or PDFs) for this invoice in now so Bid vs. billed has the exact numbers — no need to come back and re-attach it later.</p>
+        <div id="attachInvoiceRows"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- IDLE TIMER PROMPT — shown when the stopwatch has been running with no keyboard/
        mouse activity in this browser tab for a while, so a timer left running by
        accident doesn't silently bill hours you weren't actually working. -->
   <div id="idleOverlay" class="idle-overlay" style="display:none;">
@@ -861,19 +713,9 @@ function resolveRate(project){
   const c = data.clients.find(c=>c.id===project.clientId);
   return (c && c.hourlyRate) || 0;
 }
-// `entries` (optional) is this project's own time entries — passed in wherever available
-// so a Bid/Fixed project's revenue can add extra-billed (T&M) task time on top of the
-// flat bid fee, per each task's Bid/Extra setting (see isExtraBillingTask). Without
-// `entries`, a Bid project's revenue is just the flat bid amount, same as before.
-function projectRevenue(project, minutes, entries){
+function projectRevenue(project, minutes){
   if(!project) return 0;
-  if(project.billingType === 'Bid' && project.bidAmount){
-    if(entries){
-      const extraMins = entries.filter(e=>isExtraBillingTask(project, e.task)).reduce((s,e)=>s+e.roundedMinutes,0);
-      return project.bidAmount + (extraMins/60) * resolveRate(project);
-    }
-    return project.bidAmount;
-  }
+  if(project.billingType === 'Bid' && project.bidAmount) return project.bidAmount;
   return (minutes/60) * resolveRate(project);
 }
 // Shared budget-vs-tracked-value calc, used by both the Projects table and the
@@ -882,14 +724,10 @@ function projectRevenue(project, minutes, entries){
 // billing type (a Bid/Fixed project's actual revenue is still its flat bid amount —
 // see projectRevenue() — this is a separate "is the labor value tracked so far
 // outrunning the fee" check, not the invoice amount itself).
-// `entries` (optional) lets this exclude extra-billed (T&M) task time from the burn-down —
-// that time is billed separately on top of the bid, so it shouldn't count against it.
-// Without `entries`, every tracked minute counts, same as before.
-function budgetStatus(project, minutes, entries){
+function budgetStatus(project, minutes){
   const budget = (project && project.bidAmount) || 0;
   if(!budget) return null;
-  const budgetMinutes = entries ? entries.filter(e=>!isExtraBillingTask(project, e.task)).reduce((s,e)=>s+e.roundedMinutes,0) : minutes;
-  const valueWorked = (budgetMinutes/60) * resolveRate(project);
+  const valueWorked = (minutes/60) * resolveRate(project);
   const pctUsed = valueWorked/budget*100;
   return { budget, valueWorked, budgetLeft: budget - valueWorked, pctUsed, over: valueWorked > budget };
 }
@@ -905,9 +743,8 @@ async function maybeAlertBudget(projectId){
   if(!data) return;
   const p = data.projects.find(p=>p.id===projectId);
   if(!p || p.budgetAlertAcked) return;
-  const projEntries = data.entries.filter(e=>e.projectId===p.id);
-  const mins = projEntries.reduce((s,e)=>s+e.roundedMinutes,0);
-  const bs = budgetStatus(p, mins, projEntries);
+  const mins = data.entries.filter(e=>e.projectId===p.id).reduce((s,e)=>s+e.roundedMinutes,0);
+  const bs = budgetStatus(p, mins);
   if(!bs || !bs.over) return;
   alert('Heads up: "' + p.name + '" has now tracked $' + bs.valueWorked.toFixed(2) + ' of work against its $' + bs.budget.toFixed(2) + ' budget (' + bs.pctUsed.toFixed(0) + '%).\n\nJust a flag — keep tracking time as normal. This won\'t ask again for this project unless you change its budget amount. Check the Budget used column on the Projects tab or Dashboard any time.');
   p.budgetAlertAcked = true;
@@ -926,18 +763,7 @@ function uid(){
   if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
   return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,10);
 }
-// Formats a Date using its LOCAL calendar fields (never toISOString(), which is UTC
-// and can silently shift the date by a day for anyone not on UTC — this was the cause
-// of "today" being mislabeled as "yesterday" in the evening). Every date-string helper
-// in this file (todayStr, addDaysStr, period/report boundaries, the calendar) should
-// route through this so "what day is it" is answered the same, correct way everywhere.
-function localDateStr(d){
-  const y = d.getFullYear();
-  const m = String(d.getMonth()+1).padStart(2,'0');
-  const day = String(d.getDate()).padStart(2,'0');
-  return y + '-' + m + '-' + day;
-}
-function todayStr(){ return localDateStr(new Date()); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
 function roundToQuarterHour(minutes){ return Math.round(minutes/15)*15; }
 function fmtHM(minutes){
   const h = Math.floor(minutes/60), m = Math.round(minutes%60);
@@ -1017,6 +843,7 @@ let data = null;
 let fileHandle = null;
 let fileHandlePending = null;
 let loadedVersion = null;
+let dropboxRev = null; // Dropbox's own revision id of the data file as we last read/wrote it
 
 /* ============================================================
    DROPBOX SYNC (for Safari / phones — the File System Access API above
@@ -1110,8 +937,9 @@ async function dropboxDownload(){
     method:'POST',
     headers: { 'Authorization': 'Bearer ' + dropboxTokens.access_token, 'Dropbox-API-Arg': JSON.stringify({ path: DROPBOX_FILE_PATH }) }
   });
-  if(resp.status === 409) return null; // file doesn't exist yet on Dropbox — brand new connection
+  if(resp.status === 409){ dropboxRev = null; return null; } // file doesn't exist yet on Dropbox — brand new connection
   if(!resp.ok) throw new Error('Dropbox download failed (HTTP ' + resp.status + ')');
+  try{ dropboxRev = JSON.parse(resp.headers.get('Dropbox-API-Result')||'{}').rev || null; }catch(e){ dropboxRev = null; }
   return await resp.text();
 }
 async function dropboxUpload(text){
@@ -1119,10 +947,15 @@ async function dropboxUpload(text){
   if(!ok) throw new Error('Not connected to Dropbox — go to the Data File tab and connect.');
   const resp = await fetch('https://content.dropboxapi.com/2/files/upload', {
     method:'POST',
-    headers:{ 'Authorization':'Bearer ' + dropboxTokens.access_token, 'Dropbox-API-Arg': JSON.stringify({ path: DROPBOX_FILE_PATH, mode:'overwrite', mute:true }), 'Content-Type':'application/octet-stream' },
+    // With a known rev, Dropbox itself refuses the write if anyone changed the
+    // file since we read it (HTTP 409) - the same safety as re-downloading the
+    // whole file first, without the extra multi-second download on every save.
+    headers:{ 'Authorization':'Bearer ' + dropboxTokens.access_token, 'Dropbox-API-Arg': JSON.stringify({ path: DROPBOX_FILE_PATH, mode: dropboxRev ? {'.tag':'update', 'update': dropboxRev} : 'overwrite', mute:true }), 'Content-Type':'application/octet-stream' },
     body: text
   });
+  if(resp.status === 409 && dropboxRev){ const e = new Error('conflict'); e.conflict = true; throw e; }
   if(!resp.ok) throw new Error('Dropbox upload failed (HTTP ' + resp.status + ')');
+  try{ const j = await resp.json(); dropboxRev = j.rev || null; }catch(e){ dropboxRev = null; }
   return true;
 }
 // Looks up which Dropbox account this is connected to, and whatever Dropbox
@@ -1191,7 +1024,25 @@ async function dropboxGetTemporaryLink(path){
   const json = await resp.json();
   return json.link;
 }
-async function dropboxDownloadFileBytes(path){ const ok = await ensureDropboxToken(); if(!ok) throw new Error('Not connected to Dropbox — go to the Data File tab and connect.'); const resp = await fetch('https://content.dropboxapi.com/2/files/download', { method:'POST', headers: { 'Authorization': 'Bearer ' + dropboxTokens.access_token, 'Dropbox-API-Arg': JSON.stringify({ path }) } }); if(!resp.ok) throw new Error('Could not open that file (HTTP ' + resp.status + ')'); return await resp.arrayBuffer(); } async function dropboxDeleteFile(path){
+// Fetches a file's actual bytes (not just a link to it) via Dropbox's authenticated
+// download endpoint. Used by the file-viewer modal instead of get_temporary_link:
+// the temporary link is meant for direct browser navigation/download, and Dropbox
+// sometimes serves it with headers (Content-Disposition: attachment, or CORS/framing
+// restrictions on the dl.dropboxusercontent.com domain) that leave an <iframe src="">
+// pointed at it blank with no error — the fetch succeeds, the frame just never draws
+// anything. Downloading the bytes ourselves and handing the iframe a same-origin
+// blob: URL sidesteps all of that.
+async function dropboxDownloadFileBytes(path){
+  const ok = await ensureDropboxToken();
+  if(!ok) throw new Error('Not connected to Dropbox — go to the Data File tab and connect.');
+  const resp = await fetch('https://content.dropboxapi.com/2/files/download', {
+    method:'POST',
+    headers: { 'Authorization': 'Bearer ' + dropboxTokens.access_token, 'Dropbox-API-Arg': JSON.stringify({ path }) }
+  });
+  if(!resp.ok) throw new Error('Could not open that file (HTTP ' + resp.status + ')');
+  return await resp.arrayBuffer();
+}
+async function dropboxDeleteFile(path){
   const ok = await ensureDropboxToken();
   if(!ok) throw new Error('Not connected to Dropbox — go to the Data File tab and connect.');
   const resp = await fetch('https://api.dropboxapi.com/2/files/delete_v2', {
@@ -1431,7 +1282,8 @@ function loadLocalCache(){
 
 async function writeToFile(){
   if(storageMode !== 'dropbox' && !fileHandle){ alert('No data file connected — go to the Data File tab first.'); return false; }
-  if(loadedVersion !== -1){
+  const fastDropbox = storageMode === 'dropbox' && !!dropboxRev;
+  if(loadedVersion !== -1 && !fastDropbox){
     // Re-read the file to make sure nothing changed since we last loaded it —
     // same conflict check regardless of whether storage is local or Dropbox.
     let onDiskVersion = 0;
@@ -1450,7 +1302,7 @@ async function writeToFile(){
   data.version = (loadedVersion === -1 ? 0 : loadedVersion) + 1;
   try{
     if(storageMode === 'dropbox'){
-      await dropboxUpload(JSON.stringify(data, null, 2));
+      await dropboxUpload(JSON.stringify(data)); // compact - ~40% smaller than pretty-printed, so it uploads faster
     } else {
       const writable = await fileHandle.createWritable();
       await writable.write(JSON.stringify(data, null, 2));
@@ -1458,6 +1310,10 @@ async function writeToFile(){
     }
   }catch(e){
     data.version -= 1; // roll back the version bump since the write didn't actually happen
+    if(e && e.conflict){
+      showReloadBanner('The data file was changed on another device since you loaded it. Your last change was NOT saved — reload the page (or reconnect on the Data File tab) to get the current version, then redo your change.');
+      return false;
+    }
     alert('Save failed: ' + e.message);
     return false;
   }
@@ -1476,7 +1332,6 @@ function showReloadBanner(text){
 function updateFileStatus(){
   const el = document.getElementById('fileStatus');
   const backupsCard = document.getElementById('backupsCard');
-  renderNewBidDropzone();
   if(storageMode === 'dropbox' && dropboxTokens){
     el.innerHTML = 'Connected: <b>Dropbox</b> (v' + (data ? data.version : '?') + ')';
     let detail = 'App-relative path this app reads/writes: <code>' + DROPBOX_FILE_PATH + '</code> — version ' + (data ? data.version : '?');
@@ -1509,15 +1364,22 @@ async function backupNowClick(){
   if(note) note.textContent = ok ? ('Backed up as of ' + new Date().toLocaleString()) : 'Backup failed — try again in a moment.';
 }
 
-/* Picks a still-running timer back up automatically after a page refresh/reopen —
-   a reload is never itself a reason to stop tracking, so there's nothing to ask.
-   The running clock and "Started at ..." label are the visible confirmation that
-   it kept going; Stop & Save / the Discard option below still let you end it. */
+/* Detects a timer that was left running when the app/browser closed unexpectedly. */
 function checkForActiveTimer(){
   const banner = document.getElementById('resumeBanner');
   if(data.activeTimer){
+    const started = new Date(data.activeTimer.startedAt);
+    banner.style.display = 'block';
+    banner.innerHTML = 'A timer was left running, started ' + started.toLocaleString() +
+      ' on project "' + projectName(data.activeTimer.projectId) + '". ' +
+      '<button class="secondary" onclick="resumeTimer()">Resume it</button> ' +
+      '<button class="danger" onclick="stopTimer()">Stop it now</button> ' +
+      '<button class="secondary" onclick="discardTimer()">Discard (don\'t log it)</button>';
     timerState = data.activeTimer;
-    resumeTimer();
+    applyLocalTimerDraft(); // pick up anything typed since the last Dropbox save went out
+    repopulateTimerFields(); // so "Stop it now" (no Resume click) also saves the real task/description, not a blank field
+    if(data.activeTimer.backdated) showBackdatedState(data.activeTimer.startedAt);
+    updateStaleTimerBanner(Date.now() - data.activeTimer.startedAt);
   } else {
     banner.style.display = 'none';
   }
@@ -1612,6 +1474,7 @@ async function discardTimer(){
   data.activeTimer = null;
   await writeToFile();
   document.getElementById('resumeBanner').style.display = 'none';
+  document.getElementById('staleTimerBanner').style.display = 'none';
   clearBackdatedState();
   updateTimerStartedLabel();
   document.getElementById('breakBtn').disabled = true;
@@ -1630,41 +1493,12 @@ function showBackdatedState(startedAtMs){
   field.disabled = true;
   badge.textContent = 'Backdated — started ' + field.value;
   badge.style.display = '';
-  updateStartOverrideClearBtn();
 }
 function clearBackdatedState(){
   const field = document.getElementById('t-start-override');
   const badge = document.getElementById('backdateBadge');
   if(field){ field.disabled = false; field.value = ''; }
   if(badge) badge.style.display = 'none';
-  updateStartOverrideClearBtn();
-}
-// Shows the little (x) whenever there's something to clear — either typed text
-// before starting, or an already-applied backdate on a running timer.
-function updateStartOverrideClearBtn(){
-  const field = document.getElementById('t-start-override');
-  const btn = document.getElementById('t-start-clear');
-  if(!field || !btn) return;
-  btn.style.display = field.value.trim() ? '' : 'none';
-}
-// Undoes the "Actually started at" override. Before Start is clicked, this just
-// clears the typed text. If a backdated timer is already running, this resets
-// its start time to right now instead — for "didn't mean to backdate that."
-function clearStartOverride(){
-  const field = document.getElementById('t-start-override');
-  if(!field) return;
-  if(timerState && timerState.backdated){
-    if(!confirm('This timer was backdated to ' + field.value + '. Reset its start time to right now instead?')) return;
-    timerState.startedAt = Date.now();
-    timerState.backdated = false;
-    data.activeTimer = timerState;
-    clearBackdatedState();
-    updateTimerStartedLabel();
-    writeToFile();
-    return;
-  }
-  field.value = '';
-  updateStartOverrideClearBtn();
 }
 // Shows "Started at 2:14 PM" under the running stopwatch, so it's clear when the clock
 // actually began even without doing the elapsed-time math in your head.
@@ -1682,6 +1516,22 @@ function updateTimerStartedLabel(){
    ============================================================ */
 let timerState = null;
 let tickInterval = null;
+// A timer running this long with nobody having stopped/discarded it is almost certainly
+// forgotten, not real worked hours (see the week-long stuck-timer incident this guards
+// against) — flag it loudly rather than silently trusting whatever startedAt says.
+const STALE_TIMER_HOURS = 14;
+function updateStaleTimerBanner(elapsedMs){
+  const banner = document.getElementById('staleTimerBanner');
+  if(!banner) return;
+  if(!timerState || elapsedMs < STALE_TIMER_HOURS * 3600000){ banner.style.display = 'none'; return; }
+  const started = new Date(timerState.startedAt);
+  const hrs = (elapsedMs / 3600000).toFixed(1);
+  banner.innerHTML = '<b>This timer has been running ' + hrs + ' hours</b> (since ' + started.toLocaleString() + ') — that\'s ' +
+    'longer than a normal workday, so it\'s likely you forgot to stop it rather than actually still working. ' +
+    '<button class="danger" onclick="stopTimer()">Stop &amp; Save now</button> ' +
+    '<button class="secondary" onclick="discardTimer()">Discard (don\'t log it)</button>';
+  banner.style.display = 'block';
+}
 
 function projectName(id){
   const p = (data.projects||[]).find(p=>p.id===id);
@@ -1699,6 +1549,11 @@ function projectCell(id){
   return '<span class="proj-cell"><span class="dot" style="background:'+color+'"></span>'+name+'</span>';
 }
 
+// Every start/stop time is snapped to the nearest quarter hour the moment it's
+// recorded (1:32 -> 1:30, 1:38 -> 1:45), so the "Started at" label, the saved
+// entry's start/end, and the billed time all agree - no odd minutes anywhere.
+const QUARTER_MS = 15*60000;
+function roundToQuarterMs(ms){ return Math.round(ms / QUARTER_MS) * QUARTER_MS; }
 async function startTimer(){
   const projectId = document.getElementById('t-project').value;
   if(!projectId){ alert('Pick a project first.'); return; }
@@ -1720,6 +1575,7 @@ async function startTimer(){
     startedAt = candidate.getTime();
   }
   const backdated = !!startOverrideRaw;
+  startedAt = roundToQuarterMs(startedAt);
   clearLocalTimerDraft(); // starting fresh — don't let a leftover draft from a prior timer bleed in
   timerState = { projectId, description, task, startedAt, backdated, breakMinutes: 0, breakStartedAt: null };
   data.activeTimer = timerState;
@@ -1820,7 +1676,9 @@ async function stopTimer(endedAtOverride){
   if(!timerState){ return; }
   clearInterval(tickInterval);
   closeIdlePrompt();
-  const endedAt = endedAtOverride || Date.now();
+  timerState.startedAt = roundToQuarterMs(timerState.startedAt); // also covers a timer started before rounding existed
+  let endedAt = roundToQuarterMs(endedAtOverride || Date.now());
+  if(endedAt <= timerState.startedAt) endedAt = timerState.startedAt + QUARTER_MS; // minimum one quarter hour
   // If a break is still open when Stop & Save is clicked, close it out as of the stop
   // time rather than leaving it dangling — otherwise that time would silently count
   // as worked time instead of being excluded.
@@ -1839,7 +1697,7 @@ async function stopTimer(endedAtOverride){
   const entry = {
     id: uid(),
     projectId,
-    date: localDateStr(new Date(timerState.startedAt)),
+    date: new Date(timerState.startedAt).toISOString().slice(0,10),
     description,
     task,
     startTime: new Date(timerState.startedAt).toISOString(),
@@ -1878,6 +1736,7 @@ async function stopTimer(endedAtOverride){
   }
   timerState = null;
   clearLocalTimerDraft();
+  document.getElementById('staleTimerBanner').style.display = 'none';
   document.getElementById('startBtn').disabled = false;
   document.getElementById('stopBtn').disabled = true;
   document.getElementById('breakBtn').disabled = true;
@@ -1908,6 +1767,7 @@ function renderTimerUI(){
   disp.textContent = [h,m,s].map(v=>String(v).padStart(2,'0')).join(':');
   disp.classList.add('running');
   updateTimerBreakLabel();
+  updateStaleTimerBanner(now - timerState.startedAt);
   if(!timerState.breakStartedAt) checkIdle(); // don't nag about idleness while intentionally on a break
 }
 
@@ -1920,7 +1780,7 @@ function renderTimerUI(){
    while a timer is actually running; otherwise these listeners are just idle
    (pun intended) and do nothing.
    ============================================================ */
-const IDLE_THRESHOLD_MS = 3 * 60 * 60 * 1000; // 3 hours with zero activity in-tab
+const IDLE_THRESHOLD_MS = 15 * 60 * 1000; // 15 minutes with zero activity in-tab
 let lastActivityAt = Date.now();
 let idlePromptShown = false;
 let idlePromptAt = null; // the lastActivityAt value at the moment the prompt fired — used as the "stop at" time
@@ -1978,8 +1838,8 @@ async function addManualEntry(){
   const startTime = parseTimeStr(startTimeRaw);
   const endTime = parseTimeStr(endTimeRaw);
   if(!startTime || !endTime){ alert('Couldn\'t read one of those times — try something like "8:00 AM" or "1:30 PM".'); return; }
-  const start = new Date(date + 'T' + startTime + ':00');
-  let end = new Date(date + 'T' + endTime + ':00');
+  const start = new Date(roundToQuarterMs(new Date(date + 'T' + startTime + ':00').getTime()));
+  let end = new Date(roundToQuarterMs(new Date(date + 'T' + endTime + ':00').getTime()));
   if(end <= start) end = new Date(end.getTime() + 24*3600000); // crossed midnight
   const spanMinutes = (end - start) / 60000;
   const breakMinutesRaw = parseFloat(document.getElementById('m-break').value) || 0;
@@ -2083,27 +1943,18 @@ async function addBid(){
   const bidAmount = parseFloat(document.getElementById('newBidAmount').value) || 0;
   const dateBid = document.getElementById('newBidDate').value || todayStr();
   const sf = parseFloat(document.getElementById('newBidSF').value) || 0;
-  const bidHours = parseFloat(document.getElementById('newBidHours').value) || 0;
+  const sheets = parseFloat(document.getElementById('newBidSheets').value) || 0;
   const notes = document.getElementById('newBidNotes').value.trim();
   if(!name){ alert('Enter a project name.'); return; }
   if(!clientId){ alert('Add a client first, then pick it here.'); return; }
-  const newBidId = uid();
-  data.bids.push({ id: newBidId, name, clientId, bidAmount, dateBid, sf, sheets:0, bidHours, notes, status:'pending', wonProjectId:null, wonAt:null, archivedAt:null, attachments:[] });
+  data.bids.push({ id: uid(), name, clientId, bidAmount, dateBid, sf, sheets, notes, status:'pending', wonProjectId:null, wonAt:null, attachments:[] });
   const ok = await writeToFile();
   if(!ok){ data.bids.pop(); return; }
   document.getElementById('newBidName').value = '';
   document.getElementById('newBidAmount').value = '';
   document.getElementById('newBidSF').value = '';
-  document.getElementById('newBidHours').value = '';
+  document.getElementById('newBidSheets').value = '';
   document.getElementById('newBidNotes').value = '';
-  // Any PDFs/docs dropped into the form while it was being filled out were only
-  // staged in memory (the bid had no id yet to attach them to) — upload them now
-  // that the bid record actually exists.
-  if(newBidPendingFiles.length){
-    const filesToUpload = newBidPendingFiles;
-    newBidPendingFiles = [];
-    await uploadBidAttachments(newBidId, filesToUpload);
-  }
   renderAll();
 }
 // Turns a pending bid into a real Bid/Fixed project — carries over client, bid
@@ -2116,26 +1967,12 @@ async function markBidActive(id){
   if(!confirm('Mark "' + bid.name + '" as active? This creates a real project (Bid/Fixed, $' + bid.bidAmount.toFixed(2) + ') so you can start tracking time against it.')) return;
   const newProject = { id: uid(), name: bid.name, clientId: bid.clientId, billingType:'Bid', color:'#2f7cf6', favorite:false, hourlyRate:0, bidAmount: bid.bidAmount, sf: bid.sf||0, sheets: bid.sheets||0, tasks:[], invoices:[], status:'Active', budgetAlertAcked:false };
   data.projects.push(newProject);
-  // Time already spent working up the bid transfers over as a one-time entry
-  // against the new project, so it's not lost/re-typed — a snapshot at the
-  // moment the bid is won, not a live link back to the bid's own hrs field.
-  let bidHoursEntry = null;
-  if(bid.bidHours && bid.bidHours > 0){
-    bidHoursEntry = {
-      id: uid(), projectId: newProject.id, date: todayStr(), description: 'Time spent preparing this bid', task: 'Bid prep',
-      startTime: new Date().toISOString(), endTime: new Date().toISOString(),
-      actualMinutes: roundToQuarterHour(bid.bidHours*60), roundedMinutes: roundToQuarterHour(bid.bidHours*60),
-      breakMinutes: 0, billable: true, source: 'bid', invoiced:false, invoiceBatchId:null, invoiceDate:null
-    };
-    data.entries.push(bidHoursEntry);
-  }
   bid.status = 'won';
   bid.wonProjectId = newProject.id;
   bid.wonAt = todayStr();
   const ok = await writeToFile();
   if(!ok){
     data.projects.pop();
-    if(bidHoursEntry) data.entries.pop();
     bid.status = 'pending'; bid.wonProjectId = null; bid.wonAt = null;
     return;
   }
@@ -2144,7 +1981,7 @@ async function markBidActive(id){
 async function deleteBid(id){
   const bid = data.bids.find(b=>b.id===id);
   const hasAttachments = bid && (bid.attachments||[]).length > 0;
-  const msg = 'Permanently delete this bid record? This cannot be undone. (If you just didn\'t win it, use "Archive" instead — it keeps the record and files around to look back on.)' +
+  const msg = 'Delete this bid record? (Use this for bids you lost or that fell through — a bid you already marked active/won can be deleted too, but that will not remove the project it created.)' +
     (hasAttachments ? ' Its ' + bid.attachments.length + ' attached file(s) will also be deleted from Dropbox.' : '');
   if(!confirm(msg)) return;
   if(hasAttachments){
@@ -2153,34 +1990,6 @@ async function deleteBid(id){
   data.bids = data.bids.filter(b=>b.id!==id);
   await writeToFile();
   renderBidsTable();
-}
-// Didn't win it — keep the bid (and its files) around for reference instead of
-// deleting. Moves it out of the main pending/won table into the collapsible
-// "Archived bids" section below, where it can still be searched, reopened, or
-// restored back to pending if it comes back to life.
-async function archiveBid(id){
-  const bid = data.bids.find(b=>b.id===id);
-  if(!bid) return;
-  if(!confirm('Archive "' + bid.name + '"? It\'ll move to the "Archived bids" section below (still searchable, with its files) instead of the main list. You can restore it any time.')) return;
-  const prevStatus = bid.status;
-  bid.status = 'archived';
-  bid.archivedAt = todayStr();
-  const ok = await writeToFile();
-  if(!ok){ bid.status = prevStatus; bid.archivedAt = null; return; }
-  renderAll();
-}
-// Brings an archived bid back into the main pending list — e.g. a client
-// revives a project that had gone quiet.
-async function restoreBid(id){
-  const bid = data.bids.find(b=>b.id===id);
-  if(!bid) return;
-  const prevStatus = bid.status;
-  const prevArchivedAt = bid.archivedAt;
-  bid.status = 'pending';
-  bid.archivedAt = null;
-  const ok = await writeToFile();
-  if(!ok){ bid.status = prevStatus; bid.archivedAt = prevArchivedAt; return; }
-  renderAll();
 }
 // Lets any bid field be edited later, even after it's been marked active/won —
 // e.g. correcting a bid amount, SF, or notes without having to delete and re-add it.
@@ -2192,51 +2001,6 @@ async function setBidField(id, field, value, isNumber){
   const ok = await writeToFile();
   if(!ok){ b[field] = prev; return; }
   renderBidsTable();
-}
-// --- Staging area for files dropped/picked in the "Add a bid" form itself, before
-// the bid has been saved (and so before it has a real id/attachment folder). Files
-// sit here in memory as plain File objects; addBid() uploads them as the new bid's
-// own attachments right after the bid record is created. ---
-let newBidPendingFiles = [];
-function renderNewBidDropzone(){
-  const el = document.getElementById('newBidDropzone');
-  if(!el) return;
-  if(storageMode !== 'dropbox'){
-    el.innerHTML = '<div style="font-size:.78rem;color:var(--muted);">Connect Dropbox (Data File tab) to attach files here.</div>';
-    return;
-  }
-  const chips = newBidPendingFiles.map((f,i) =>
-    '<span class="pill" style="display:inline-flex;align-items:center;gap:5px;background:#eef2fb;color:var(--navy);margin:2px 4px 2px 0;">' +
-      '<span title="'+(f.name||'').replace(/"/g,'&quot;')+'">📎 ' + (f.name && f.name.length>28 ? f.name.slice(0,25)+'…' : (f.name||'file')) + '</span>' +
-      '<span style="color:var(--muted);font-weight:400;">'+fmtFileSize(f.size)+'</span>' +
-      '<a href="#" onclick="removeNewBidPendingFile('+i+');return false;" style="color:var(--rust);text-decoration:none;font-weight:700;padding:0 2px;" title="Remove">&times;</a>' +
-    '</span>'
-  ).join('');
-  el.innerHTML = '<div class="bid-dropzone" id="newBidDropzoneInner" style="font-size:.8rem;border:1px dashed var(--border);border-radius:6px;padding:6px 8px;" ' +
-      'ondragover="event.preventDefault();event.stopPropagation();this.classList.add(\'drag-over\');" ' +
-      'ondragleave="this.classList.remove(\'drag-over\');" ' +
-      'ondrop="handleNewBidFileDrop(event);">' +
-    (chips ? '<div style="margin-bottom:4px;">' + chips + '</div>' : '') +
-    '<label class="secondary" style="display:inline-block;padding:4px 10px;font-size:.72rem;border:1px solid var(--border);border-radius:6px;cursor:pointer;color:var(--primary);" for="newBidFileInput">+ Add file (PDF, doc, photo)</label>' +
-    ' <span style="color:var(--muted);">or drag &amp; drop files here — they upload once you click "Add bid" below.</span>' +
-    '<input id="newBidFileInput" type="file" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.heic,.gif,.txt,.xlsx,.xls" style="display:none;" onchange="addNewBidPendingFiles(this.files); this.value=\'\';">';
-}
-function addNewBidPendingFiles(fileList){
-  if(!fileList || !fileList.length) return;
-  newBidPendingFiles = newBidPendingFiles.concat(Array.from(fileList));
-  renderNewBidDropzone();
-}
-function removeNewBidPendingFile(i){
-  newBidPendingFiles.splice(i,1);
-  renderNewBidDropzone();
-}
-function handleNewBidFileDrop(event){
-  event.preventDefault();
-  event.stopPropagation();
-  const inner = document.getElementById('newBidDropzoneInner');
-  if(inner) inner.classList.remove('drag-over');
-  const files = event.dataTransfer && event.dataTransfer.files;
-  if(files && files.length) addNewBidPendingFiles(files);
 }
 // --- Bid attachments (PDFs/docs/photos) — stored in Dropbox under /bid-attachments/<bidId>/,
 // so there's somewhere to drop files before a bid is won and gets its own real project folder. ---
@@ -2292,78 +2056,20 @@ async function deleteBidAttachment(bidId, attId){
   await writeToFile();
   renderBidsTable();
 }
-// --- Drag-out-to-Explorer/Finder support for bid attachments: Chrome/Edge can drag
-// a file straight onto the desktop or a folder window if dragstart puts a
-// "DownloadURL" entry on the dataTransfer pointing at a real, directly-fetchable
-// URL — the browser itself downloads it when you drop. A Dropbox temporary link
-// (no auth header needed to fetch) is exactly that, so it's fetched ahead of time
-// and cached per attachment — dragstart can't itself await an API call. ---
-let attachmentDragLinks = {};
-function mimeFromFilename(name){
-  const ext = (name || '').split('.').pop().toLowerCase();
-  const map = { pdf:'application/pdf', doc:'application/msword',
-    docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    xls:'application/vnd.ms-excel', xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    jpg:'image/jpeg', jpeg:'image/jpeg', png:'image/png', gif:'image/gif', heic:'image/heic', txt:'text/plain' };
-  return map[ext] || 'application/octet-stream';
-}
-async function prefetchAttachmentDragLink(attId, path){
-  try{
-    const link = await dropboxGetTemporaryLink(path);
-    attachmentDragLinks[attId] = link;
-  }catch(e){ /* dragging just won't work for this one until a retry re-renders the table */ }
-}
-function handleAttachmentDragStart(event, attId, filename){
-  const link = attachmentDragLinks[attId];
-  if(!link){
-    event.preventDefault();
-    alert('Still preparing "' + filename + '" for dragging — wait a couple seconds and try again.');
-    return;
-  }
-  event.dataTransfer.setData('DownloadURL', mimeFromFilename(filename) + ':' + filename + ':' + link);
-  event.dataTransfer.effectAllowed = 'copy';
-}
-// Downloads a bid attachment as a real file on disk (rather than opening the
-// in-app PDF.js viewer) — the point is to hand off to whatever the OS has set as
-// the default PDF app. There's no official way for a web page to launch Bluebeam
-// Revu directly by name (it has no public "open this remote file" URL scheme),
-// but Revu can be set as the Windows default PDF handler, and Chrome's download
-// tray has a one-click "Open" once the file lands — so this gets there in two
-// clicks instead of a manual save-then-browse.
-async function downloadBidAttachmentToOpenExternally(bidId, attId){
-  const bid = data.bids.find(b=>b.id===bidId);
-  const att = bid && (bid.attachments||[]).find(a=>a.id===attId);
-  if(!att) return;
-  try{
-    const bytes = await dropboxDownloadFileBytes(att.path);
-    const blob = new Blob([bytes], { type: mimeFromFilename(att.name) });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = att.name || 'file';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(()=>URL.revokeObjectURL(url), 30000);
-  }catch(e){
-    alert('Could not download "' + (att.name||'file') + '": ' + e.message);
-  }
-}
 // Builds the little "Attachments" strip under each bid row: existing files as
 // removable chips, plus an upload control (disabled with an explanation if Dropbox
 // isn't connected, since that's where the files actually live).
 function bidAttachmentsHtml(b){
   const attachments = b.attachments || [];
-  const chips = attachments.map(a => {
-    prefetchAttachmentDragLink(a.id, a.path); // fire-and-forget — ready well before a user manages to grab and drag it
-    const isPdf = /\.pdf$/i.test(a.name || '');
-    return '<span class="pill" draggable="true" ondragstart="handleAttachmentDragStart(event,\''+a.id+'\',\''+(a.name||'file').replace(/\'/g,"\\'")+'\')" title="Drag this onto a folder or your desktop to save it there" style="display:inline-flex;align-items:center;gap:5px;background:#eef2fb;color:var(--navy);margin:2px 4px 2px 0;cursor:grab;">' +
-      '<span style="color:var(--steel);">⠿</span>' +
+  const chips = attachments.map(a =>
+    '<span class="pill" style="display:inline-flex;align-items:center;gap:5px;background:#eef2fb;color:var(--navy);margin:2px 4px 2px 0;">' +
       '<a href="#" onclick="openBidAttachment(\''+b.id+'\',\''+a.id+'\');return false;" style="color:var(--primary);text-decoration:none;font-weight:600;" title="'+(a.name||'').replace(/"/g,'&quot;')+'">📎 ' +
         (a.name && a.name.length > 28 ? a.name.slice(0,25)+'…' : (a.name||'file')) +
       '</a>' +
       '<span style="color:var(--muted);font-weight:400;">'+fmtFileSize(a.size)+'</span>' +
-      (isPdf ? '<a href="#" onclick="downloadBidAttachmentToOpenExternally(\''+b.id+'\',\''+a.id+'\');return false;" style="color:var(--primary);text-decoration:none;font-weight:600;padding:0 2px;" title="Download this PDF, then open it — if Bluebeam Revu is set as your default PDF app, it\'ll launch there">↗ Bluebeam</a>' : '') +
       '<a href="#" onclick="deleteBidAttachment(\''+b.id+'\',\''+a.id+'\');return false;" style="color:var(--rust);text-decoration:none;font-weight:700;padding:0 2px;" title="Remove">×</a>' +
-    '</span>';
-  }).join('');
+    '</span>'
+  ).join('');
   if(storageMode !== 'dropbox'){
     return '<div style="font-size:.78rem;color:var(--muted);">' + chips +
       (chips ? '<br>' : '') + 'Connect Dropbox (Data File tab) to attach files to bids.</div>';
@@ -2456,7 +2162,102 @@ async function uploadProjectInvoices(projectId, fileList){
   if(!ok){ alert('Files uploaded to Dropbox, but the project record didn\'t save — reload the file (Data File tab) and check before uploading again.'); }
   renderProjectsTable();
 }
-let attachInvoiceQueue = []; function promptAttachInvoicePdf(projectIds, ref, invoiceDate){ if(storageMode !== 'dropbox') return; const uniqueIds = [...new Set(projectIds)].filter(Boolean); if(!uniqueIds.length) return; attachInvoiceQueue = uniqueIds.map(pid => ({ projectId: pid, projectName: projectName(pid), ref, invoiceDate, done: false })); renderAttachInvoiceModal(); document.getElementById('attachInvoiceOverlay').style.display = 'flex'; } function closeAttachInvoiceModal(){ document.getElementById('attachInvoiceOverlay').style.display = 'none'; attachInvoiceQueue = []; } function renderAttachInvoiceModal(){ const box = document.getElementById('attachInvoiceRows'); if(!box) return; box.innerHTML = attachInvoiceQueue.map((row, idx) => { if(row.done){ return '<div style="padding:8px 10px;margin-bottom:8px;border:1px solid var(--ok);border-radius:6px;background:#eafaf1;color:var(--ok);font-weight:600;">✓ ' + row.projectName + ' — attached</div>'; } const inputId = 'attach-invoice-input-' + idx; return '<div class="project-dropzone" id="attach-invoice-dropzone-'+idx+'" style="font-size:.85rem;border:1px dashed var(--border);border-radius:6px;padding:8px 10px;margin-bottom:8px;" ' + 'ondragover="event.preventDefault();event.stopPropagation();this.classList.add(\'drag-over\');" ' + 'ondragleave="this.classList.remove(\'drag-over\');" ' + 'ondrop="handleAttachInvoiceDrop(event,'+idx+');">' + '<div style="font-weight:600;margin-bottom:4px;">' + row.projectName + (row.ref ? ' <span style="color:var(--muted);font-weight:400;">(QB# '+row.ref+')</span>' : '') + '</div>' + '<label class="secondary" style="display:inline-block;padding:4px 10px;font-size:.72rem;border:1px solid var(--border);border-radius:6px;cursor:pointer;color:var(--primary);" for="'+inputId+'">+ Choose PDF</label>' + ' <span style="color:var(--muted);">or drag &amp; drop here</span>' + '<input id="'+inputId+'" type="file" multiple accept=".pdf" style="display:none;" onchange="handleAttachInvoiceFiles('+idx+', this.files); this.value=\'\';">' + ' <span id="attach-invoice-status-'+idx+'" style="color:var(--steel);"></span>' + '</div>'; }).join(''); if(attachInvoiceQueue.length && attachInvoiceQueue.every(r=>r.done)){ setTimeout(closeAttachInvoiceModal, 900); } } function handleAttachInvoiceDrop(event, idx){ event.preventDefault(); event.stopPropagation(); const zone = document.getElementById('attach-invoice-dropzone-'+idx); if(zone) zone.classList.remove('drag-over'); const files = event.dataTransfer && event.dataTransfer.files; if(files && files.length) handleAttachInvoiceFiles(idx, files); } async function handleAttachInvoiceFiles(idx, fileList){ const row = attachInvoiceQueue[idx]; if(!row || row.done || !fileList || !fileList.length) return; const statusEl = document.getElementById('attach-invoice-status-'+idx); const files = Array.from(fileList); for(let i=0; i<files.length; i++){ const file = files[i]; if(statusEl) statusEl.textContent = 'Uploading ' + (i+1) + ' of ' + files.length + '…'; try{ const buf = await file.arrayBuffer(); let meta = { number: row.ref || null, date: row.invoiceDate || null, amount: null }; if(typeof pdfjsLib !== 'undefined' && /\.pdf$/i.test(file.name)){ try{ const pdfjsDoc = await pdfjsLib.getDocument({ data: buf.slice(0) }).promise; const content = await (await pdfjsDoc.getPage(1)).getTextContent(); const text = content.items.map(it=>it.str).join(' '); meta.number = qbExtractInvoiceNumber(text) || meta.number; meta.date = qbExtractInvoiceDate(text) || meta.date; meta.amount = qbExtractBalanceDue(text); }catch(parseErr){ } } await saveProjectInvoiceBytes(row.projectId, file.name, buf, file.size, meta); }catch(e){ alert('Failed to attach "' + file.name + '": ' + e.message); if(statusEl) statusEl.textContent = ''; return; } } const ok = await writeToFile(); if(!ok){ alert('The PDF attached, but saving didn\'t go through — check the reload banner and try again from the project\'s own invoice dropzone.'); if(statusEl) statusEl.textContent = ''; return; } row.done = true; renderAttachInvoiceModal(); renderProjectsTable(); } async function openProjectInvoice(projectId, attId){
+/* ============================================================
+   ATTACH-INVOICE-AFTER-MARKING PROMPT
+   Fired right after markDayGroupInvoiced/markGroupInvoiced/markReportInvoiced
+   successfully save, so the PDF gets attached to its project(s) at the moment
+   the invoice is issued — same drag-and-drop + pdf.js metadata extraction as
+   a project's own invoice dropzone, just surfaced immediately instead of
+   requiring a trip to Projects and a "Read amounts from PDF" backfill later.
+   ============================================================ */
+let attachInvoiceQueue = [];
+function promptAttachInvoicePdf(projectIds, ref, invoiceDate){
+  if(storageMode !== 'dropbox') return; // nothing to attach to without Dropbox
+  const uniqueIds = [...new Set(projectIds)].filter(Boolean);
+  if(!uniqueIds.length) return;
+  attachInvoiceQueue = uniqueIds.map(pid => ({
+    projectId: pid,
+    projectName: projectName(pid),
+    ref, invoiceDate,
+    done: false
+  }));
+  renderAttachInvoiceModal();
+  document.getElementById('attachInvoiceOverlay').style.display = 'flex';
+}
+function closeAttachInvoiceModal(){
+  document.getElementById('attachInvoiceOverlay').style.display = 'none';
+  attachInvoiceQueue = [];
+}
+function renderAttachInvoiceModal(){
+  const box = document.getElementById('attachInvoiceRows');
+  if(!box) return;
+  box.innerHTML = attachInvoiceQueue.map((row, idx) => {
+    if(row.done){
+      return '<div style="padding:8px 10px;margin-bottom:8px;border:1px solid var(--ok);border-radius:6px;background:#eafaf1;color:var(--ok);font-weight:600;">✓ ' + row.projectName + ' — attached</div>';
+    }
+    const inputId = 'attach-invoice-input-' + idx;
+    return '<div class="project-dropzone" id="attach-invoice-dropzone-'+idx+'" style="font-size:.85rem;border:1px dashed var(--border);border-radius:6px;padding:8px 10px;margin-bottom:8px;" ' +
+        'ondragover="event.preventDefault();event.stopPropagation();this.classList.add(\'drag-over\');" ' +
+        'ondragleave="this.classList.remove(\'drag-over\');" ' +
+        'ondrop="handleAttachInvoiceDrop(event,'+idx+');">' +
+      '<div style="font-weight:600;margin-bottom:4px;">' + row.projectName + (row.ref ? ' <span style="color:var(--muted);font-weight:400;">(QB# '+row.ref+')</span>' : '') + '</div>' +
+      '<label class="secondary" style="display:inline-block;padding:4px 10px;font-size:.72rem;border:1px solid var(--border);border-radius:6px;cursor:pointer;color:var(--primary);" for="'+inputId+'">+ Choose PDF</label>' +
+      ' <span style="color:var(--muted);">or drag &amp; drop here</span>' +
+      '<input id="'+inputId+'" type="file" multiple accept=".pdf" style="display:none;" onchange="handleAttachInvoiceFiles('+idx+', this.files); this.value=\'\';">' +
+      ' <span id="attach-invoice-status-'+idx+'" style="color:var(--steel);"></span>' +
+    '</div>';
+  }).join('');
+  // Once every row is attached, there's nothing left to do here.
+  if(attachInvoiceQueue.length && attachInvoiceQueue.every(r=>r.done)){
+    setTimeout(closeAttachInvoiceModal, 900);
+  }
+}
+function handleAttachInvoiceDrop(event, idx){
+  event.preventDefault(); event.stopPropagation();
+  const zone = document.getElementById('attach-invoice-dropzone-'+idx);
+  if(zone) zone.classList.remove('drag-over');
+  const files = event.dataTransfer && event.dataTransfer.files;
+  if(files && files.length) handleAttachInvoiceFiles(idx, files);
+}
+async function handleAttachInvoiceFiles(idx, fileList){
+  const row = attachInvoiceQueue[idx];
+  if(!row || row.done || !fileList || !fileList.length) return;
+  const statusEl = document.getElementById('attach-invoice-status-'+idx);
+  const files = Array.from(fileList);
+  for(let i=0; i<files.length; i++){
+    const file = files[i];
+    if(statusEl) statusEl.textContent = 'Uploading ' + (i+1) + ' of ' + files.length + '…';
+    try{
+      const buf = await file.arrayBuffer();
+      let meta = { number: row.ref || null, date: row.invoiceDate || null, amount: null };
+      if(typeof pdfjsLib !== 'undefined' && /\.pdf$/i.test(file.name)){
+        try{
+          const pdfjsDoc = await pdfjsLib.getDocument({ data: buf.slice(0) }).promise;
+          const content = await (await pdfjsDoc.getPage(1)).getTextContent();
+          const text = content.items.map(it=>it.str).join(' ');
+          meta.number = qbExtractInvoiceNumber(text) || meta.number;
+          meta.date = qbExtractInvoiceDate(text) || meta.date;
+          meta.amount = qbExtractBalanceDue(text);
+        }catch(parseErr){ /* not parseable — still attach with what we already know (ref/date) */ }
+      }
+      await saveProjectInvoiceBytes(row.projectId, file.name, buf, file.size, meta);
+    }catch(e){
+      alert('Failed to attach "' + file.name + '": ' + e.message);
+      if(statusEl) statusEl.textContent = '';
+      return;
+    }
+  }
+  const ok = await writeToFile();
+  if(!ok){
+    alert('The PDF attached, but saving didn\'t go through — check the reload banner and try again from the project\'s own invoice dropzone.');
+    if(statusEl) statusEl.textContent = '';
+    return;
+  }
+  row.done = true;
+  renderAttachInvoiceModal();
+  renderProjectsTable();
+}
+async function openProjectInvoice(projectId, attId){
   const p = data.projects.find(p=>p.id===projectId);
   const list = p ? (p.invoices||[]) : [];
   const idx = list.findIndex(a=>a.id===attId);
@@ -2482,7 +2283,12 @@ async function openFileViewer(list, index){
 function closeFileViewer(){
   document.getElementById('fileViewerOverlay').style.display = 'none';
   document.getElementById('fileViewerFrame').src = '';
-  revokeFileViewerObjectUrl(); document.removeEventListener('keydown', fileViewerKeyHandler); } let fileViewerObjectUrl = null; function revokeFileViewerObjectUrl(){ if(fileViewerObjectUrl){ URL.revokeObjectURL(fileViewerObjectUrl); fileViewerObjectUrl = null; } } function fileViewerKeyHandler(e){
+  revokeFileViewerObjectUrl();
+  document.removeEventListener('keydown', fileViewerKeyHandler);
+}
+let fileViewerObjectUrl = null;
+function revokeFileViewerObjectUrl(){
+  if(fileViewerObjectUrl){ URL.revokeObjectURL(fileViewerObjectUrl); fileViewerObjectUrl = null; }
 }
 function fileViewerKeyHandler(e){
   if(e.key === 'Escape') closeFileViewer();
@@ -2510,13 +2316,16 @@ async function renderFileViewerCurrent(){
   prevBtn.disabled = fileViewerIndex <= 0;
   nextBtn.disabled = fileViewerIndex >= fileViewerList.length-1;
   frame.src = '';
+  revokeFileViewerObjectUrl();
   try{
-    revokeFileViewerObjectUrl(); const bytes = await dropboxDownloadFileBytes(att.path); const blob = new Blob([bytes], { type: 'application/pdf' }); fileViewerObjectUrl = URL.createObjectURL(blob); const link = fileViewerObjectUrl;
-    // Dropbox's temporary link serves the raw PDF with the right content-type,
-    // so the browser's built-in PDF viewer renders it right in the iframe —
-    // no download prompt, no separate tab.
-    frame.src = link;
-    openTabEl.href = link;
+    // Download the actual bytes and hand the iframe a same-origin blob: URL —
+    // more reliable than pointing it straight at Dropbox's temporary link, which
+    // sometimes renders blank with no error (see dropboxDownloadFileBytes above).
+    const bytes = await dropboxDownloadFileBytes(att.path);
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    fileViewerObjectUrl = URL.createObjectURL(blob);
+    frame.src = fileViewerObjectUrl;
+    openTabEl.href = fileViewerObjectUrl;
   }catch(e){
     frame.srcdoc = '<p style="font-family:sans-serif;padding:20px;color:#a33;">Couldn\'t load "' + (att.name||'').replace(/"/g,'&quot;') + '": ' + e.message.replace(/"/g,'&quot;') + '</p>';
     openTabEl.href = '#';
@@ -2928,7 +2737,71 @@ function qbDetectGroups(pageTexts){
 // NAME at match time (not a baked-in id) so this survives a project rename;
 // if a name below no longer exists, that row just falls through to the
 // normal heuristics/keyword matching below like any unrecognized invoice.
-const QB_CONFIRMED_INVOICE_MAP = {   '1155': "ROY RESIDENCE",   '1074': "Willamina Sawmill",   '1075': "Willamina Sawmill",   '1076': "Willamina Sawmill",   '1077': "Willamina Sawmill",   '1078': "Willamina Sawmill",   '1079': "Willamina Sawmill",   '1080': "Willamina Sawmill",   '1081': "Dryer One",   '1082': "Ione School",   '1083': "Willamina Sawmill",   '1084': "Dryer One",   '1085': "Ione School",   '1086': "Willamina Sawmill",   '1087': "Barnard",   '1088': "Willamina Merch PEMB Addition",   '1089': "Dryer One",   '1090': "Willamina Sawmill",   '1091': "Darrington Mill",   '1093': "Dryer One",   '1095': "Dryer One",   '1096': "Darrington Mill",   '1097': "Willamina Sawmill",   '1098': "Barnard",   '1099': "Willamina Sawmill",   '1100': "Darrington Mill",   '1101': "Dryer One",   '1103': "Dryer One",   '1102': "Willamina Sawmill",   '1104': "Darrington Mill",   '1105': "Barbur",   '1106': "Dryer One",   '1107': "Willamina Sawmill",   '1108': "Dryer One",   '1109': "Darrington Mill",   '1110': "Dryer One",   '1111': "Darrington Mill",   '1112': "Willamina Sawmill",   '1113': "Willamina Sawmill",   '1114': "Darrington Mill",   '1115': "Dryer One",   '1116': "Willamina Sawmill",   '1117': "Darrington Mill",   '1118': "TILAMOOK",   '1119': "Dryer One",   '1120': "Darrington Mill",   '1121': "Willamina Sawmill",   '1122': "Dryer One",   '1123': "MMJR Warehouse PEMB",   '1124': "Darrington Mill",   '1125': "Dryer One",   '1126': "Ione School",   '1127': "Kennewick Dental",   '1128': "Darrington Mill",   '1129': "Willamina Sawmill",   '1130': "Dryer One",   '1131': "24-024 WW POLE BUILDING",   '1132': "Darrington Mill",   '1133': "Stonecrest PEMB",   '1134': "Kanneganti",   '1135': "Darrington Mill",   '1136': "TILAMOOK",   '1137': "Chen Residence",   '1138': "Canyon Lakes Golf Pro Shop",   '1139': "Darrington Mill",   '1140': "Dryer One",   '1141': "Pavlov PEMB",   '1142': "MMJR Warehouse PEMB",   '1143': "Canyon Lakes Golf Pro Shop",   '1144': "Darrington Mill",   '1145': "Morton E-house",   '1146': "Dryer One",   '1147': "Van Giesen PEMB",   '1148': "ROY RESIDENCE",   '1149': "Corwin Spokane Ford Building",   '1150': "Darrington Mill",   '1151': "Canyon Lakes Golf Pro Shop",   '1152': "Corwin Spokane Ford Building",   '1153': "Darrington Mill",   '1154': "Chen Residence",   '1156': "Darrington Mill",   '1157': "St. Thomas Project",   '1158': "Canyon Lakes Maint. Shop Addition",   '1159': "LCR - Corwin Ford Wall Modification",   '1160': "LCR - Canyon Lakes Pro Shop",   '1162': "Canyon Lakes Maint. Shop Addition",   '1163': "LCR - Canyon Lakes Pro Shop",   '1164': "LCR - St. Thomas Project",   '1165': "Darrington Mill",   '1166': "Woodgrain Log Loader Platform",   '1167': "Chen Residence",   '1168': "LCR - St. Thomas Project",   '1169': "LCR - Duck Pond Bar & Grill",   '1170': "Willamina Sawmill",   '1171': "Darrington Mill",   '1172': "Woodgrain Log Loader Platform",   '1173': "Pavlov PEMB",   '1174': "Woodgrain Log Loader Platform",   '1175': "Chen Residence",   '1176': "Darrington Mill",   '1177': "DKEI - Osprey Pointe",   '1178': "Cupertino Pole Building",   '1180': "LCR - Canyon Lakes Pro Shop",   '1181': "LCR - Corwin Spokane",   '1182': "LCR - Corwin Pasco",   '1183': "DKEI - Osprey Pointe",   '1184': "Woodgrain Log Loader Platform",   '1185': "Puri-T Welding PEMB",   '1186': "LCR - St. Thomas Project",   '1187': "LCR - Corwin Pasco",   '1188': "LCR - Corwin Spokane",   '1189': "LCR - Duck Pond",   '1191': "DKEI - Osprey Pointe",   '1192': "LCR - Corwin Spokane",   '1193': "LCR - Duck Pond",   '1194': "LCR - Corwin Pasco",   '1195': "Darrington Mill",   '1196': "Jager PEMB",   '1197': "LCR - Corwin Pasco",   '1198': "Cupertino Pole Building",   '1199': "LCR - St. Thomas Project",   '1200': "LCR - Duck Pond",   '1201': "LCR - Corwin Spokane",   '1202': "LCR - Corwin Spokane",   '1203': "LCR - Corwin Pasco",   '1204': "AZ Dental",   '1205': "Crook PEMB",   '1206': "Swensen Timber Frame",   '1207': "ROY RESIDENCE",   '1208': "LCR - Friends Corner",   '1209': "LCR - Corwin Pasco",   '1210': "LCR - Duck Pond",   '1212': "Equipment Purchase",   '1213': "LCR - Corwin Pasco",   '1214': "LCR - Friends Corner",   '1216': "Bella Vita",   '1218': "LCR - Corwin Pasco",   '1219': "Bella Vita",   '1220': "Valle Commercial Building",   '1221': "Prairie City Bowstring Truss",   '1222': "Econolodge",   '1223': "LCR - Corwin Pasco",   '1224': "Prairie City Bowstring Truss",   '1225': "Desert Sage Dental",   '1226': "Bella Vita",   '1227': "Econolodge",   '1228': "Valle Commercial Building",   '1231': "Agnema Lab Building",   '1232': "Desert Sage Dental",   '1233': "Econolodge",   '1234': "River Ranch - Starter Shack",   '1235': "Valle Commercial Building",   '1161': "Boeing Gantry Mill Foundation Shoring",   '1179': "SW 54th Ave Residence",   '1190': "FBO Historic Columbia River",   '1211': "Barbur",   '1217': "Willamette View Skyline",   '1229': "Willamette View",   '1230': "Pacific City Transfer Station",   '1236': "Barbur",   '1237': "Beaver Creek Pedestrian Bridge",   '1238': "Willamette View" };
+const QB_CONFIRMED_INVOICE_MAP = {
+  '1155': "ROY RESIDENCE",
+  '1074': "Willamina Sawmill",
+  '1075': "Willamina Sawmill",
+  '1076': "Willamina Sawmill",
+  '1077': "Willamina Sawmill",
+  '1078': "Willamina Sawmill",
+  '1079': "Willamina Sawmill",
+  '1080': "Willamina Sawmill",
+  '1081': "Dryer One",
+  '1082': "Ione School",
+  '1083': "Willamina Sawmill",
+  '1084': "Dryer One",
+  '1085': "Ione School",
+  '1086': "Willamina Sawmill",
+  '1087': "Barnard",
+  '1088': "Willamina Merch PEMB Addition",
+  '1089': "Dryer One",
+  '1090': "Willamina Sawmill",
+  '1091': "Darrington Mill",
+  '1093': "Dryer One",
+  '1095': "Dryer One",
+  '1096': "Darrington Mill",
+  '1097': "Willamina Sawmill",
+  '1098': "Barnard",
+  '1099': "Willamina Sawmill",
+  '1100': "Darrington Mill",
+  '1101': "Dryer One",
+  '1103': "Dryer One",
+  '1102': "Willamina Sawmill",
+  '1104': "Darrington Mill",
+  '1105': "Barbur",
+  '1106': "Dryer One",
+  '1107': "Willamina Sawmill",
+  '1108': "Dryer One",
+  '1109': "Darrington Mill",
+  '1110': "Dryer One",
+  '1111': "Darrington Mill",
+  '1112': "Willamina Sawmill",
+  '1113': "Willamina Sawmill",
+  '1114': "Darrington Mill",
+  '1115': "Dryer One",
+  '1116': "Willamina Sawmill",
+  '1117': "Darrington Mill",
+  '1118': "TILAMOOK",
+  '1119': "Dryer One",
+  '1120': "Darrington Mill",
+  '1121': "Willamina Sawmill",
+  '1122': "Dryer One",
+  '1123': "MMJR Warehouse PEMB",
+  '1124': "Darrington Mill",
+  '1125': "Dryer One",
+  '1126': "Ione School",
+  '1127': "Kennewick Dental",
+  '1128': "Darrington Mill",
+  '1129': "Willamina Sawmill",
+  '1130': "Dryer One",
+  '1131': "24-024 WW POLE BUILDING",
+  '1132': "Darrington Mill",
+  '1133': "Stonecrest PEMB",
+  '1134': "Kanneganti",
+  '1135': "Darrington Mill",
+  '1136': "TILAMOOK"
+
+};
 // Distinctive single/short phrases derived from Matt's confirmed batch above —
 // one clearly-unique identifying word per project, cross-checked against every
 // OTHER confirmed project's invoice text so it doesn't also fire on the wrong
@@ -2973,18 +2846,23 @@ const QB_KEYWORD_TEACH = {
 // next time).
 function qbGuessProject(billToText, fullText, invoiceNumber){
   if(invoiceNumber){
-const num = invoiceNumber.trim();
-for(const p of data.projects){
-for(const a of (p.invoices||[])){
-const n = (a.invoiceNumber || qbInvoiceNumberFromFilename(a.name||'') || '').trim();
-if(n && n === num) return p.id;
-}
-}
-if(QB_CONFIRMED_INVOICE_MAP[num]){
-const wantName = QB_CONFIRMED_INVOICE_MAP[num];
-const hit = data.projects.find(p=>p.name === wantName);
-if(hit) return hit.id;
-}
+    const num = invoiceNumber.trim();
+    // Cross-reference the live Dropbox data first: if this invoice number is
+    // already attached to (or recorded on) a project from an earlier import,
+    // that's ground truth — trust it over any keyword guess, and it's far
+    // more complete than the old hand-typed QB_CONFIRMED_INVOICE_MAP below
+    // (which only covers invoices #1074-#1155 from one early review pass).
+    for(const p of data.projects){
+      for(const a of (p.invoices||[])){
+        const n = (a.invoiceNumber || qbInvoiceNumberFromFilename(a.name||'') || '').trim();
+        if(n && n === num) return p.id;
+      }
+    }
+    if(QB_CONFIRMED_INVOICE_MAP[num]){
+      const wantName = QB_CONFIRMED_INVOICE_MAP[num];
+      const hit = projectByName(wantName);
+      if(hit) return hit.id;
+    }
   }
   const nameHay = (fullText || billToText || '').toLowerCase();
   const clientHay = (billToText || '').toLowerCase();
@@ -3015,7 +2893,7 @@ function qbBootstrapConfirmedKeywords(){
   if(data.settings.qbConfirmedKeywordsApplied) return;
   let changed = false;
   for(const [projName, kw] of Object.entries(QB_KEYWORD_TEACH)){
-    const p = data.projects.find(pr=>pr.name === projName);
+    const p = projectByName(projName);
     if(!p) continue;
     if(!p.qbKeywords) p.qbKeywords = [];
     if(!p.qbKeywords.some(k=>k.toLowerCase() === kw.toLowerCase())){
@@ -3237,14 +3115,14 @@ function handleInvoiceCsvFile(evt){
     let headerIdx = 0;
     for(let i=0; i<Math.min(allRows.length, 10); i++){
       const lower = allRows[i].map(c=>(c||'').trim().toLowerCase());
-      if(lower.some(c=>c.includes('date')) && lower.some(c=>['amount','total','open balance','balance','invoice amount','sales price'].some(k=>c.includes(k)))){
+      if(lower.some(c=>c==='date') && lower.some(c=>['amount','total','open balance','balance','invoice amount'].includes(c))){
         headerIdx = i;
         break;
       }
     }
     const headers = allRows[headerIdx];
     const iNum = findCol(headers, 'num', 'invoice no', 'invoice no.', 'invoice #', 'invoice number', 'no.', 'no');
-    const iDate = findCol(headers, 'date', 'invoice date', 'created date', 'txn date', 'transaction date');     const iDescription = findCol(headers, 'description', 'memo', 'memo/description', 'product/service full name', 'product/service');
+    const iDate = findCol(headers, 'date', 'invoice date', 'created date', 'txn date');
     const iCustomer = findCol(headers, 'customer', 'customer full name', 'customer name', 'name', 'bill to');
     const iAmount = findCol(headers, 'amount', 'total', 'open balance', 'balance', 'invoice amount');
     const iType = findCol(headers, 'transaction type', 'type');
@@ -3258,7 +3136,7 @@ function handleInvoiceCsvFile(evt){
       // export includes other transaction types).
       if(iType !== -1 && !/invoice/i.test(row[iType]||'')) continue;
       const invoiceNumber = iNum!==-1 ? (row[iNum]||'').trim() : '';
-      const customer = iCustomer!==-1 ? (row[iCustomer]||'').trim() : '';       const description = iDescription!==-1 ? (row[iDescription]||'').trim() : '';
+      const customer = iCustomer!==-1 ? (row[iCustomer]||'').trim() : '';
       const rawDate = iDate!==-1 ? (row[iDate]||'').trim() : '';
       const rawAmount = (row[iAmount]||'').replace(/[^0-9.\-]/g,'');
       const amount = rawAmount ? parseFloat(rawAmount) : null;
@@ -3269,8 +3147,8 @@ function handleInvoiceCsvFile(evt){
       const dm = /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/.exec(rawDate);
       if(dm){ let [, mo, d, y] = dm; if(y.length===2) y = (Number(y)<70?'20':'19')+y; date = y+'-'+mo.padStart(2,'0')+'-'+d.padStart(2,'0'); }
       else if(/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) date = rawDate;
-      const projectId = qbGuessProject(customer, customer + ' ' + description, invoiceNumber);
-      invCsvRows.push({ id: uid(), invoiceNumber, date, customer, amount, description, projectId });
+      const projectId = qbGuessProject(customer, customer, invoiceNumber);
+      invCsvRows.push({ id: uid(), invoiceNumber, date, customer, amount, projectId });
     }
     if(statusEl) statusEl.textContent = invCsvRows.length + ' row(s) parsed.';
     renderInvCsvReview();
@@ -3288,14 +3166,14 @@ function renderInvCsvReview(){
   card.style.display = invCsvRows.length ? '' : 'none';
   if(!invCsvRows.length){ el.innerHTML = ''; return; }
   const projectOpts = '<option value="">— skip —</option>' + sortedProjects().map(p=>'<option value="'+p.id+'">'+(p.favorite?'★ ':'')+p.name+' ('+clientName(p.clientId)+')</option>').join('');
-  let html = '<tr><th style="width:100px;">Invoice #</th><th style="width:100px;">Date</th><th>Customer (from CSV)</th><th>Description</th><th style="width:100px;">Amount</th><th style="width:220px;">Project</th></tr>';
+  let html = '<tr><th style="width:100px;">Invoice #</th><th style="width:100px;">Date</th><th>Customer (from CSV)</th><th style="width:100px;">Amount</th><th style="width:220px;">Project</th></tr>';
   for(const r of invCsvRows){
     const rowClass = r.projectId ? 'matched' : 'unmatched';
     const optsForRow = projectOpts.replace('value="'+r.projectId+'"', 'value="'+r.projectId+'" selected');
     html += '<tr class="qb-invoice-row '+rowClass+'">' +
       '<td>'+(r.invoiceNumber||'—').replace(/</g,'&lt;')+'</td>' +
       '<td>'+(r.date||'—')+'</td>' +
-      '<td>'+(r.customer||'').replace(/</g,'&lt;')+'</td>' +       '<td style="font-size:.78rem;color:var(--steel);" title="'+(r.description||'').replace(/"/g,'&quot;')+'">'+(r.description ? (r.description.length>90?r.description.slice(0,87)+'…':r.description) : '<span class="note">—</span>')+'</td>' +
+      '<td>'+(r.customer||'').replace(/</g,'&lt;')+'</td>' +
       '<td>$'+r.amount.toFixed(2)+'</td>' +
       '<td><select style="width:100%;box-sizing:border-box;" onchange="invCsvSetRowProject(\''+r.id+'\', this.value)">'+optsForRow+'</select></td>' +
     '</tr>';
@@ -3353,9 +3231,8 @@ function renderBidsTable(){
   if(!data) return;
   const filter = document.getElementById('bidStatusFilter').value;
   const search = (document.getElementById('bidSearch').value || '').trim().toLowerCase();
-  let html = '<tr><th style="width:110px;">Date bid</th><th style="width:280px;">Project</th><th style="width:150px;">Client</th><th style="width:110px;">Bid amount</th><th style="width:75px;">SF</th><th style="width:80px;">$/SF</th><th style="width:90px;">Bid hrs</th><th style="width:120px;">Status</th><th style="width:190px;"></th></tr>';
+  let html = '<tr><th style="width:110px;">Date bid</th><th style="width:200px;">Project</th><th style="width:150px;">Client</th><th style="width:110px;">Bid amount</th><th style="width:75px;">SF</th><th style="width:70px;">Sheets</th><th style="width:80px;">$/SF</th><th style="width:120px;">Status</th><th style="width:150px;"></th></tr>';
   const list = data.bids.filter(b => {
-    if(b.status === 'archived') return false; // archived bids live in their own section below
     if(filter && b.status !== filter) return false;
     if(search){
       const clientN = clientName(b.clientId).toLowerCase();
@@ -3371,7 +3248,6 @@ function renderBidsTable(){
     const actionHtml = b.status === 'won'
       ? '<button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="deleteBid(\''+b.id+'\')">Delete</button>'
       : '<button onclick="markBidActive(\''+b.id+'\')" style="padding:4px 8px;font-size:.72rem;">Mark active</button> ' +
-        '<button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="archiveBid(\''+b.id+'\')" title="Didn\'t win it — keep it for reference instead of deleting">Archive</button> ' +
         '<button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="deleteBid(\''+b.id+'\')">Delete</button>';
     const clientOpts = data.clients.map(c=>'<option value="'+c.id+'"'+(c.id===b.clientId?' selected':'')+'>'+c.name+'</option>').join('');
     html += '<tr class="bid-row">' +
@@ -3380,8 +3256,8 @@ function renderBidsTable(){
       '<td><select style="width:100%;box-sizing:border-box;" onchange="setBidField(\''+b.id+'\',\'clientId\', this.value, false)">'+clientOpts+'</select></td>' +
       '<td><input type="number" step="0.01" min="0" value="'+(b.bidAmount||0)+'" style="width:100%;box-sizing:border-box;" onchange="setBidField(\''+b.id+'\',\'bidAmount\', this.value, true)"></td>' +
       '<td><input type="number" step="1" min="0" value="'+(b.sf||0)+'" style="width:100%;box-sizing:border-box;" onchange="setBidField(\''+b.id+'\',\'sf\', this.value, true)"></td>' +
+      '<td><input type="number" step="1" min="0" value="'+(b.sheets||0)+'" style="width:100%;box-sizing:border-box;" onchange="setBidField(\''+b.id+'\',\'sheets\', this.value, true)"></td>' +
       '<td>'+(dollarPerSF?'$'+dollarPerSF.toFixed(2):'—')+'</td>' +
-      '<td><input type="number" step="0.25" min="0" value="'+(b.bidHours||0)+'" style="width:100%;box-sizing:border-box;" onchange="setBidField(\''+b.id+'\',\'bidHours\', this.value, true)"></td>' +
       '<td>'+statusHtml+'</td><td>'+actionHtml+'</td></tr>' +
       '<tr class="bid-notes-row"><td></td><td colspan="8" style="padding:2px 8px 10px 4px;">' +
         '<input type="text" placeholder="Notes…" value="'+(b.notes||'').replace(/"/g,'&quot;')+'" style="width:100%;box-sizing:border-box;font-size:.85rem;color:var(--steel);" onchange="setBidField(\''+b.id+'\',\'notes\', this.value, false)">' +
@@ -3390,40 +3266,6 @@ function renderBidsTable(){
   }
   document.getElementById('bidsTable').innerHTML = list.length ? html : '<tr><td>No bids match this filter.</td></tr>';
   makeTableResizable('bidsTable');
-  renderNewBidDropzone();
-  renderArchivedBidsTable();
-}
-// Archived (lost) bids — same shape as the main table but read via its own
-// search box, with Restore / Delete permanently actions instead of Mark
-// active / Archive. Attachments stay browsable and draggable here too.
-function renderArchivedBidsTable(){
-  if(!data) return;
-  const el = document.getElementById('archivedBidsTable');
-  if(!el) return;
-  const searchEl = document.getElementById('archivedBidSearch');
-  const search = (searchEl ? searchEl.value : '' || '').trim().toLowerCase();
-  let html = '<tr><th style="width:110px;">Date bid</th><th style="width:220px;">Project</th><th style="width:150px;">Client</th><th style="width:110px;">Bid amount</th><th style="width:100px;">Archived</th><th style="width:170px;"></th></tr>';
-  const list = data.bids.filter(b => {
-    if(b.status !== 'archived') return false;
-    if(search){
-      const clientN = clientName(b.clientId).toLowerCase();
-      if(!(b.name||'').toLowerCase().includes(search) && !clientN.includes(search)) return false;
-    }
-    return true;
-  }).sort((a,b)=> (b.archivedAt||'').localeCompare(a.archivedAt||''));
-  for(const b of list){
-    html += '<tr class="bid-row">' +
-      '<td>'+(b.dateBid||'—')+'</td>' +
-      '<td>'+(b.name||'').replace(/</g,'&lt;')+'</td>' +
-      '<td>'+clientName(b.clientId)+'</td>' +
-      '<td>'+(b.bidAmount?'$'+b.bidAmount.toFixed(2):'—')+'</td>' +
-      '<td>'+(b.archivedAt||'—')+'</td>' +
-      '<td><button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="restoreBid(\''+b.id+'\')">Restore</button> ' +
-        '<button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="deleteBid(\''+b.id+'\')">Delete permanently</button></td></tr>' +
-      '<tr class="bid-notes-row"><td></td><td colspan="5" style="padding:0 8px 12px 4px;">' + bidAttachmentsHtml(b) + '</td></tr>';
-  }
-  el.innerHTML = list.length ? html : '<tr><td>No archived bids' + (search ? ' match that search.' : ' yet.') + '</td></tr>';
-  makeTableResizable('archivedBidsTable');
 }
 async function addProject(){
   const name = document.getElementById('newProjectName').value.trim();
@@ -3433,15 +3275,17 @@ async function addProject(){
   const hourlyRate = parseFloat(document.getElementById('newProjectRate').value) || 0;
   const bidAmount = parseFloat(document.getElementById('newProjectBid').value) || 0;
   const sf = parseFloat(document.getElementById('newProjectSF').value) || 0;
+  const sheets = parseFloat(document.getElementById('newProjectSheets').value) || 0;
   if(!name){ alert('Enter a project name.'); return; }
   if(!clientId){ alert('Add a client first, then pick it here.'); return; }
-  data.projects.push({ id: uid(), name, clientId, billingType, color, favorite:false, hourlyRate, bidAmount, sf, sheets:0, tasks:[], invoices:[], status:'Active', budgetAlertAcked:false });
+  data.projects.push({ id: uid(), name, clientId, billingType, color, favorite:false, hourlyRate, bidAmount, sf, sheets, tasks:[], invoices:[], status:'Active', budgetAlertAcked:false });
   const ok = await writeToFile();
   if(!ok){ data.projects.pop(); return; }
   document.getElementById('newProjectName').value = '';
   document.getElementById('newProjectRate').value = '';
   document.getElementById('newProjectBid').value = '';
   document.getElementById('newProjectSF').value = '';
+  document.getElementById('newProjectSheets').value = '';
   renderAll();
 }
 async function setProjectRate(id, value){
@@ -3541,6 +3385,30 @@ async function toggleFavorite(id){
   if(!ok){ p.favorite = !p.favorite; return; }
   renderAll();
 }
+// Rename a project. Entries/invoices point at the project's id, so they all
+// follow the new name automatically; the old name is kept in formerNames so
+// QuickBooks invoice matching (which is keyed by project name) still finds it.
+async function setProjectName(id, input){
+  const p = data.projects.find(p=>p.id===id);
+  if(!p) return;
+  const name = (input.value||'').trim();
+  if(!name){ alert('A project needs a name.'); input.value = p.name; return; }
+  if(name === p.name) return;
+  const dup = data.projects.find(q=> q.id!==id && q.name.toLowerCase()===name.toLowerCase());
+  if(dup && !confirm('Another project is already called "' + dup.name + '". Use this name anyway?')){ input.value = p.name; return; }
+  const prev = p.name, prevFormer = p.formerNames ? p.formerNames.slice() : null;
+  p.formerNames = (p.formerNames||[]).filter(n=> n.toLowerCase()!==name.toLowerCase());
+  if(!p.formerNames.some(n=> n===prev)) p.formerNames.push(prev);
+  p.name = name;
+  renderAll(); // show it everywhere right away; the save below runs in the background of that
+  const ok = await writeToFile();
+  if(!ok){ p.name = prev; if(prevFormer) p.formerNames = prevFormer; else delete p.formerNames; renderAll(); }
+}
+function projectByName(name){
+  if(!name) return null;
+  const n = String(name).toLowerCase();
+  return data.projects.find(p=> p.name.toLowerCase()===n) || data.projects.find(p=> (p.formerNames||[]).some(f=> f.toLowerCase()===n)) || null;
+}
 async function setProjectColor(id, color){
   const p = data.projects.find(p=>p.id===id);
   if(!p) return;
@@ -3632,8 +3500,7 @@ function updateEntriesPeriodUI(){
 function dayLabel(dateStr){
   const d = new Date(dateStr + 'T00:00:00');
   const today = todayStr();
-  const yestD = new Date(); yestD.setDate(yestD.getDate()-1);
-  const yest = localDateStr(yestD);
+  const yest = new Date(Date.now() - 86400000).toISOString().slice(0,10);
   let prefix = '';
   if(dateStr === today) prefix = 'Today — ';
   else if(dateStr === yest) prefix = 'Yesterday — ';
@@ -3653,22 +3520,9 @@ async function updateEntryField(id, field, rawValue){
   if(!entry) return;
   const prevValue = entry[field];
   entry[field] = (field === 'projectId') ? rawValue : rawValue.trim();
-  // Typing a task name that isn't already one of this project's tasks registers it
-  // there too (defaulting to "Bid" billing, same as adding it from the Projects tab) —
-  // so it shows up as a real task chip, with its own Bid/T&M-extra setting, everywhere
-  // tasks are picked from a project (Tracker, manual entry, Reports suggestions).
-  let addedTaskToProject = null;
-  if(field === 'task' && entry.task){
-    const p = data.projects.find(p=>p.id===entry.projectId);
-    if(p){
-      if(!p.tasks) p.tasks = [];
-      if(!p.tasks.includes(entry.task)){ p.tasks.push(entry.task); addedTaskToProject = p; }
-    }
-  }
   const ok = await writeToFile();
   if(!ok){
     entry[field] = prevValue;
-    if(addedTaskToProject) addedTaskToProject.tasks.pop();
     renderEntries();
     return;
   }
@@ -3784,91 +3638,6 @@ async function deleteEntry(id){
    REPORTS + INVOICING
    ============================================================ */
 let lastReportRows = [];
-// Builds the shared task-suggestion list for the Reports table's editable Task field
-// from every task used anywhere (past entries plus each project's own task list) —
-// not scoped to one project, since a report row can be any project.
-// Per-project task suggestions, keyed by projectId — so typing a new task on one
-// entry offers it to other entries for the SAME project only, without ever writing
-// it into that project's own Tasks list (Projects tab) unless done there directly.
-let reportTaskOptionsByProject = {};
-function buildReportTaskDatalist(){
-  const byProject = {};
-  data.entries.forEach(e=>{
-    if(!e.task) return;
-    if(!byProject[e.projectId]) byProject[e.projectId] = new Set();
-    byProject[e.projectId].add(e.task);
-  });
-  data.projects.forEach(p=>{
-    if(!(p.tasks||[]).length) return;
-    if(!byProject[p.id]) byProject[p.id] = new Set();
-    p.tasks.forEach(t=>byProject[p.id].add(t));
-  });
-  reportTaskOptionsByProject = {};
-  Object.keys(byProject).forEach(pid=>{ reportTaskOptionsByProject[pid] = [...byProject[pid]].sort(); });
-  refreshReportTaskFilter();
-}
-// Repopulates the Reports "Task" filter dropdown, scoped to whichever project is
-// currently selected in the Reports "Project" filter — so picking a project only
-// offers that project's tasks, instead of every task from every project at once.
-// With no project selected, it falls back to the full list across all projects.
-function refreshReportTaskFilter(){
-  const projectId = document.getElementById('r-project').value;
-  let tasks;
-  if(projectId){
-    tasks = reportTaskOptionsByProject[projectId] || [];
-  } else {
-    const all = new Set();
-    Object.values(reportTaskOptionsByProject).forEach(list=> list.forEach(t=>all.add(t)));
-    tasks = [...all].sort();
-  }
-  setSelectOptionsPreserving('r-task', '<option value="">All tasks</option>' + tasks.map(t=>'<option value="'+t.replace(/"/g,'&quot;')+'">'+t.replace(/</g,'&lt;')+'</option>').join(''));
-}
-// Custom suggestion dropdown for the Reports table's Task field, used instead of a
-// native <datalist> — iOS Safari never renders datalist suggestions at all, which is
-// why typing a new task there wasn't showing up as a pickable option on other rows.
-let activeTaskInput = null;
-function showTaskSuggestions(input){
-  activeTaskInput = input;
-  const box = document.getElementById('taskSuggestBox');
-  if(!box) return;
-  const q = input.value.trim().toLowerCase();
-  const options = reportTaskOptionsByProject[input.dataset.projectId] || [];
-  const matches = options.filter(t=> !q || t.toLowerCase().includes(q));
-  if(!matches.length){ box.style.display = 'none'; return; }
-  box.innerHTML = matches.map(t=>
-    '<div onmousedown="event.preventDefault();chooseTaskSuggestion(this.textContent)" ' +
-    'style="padding:7px 10px;font-size:.82rem;cursor:pointer;" ' +
-    'onmouseenter="this.style.background=\'#eef1f6\'" onmouseleave="this.style.background=\'\'">' +
-    t.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</div>'
-  ).join('');
-  const rect = input.getBoundingClientRect();
-  box.style.left = Math.round(rect.left) + 'px';
-  box.style.top = Math.round(rect.bottom + 2) + 'px';
-  box.style.width = Math.max(160, Math.round(rect.width)) + 'px';
-  box.style.display = 'block';
-}
-function hideTaskSuggestions(){
-  const box = document.getElementById('taskSuggestBox');
-  if(box) box.style.display = 'none';
-  activeTaskInput = null;
-}
-function chooseTaskSuggestion(value){
-  if(!activeTaskInput) return;
-  activeTaskInput.value = value;
-  activeTaskInput.dispatchEvent(new Event('change'));
-  hideTaskSuggestions();
-}
-// Task/description edits made directly from the Reports table — saves via the same
-// updateEntryField the All-entries table uses, then re-runs the report so subtotal
-// grouping (which is keyed by task) and totals reflect the change immediately.
-async function updateReportEntryField(id, field, rawValue){
-  await updateEntryField(id, field, rawValue);
-  runReport();
-}
-async function updateReportEntryTime(id, field, rawValue){
-  await updateEntryTime(id, field, rawValue);
-  runReport();
-}
 let lastReportGroups = []; // [{pid, task, entries}] — one per project/task subtotal in the current report
 let lastReportDayGroups = []; // [{day, entries}] — one per day in the current Overview report
 let reportPeriodOffset = 0;
@@ -3916,7 +3685,6 @@ function runReport(){
   const from = document.getElementById('r-from').value;
   const to = document.getElementById('r-to').value;
   const status = document.getElementById('r-status').value;
-  const taskFilter = document.getElementById('r-task').value;
 
   let rows = data.entries.filter(e=>{
     if(projectId && e.projectId !== projectId) return false;
@@ -3928,7 +3696,6 @@ function runReport(){
     if(to && e.date > to) return false;
     if(status === 'invoiced' && !e.invoiced) return false;
     if(status === 'uninvoiced' && e.invoiced) return false;
-    if(taskFilter && (e.task||'') !== taskFilter) return false;
     return true;
   }).sort((a,b)=> a.date.localeCompare(b.date));
 
@@ -3944,12 +3711,9 @@ function runReport(){
     summaryCard(fmtHoursDecimal(totalActual), 'actual hours') +
     summaryCard(uninvoicedCount, 'not yet invoiced');
 
-  buildReportTaskDatalist();
   const view = document.getElementById('r-view').value;
   if(view === 'overview'){
     renderReportOverview(rows);
-  } else if(view === 'summary'){
-    renderReportProjectSummary(rows);
   } else {
     renderReportDetailed(rows);
   }
@@ -3971,7 +3735,7 @@ function renderReportDetailed(rows){
   }
 
   lastReportGroups = [];
-  let html = '<tr><th>Date</th><th>Project</th><th>Task</th><th>Description</th><th>Start</th><th>End</th><th>Billed</th><th>Status</th></tr>';
+  let html = '<tr><th>Date</th><th>Project</th><th>Task</th><th>Description</th><th>Billed</th><th>Status</th></tr>';
   for(const pid of projectOrder){
     const taskMap = byProject[pid];
     const taskKeys = Object.keys(taskMap).sort((a,b)=> a==='(no task)' ? 1 : (b==='(no task)' ? -1 : a.localeCompare(b)));
@@ -3983,12 +3747,7 @@ function renderReportDetailed(rows){
       const subtotal = group.reduce((s,e)=>s+e.roundedMinutes,0);
       projectTotal += subtotal;
       for(const e of group){
-        html += '<tr class="' + (e.invoiced?'invoiced':'') + '"><td>' + e.date + '</td><td>' + projectCell(e.projectId) + '</td>' +
-          '<td><input type="text" autocomplete="off" data-project-id="' + e.projectId + '" value="' + (e.task||'').replace(/"/g,'&quot;') + '" style="width:100%;min-width:90px;box-sizing:border-box;font-size:.8rem;padding:4px 6px;" onfocus="showTaskSuggestions(this)" oninput="showTaskSuggestions(this)" onblur="setTimeout(hideTaskSuggestions,150)" onchange="updateReportEntryField(\''+e.id+'\',\'task\',this.value)"></td>' +
-          '<td><input type="text" value="' + (e.description||'').replace(/"/g,'&quot;') + '" style="width:100%;min-width:110px;box-sizing:border-box;font-size:.8rem;padding:4px 6px;" onchange="updateReportEntryField(\''+e.id+'\',\'description\',this.value)"></td>' +
-          '<td><input class="entry-time-edit" type="text" list="time-options" autocomplete="off" style="width:92px;padding:4px 6px;font-size:.8rem;" value="' + fmtTimeOfDay(e.startTime) + '" onchange="updateReportEntryTime(\''+e.id+'\',\'start\',this.value)"></td>' +
-          '<td><input class="entry-time-edit" type="text" list="time-options" autocomplete="off" style="width:92px;padding:4px 6px;font-size:.8rem;" value="' + fmtTimeOfDay(e.endTime) + '" onchange="updateReportEntryTime(\''+e.id+'\',\'end\',this.value)"></td>' +
-          '<td>' + fmtHM(e.roundedMinutes) + '</td><td>' + (e.invoiced?('<span class="pill invoiced">Invoiced' + (e.invoiceRef?(' · QB#'+e.invoiceRef):'') + '</span>'):'<span class="pill uninvoiced">Not invoiced</span>') + '</td></tr>';
+        html += '<tr class="' + (e.invoiced?'invoiced':'') + '"><td>' + e.date + '</td><td>' + projectCell(e.projectId) + '</td><td>' + (e.task||'') + '</td><td>' + (e.description||'') + '</td><td>' + fmtHM(e.roundedMinutes) + '</td><td>' + (e.invoiced?('<span class="pill invoiced">Invoiced' + (e.invoiceRef?(' · QB#'+e.invoiceRef):'') + '</span>'):'<span class="pill uninvoiced">Not invoiced</span>') + '</td></tr>';
       }
       const anyUninvoiced = group.some(e=>!e.invoiced);
       let actionHtml;
@@ -3999,45 +3758,9 @@ function renderReportDetailed(rows){
         const refs = [...new Set(group.filter(e=>e.invoiceRef).map(e=>e.invoiceRef))];
         actionHtml = '<span class="note" style="font-size:.72rem;">' + (refs.length ? 'Invoiced — QB# ' + refs.join(', ') : 'Invoiced') + '</span>';
       }
-      html += '<tr style="background:#fafbfc;"><td colspan="6">Subtotal — ' + projectName(pid) + ' / ' + taskKey + '</td><td>' + fmtHM(subtotal) + '</td><td>' + actionHtml + '</td></tr>';
+      html += '<tr style="background:#fafbfc;"><td colspan="4">Subtotal — ' + projectName(pid) + ' / ' + taskKey + '</td><td>' + fmtHM(subtotal) + '</td><td>' + actionHtml + '</td></tr>';
     }
-    html += '<tr style="font-weight:700;background:#f0f2f6;"><td colspan="6">Project total — ' + projectName(pid) + '</td><td>' + fmtHM(projectTotal) + '</td><td></td></tr>';
-  }
-  document.getElementById('reportTable').innerHTML = html || '<tr><td>No entries match this report.</td></tr>';
-  makeTableResizable('reportTable');
-}
-
-// "Project summary" view: one line per project — read-only overview of everything
-// in this report, no per-line invoicing controls (use Detailed or Overview for that).
-function renderReportProjectSummary(rows){
-  const byProject = {};
-  const projectOrder = [];
-  for(const e of rows){
-    if(!byProject[e.projectId]){ byProject[e.projectId] = []; projectOrder.push(e.projectId); }
-    byProject[e.projectId].push(e);
-  }
-  projectOrder.sort((a,b)=> projectName(a).localeCompare(projectName(b)));
-
-  let html = '<tr><th>Project</th><th>Client</th><th>Entries</th><th>First</th><th>Last</th><th>Billed</th><th>Actual</th><th>Invoiced</th><th>Not invoiced</th></tr>';
-  for(const pid of projectOrder){
-    const group = byProject[pid];
-    const p = data.projects.find(p=>p.id===pid);
-    const dates = group.map(e=>e.date).sort();
-    const billed = group.reduce((s,e)=>s+e.roundedMinutes,0);
-    const actual = group.reduce((s,e)=>s+e.actualMinutes,0);
-    const invoicedCount = group.filter(e=>e.invoiced).length;
-    const notInvoicedCount = group.length - invoicedCount;
-    html += '<tr>' +
-      '<td>' + projectCell(pid) + '</td>' +
-      '<td>' + (p ? clientName(p.clientId) : '') + '</td>' +
-      '<td>' + group.length + '</td>' +
-      '<td>' + dates[0] + '</td>' +
-      '<td>' + dates[dates.length-1] + '</td>' +
-      '<td>' + fmtHM(billed) + '</td>' +
-      '<td>' + fmtHM(actual) + '</td>' +
-      '<td>' + invoicedCount + '</td>' +
-      '<td>' + notInvoicedCount + '</td>' +
-      '</tr>';
+    html += '<tr style="font-weight:700;background:#f0f2f6;"><td colspan="4">Project total — ' + projectName(pid) + '</td><td>' + fmtHM(projectTotal) + '</td><td></td></tr>';
   }
   document.getElementById('reportTable').innerHTML = html || '<tr><td>No entries match this report.</td></tr>';
   makeTableResizable('reportTable');
@@ -4060,7 +3783,7 @@ function renderReportOverview(rows){
   dayOrder.sort();
 
   lastReportDayGroups = [];
-  let html = '<tr><th>Date</th><th>Task</th><th>Project</th><th>Description</th><th>Start</th><th>End</th><th>Billed</th><th>Status</th></tr>';
+  let html = '<tr><th>Date</th><th>Task</th><th>Project</th><th>Description</th><th>Billed</th><th>Status</th></tr>';
   for(const day of dayOrder){
     const entries = byDay[day].slice().sort((a,b)=>{
       const ta = a.task || '(no task)', tb = b.task || '(no task)';
@@ -4071,13 +3794,7 @@ function renderReportOverview(rows){
     lastReportDayGroups.push({ day, entries });
     const dayTotal = entries.reduce((s,e)=>s+e.roundedMinutes,0);
     for(const e of entries){
-      html += '<tr class="' + (e.invoiced?'invoiced':'') + '"><td>' + e.date + '</td>' +
-        '<td><input type="text" autocomplete="off" data-project-id="' + e.projectId + '" value="' + (e.task||'').replace(/"/g,'&quot;') + '" style="width:100%;min-width:90px;box-sizing:border-box;font-size:.8rem;padding:4px 6px;" onfocus="showTaskSuggestions(this)" oninput="showTaskSuggestions(this)" onblur="setTimeout(hideTaskSuggestions,150)" onchange="updateReportEntryField(\''+e.id+'\',\'task\',this.value)"></td>' +
-        '<td>' + projectCell(e.projectId) + '</td>' +
-        '<td><input type="text" value="' + (e.description||'').replace(/"/g,'&quot;') + '" style="width:100%;min-width:110px;box-sizing:border-box;font-size:.8rem;padding:4px 6px;" onchange="updateReportEntryField(\''+e.id+'\',\'description\',this.value)"></td>' +
-        '<td><input class="entry-time-edit" type="text" list="time-options" autocomplete="off" style="width:92px;padding:4px 6px;font-size:.8rem;" value="' + fmtTimeOfDay(e.startTime) + '" onchange="updateReportEntryTime(\''+e.id+'\',\'start\',this.value)"></td>' +
-        '<td><input class="entry-time-edit" type="text" list="time-options" autocomplete="off" style="width:92px;padding:4px 6px;font-size:.8rem;" value="' + fmtTimeOfDay(e.endTime) + '" onchange="updateReportEntryTime(\''+e.id+'\',\'end\',this.value)"></td>' +
-        '<td>' + fmtHM(e.roundedMinutes) + '</td><td>' + (e.invoiced?('<span class="pill invoiced">Invoiced' + (e.invoiceRef?(' · QB#'+e.invoiceRef):'') + '</span>'):'<span class="pill uninvoiced">Not invoiced</span>') + '</td></tr>';
+      html += '<tr class="' + (e.invoiced?'invoiced':'') + '"><td>' + e.date + '</td><td>' + (e.task||'(no task)') + '</td><td>' + projectCell(e.projectId) + '</td><td>' + (e.description||'') + '</td><td>' + fmtHM(e.roundedMinutes) + '</td><td>' + (e.invoiced?('<span class="pill invoiced">Invoiced' + (e.invoiceRef?(' · QB#'+e.invoiceRef):'') + '</span>'):'<span class="pill uninvoiced">Not invoiced</span>') + '</td></tr>';
     }
     const anyUninvoiced = entries.some(e=>!e.invoiced);
     let actionHtml;
@@ -4088,7 +3805,7 @@ function renderReportOverview(rows){
       const refs = [...new Set(entries.filter(e=>e.invoiceRef).map(e=>e.invoiceRef))];
       actionHtml = '<span class="note" style="font-size:.72rem;">' + (refs.length ? 'Invoiced — QB# ' + refs.join(', ') : 'Invoiced') + '</span>';
     }
-    html += '<tr style="font-weight:700;background:#f0f2f6;"><td colspan="6">Day total — ' + day + '</td><td>' + fmtHM(dayTotal) + '</td><td>' + actionHtml + '</td></tr>';
+    html += '<tr style="font-weight:700;background:#f0f2f6;"><td colspan="4">Day total — ' + day + '</td><td>' + fmtHM(dayTotal) + '</td><td>' + actionHtml + '</td></tr>';
   }
   document.getElementById('reportTable').innerHTML = html || '<tr><td>No entries match this report.</td></tr>';
   makeTableResizable('reportTable');
@@ -4096,7 +3813,7 @@ function renderReportOverview(rows){
 
 // Mark-invoiced for one day group in the Overview view. A day can span multiple
 // projects/tasks, so — same as markReportInvoiced's bulk case — the budget-overage
-// check is done per project, excluding minutes on tasks marked "T&M extra".
+// check is done per project, excluding exempt (Const Admin/Revision) task minutes.
 async function markDayGroupInvoiced(idx){
   const group = lastReportDayGroups[idx];
   if(!group) return;
@@ -4108,8 +3825,7 @@ async function markDayGroupInvoiced(idx){
 
   const addMinutesByProject = {};
   for(const e of toMark){
-    const eProject = data.projects.find(p=>p.id===e.projectId);
-    if(isExtraBillingTask(eProject, e.task)) continue;
+    if(isExemptBudgetTask(e.task)) continue;
     addMinutesByProject[e.projectId] = (addMinutesByProject[e.projectId]||0) + e.roundedMinutes;
   }
   const warnings = Object.entries(addMinutesByProject)
@@ -4130,46 +3846,32 @@ async function markDayGroupInvoiced(idx){
     data.invoiceBatches.pop();
     return;
   }
-  promptAttachInvoicePdf(toMark.map(e=>e.projectId), ref, invoiceDate); runReport();
+  runReport();
   renderEntries();
+  promptAttachInvoicePdf(toMark.map(e=>e.projectId), ref, invoiceDate);
 }
 
-// Whether a task's time is billed T&M as extra on top of the bid fee, rather than
-// counting toward it — set explicitly per project/task from the dropdown next to
-// each task chip on the Projects tab. Defaults to false (counts toward the bid)
-// for any task that hasn't been explicitly marked "T&M extra" — no name-based
-// guessing (e.g. "Const Admin"/"Revision") anymore; it has to be set on purpose.
-function isExtraBillingTask(project, taskName){
-  const key = taskName || '';
-  return !!(project && project.taskBilling && project.taskBilling[key] === 'extra');
-}
-async function setTaskBilling(projectId, taskName, mode){
-  const p = data.projects.find(p=>p.id===projectId);
-  if(!p) return;
-  if(!p.taskBilling) p.taskBilling = {};
-  const hadPrev = Object.prototype.hasOwnProperty.call(p.taskBilling, taskName);
-  const prev = p.taskBilling[taskName];
-  p.taskBilling[taskName] = mode;
-  const ok = await writeToFile();
-  if(!ok){
-    if(hadPrev) p.taskBilling[taskName] = prev; else delete p.taskBilling[taskName];
-    renderProjectsTable();
-    return;
-  }
-  renderAll();
+// Tasks that legitimately run past a project's budget without it being a problem —
+// construction administration and revision/change-order billing are both normal to
+// keep charging for even once the original design-phase budget is spent. Matched
+// loosely (substring, case-insensitive) against the task category text so "Const
+// Admin", "Construction Administration", "Revisions - Owner request" etc. all match.
+function isExemptBudgetTask(taskName){
+  const t = (taskName||'').toLowerCase();
+  return t.includes('const admin') || t.includes('construction admin') || t.includes('revision');
 }
 // Checks whether marking `addMinutes` more (non-exempt-task) time as invoiced would push
 // a project's INVOICED labor value past its budget — separate from the passive Projects/
 // Dashboard budget bar, which tracks ALL tracked time (invoiced or not). This one is
 // specifically "are you about to bill more than the budget", asked right at the moment
-// of billing, and it always lets you proceed — time on tasks marked "T&M extra"
-// never counts against it at all (see isExtraBillingTask), everything else is just a warning,
+// of billing, and it always lets you proceed — Const Admin/Revision time never counts
+// against it at all (see isExemptBudgetTask), and everything else is just a warning,
 // not a block. Returns null when there's nothing to flag.
 function billingOverageWarning(projectId, addMinutes){
   const p = data.projects.find(p=>p.id===projectId);
   if(!p || !p.bidAmount || addMinutes <= 0) return null;
   const existingNonExemptMins = data.entries
-    .filter(e=>e.projectId===projectId && e.invoiced && !isExtraBillingTask(p, e.task))
+    .filter(e=>e.projectId===projectId && e.invoiced && !isExemptBudgetTask(e.task))
     .reduce((s,e)=>s+e.roundedMinutes,0);
   const projectedMins = existingNonExemptMins + addMinutes;
   const rate = resolveRate(p);
@@ -4181,7 +3883,7 @@ function budgetOverageConfirmSuffix(warn){
   if(!warn) return '';
   return '\n\n⚠ Billing this will put "' + warn.project.name + '" at $' + warn.projectedValue.toFixed(2) +
     ' invoiced against its $' + warn.project.bidAmount.toFixed(2) + ' budget (' + warn.pctOver.toFixed(0) +
-    '% over) — not counting time marked "T&M extra", which is billed separately.';
+    '% over) — not counting Const Admin/Revision time, which is exempt from this check.';
 }
 
 async function markGroupInvoiced(idx){
@@ -4192,8 +3894,7 @@ async function markGroupInvoiced(idx){
   const refInput = document.getElementById('inv-ref-'+idx);
   const ref = refInput ? refInput.value.trim() : '';
   const totalHours = fmtHoursDecimal(toMark.reduce((s,e)=>s+e.roundedMinutes,0));
-  const groupProject = data.projects.find(p=>p.id===group.pid);
-  const warn = isExtraBillingTask(groupProject, group.task) ? null : billingOverageWarning(group.pid, toMark.reduce((s,e)=>s+e.roundedMinutes,0));
+  const warn = isExemptBudgetTask(group.task) ? null : billingOverageWarning(group.pid, toMark.reduce((s,e)=>s+e.roundedMinutes,0));
   if(!confirm('Mark ' + toMark.length + ' entr' + (toMark.length===1?'y':'ies') + ' (' + totalHours + ' hours) for ' + projectName(group.pid) + ' / ' + group.task + ' as invoiced' + (ref ? (' on QuickBooks invoice ' + ref) : '') + '?' + budgetOverageConfirmSuffix(warn))) return;
 
   const batchId = uid();
@@ -4207,8 +3908,9 @@ async function markGroupInvoiced(idx){
     data.invoiceBatches.pop();
     return;
   }
-  promptAttachInvoicePdf([group.pid], ref, invoiceDate); runReport();
+  runReport();
   renderEntries();
+  promptAttachInvoicePdf([group.pid], ref, invoiceDate);
 }
 
 function summaryCard(num, lbl){
@@ -4220,12 +3922,11 @@ async function markReportInvoiced(){
   if(toMark.length === 0){ alert('Nothing in this report is unmarked.'); return; }
   const totalHours = fmtHoursDecimal(toMark.reduce((s,e)=>s+e.roundedMinutes,0));
   // This report can span multiple projects at once, so check each one separately —
-  // minutes on tasks marked "T&M extra" are excluded from the addMinutes tally
+  // exempt-task (Const Admin/Revision) minutes are excluded from the addMinutes tally
   // per project, same rule as the single-group check in markGroupInvoiced.
   const addMinutesByProject = {};
   for(const e of toMark){
-    const eProject = data.projects.find(p=>p.id===e.projectId);
-    if(isExtraBillingTask(eProject, e.task)) continue;
+    if(isExemptBudgetTask(e.task)) continue;
     addMinutesByProject[e.projectId] = (addMinutesByProject[e.projectId]||0) + e.roundedMinutes;
   }
   const warnings = Object.entries(addMinutesByProject)
@@ -4248,8 +3949,9 @@ async function markReportInvoiced(){
     return;
   }
   document.getElementById('invoiceRef').value = '';
-  promptAttachInvoicePdf(toMark.map(e=>e.projectId), ref, invoiceDate); runReport();
+  runReport();
   renderEntries();
+  promptAttachInvoicePdf(toMark.map(e=>e.projectId), ref, invoiceDate);
 }
 
 function exportReportCSV(){
@@ -4516,7 +4218,7 @@ function computeNextInvoiceNumber(){
 function addDaysStr(dateStr, days){
   const d = new Date(dateStr + 'T00:00:00');
   d.setDate(d.getDate() + days);
-  return localDateStr(d);
+  return d.toISOString().slice(0,10);
 }
 function onInvoiceClientChange(){
   const clientId = document.getElementById('inv-client').value;
@@ -4904,7 +4606,7 @@ function handleImportFile(evt){
         const end = new Date(row[iEndDate] + ' ' + (row[iEndTime]||'00:00'));
         if(!isNaN(start) && !isNaN(end)){
           actualMinutes = (end-start)/60000;
-          date = row[iStartDate].length===10 && row[iStartDate].includes('-') ? row[iStartDate] : localDateStr(start);
+          date = row[iStartDate].length===10 && row[iStartDate].includes('-') ? row[iStartDate] : start.toISOString().slice(0,10);
           startISO = start.toISOString(); endISO = end.toISOString();
         }
       }
@@ -4950,7 +4652,7 @@ async function confirmImport(){
     const clientKey = row.clientName || '(No client)';
     let client = data.clients.find(c=>c.name.toLowerCase() === clientKey.toLowerCase());
     if(!client){ client = {id:uid(), name: clientKey}; data.clients.push(client); }
-    let project = data.projects.find(p=>p.name.toLowerCase() === row.projectName.toLowerCase());
+    let project = projectByName(row.projectName);
     if(!project){
       project = { id: uid(), name: row.projectName, clientId: client.id, billingType: 'T&M' };
       data.projects.push(project);
@@ -5010,8 +4712,7 @@ function fillProjectSelects(){
 // it that filters a floating list of options and writes back into that same select.
 const PROJECT_COMBOS = [
   { select:'t-project', search:'t-project-search', panel:'t-project-panel' },
-  { select:'m-project', search:'m-project-search', panel:'m-project-panel' },
-  { select:'r-project', search:'r-project-search', panel:'r-project-panel' }
+  { select:'m-project', search:'m-project-search', panel:'m-project-panel' }
 ];
 function syncProjectCombos(){
   PROJECT_COMBOS.forEach(c=>{
@@ -5061,18 +4762,7 @@ function initProjectCombo(cfg){
    for the rest of the session (re-applied every time that table re-renders),
    but aren't saved to the data file — they're just a viewing convenience.
    ============================================================ */
-// Column widths persist in localStorage (per browser/device) so a table looks the
-// way you left it every time you open the app — not just for the rest of the
-// session. Loaded once at startup; each drag re-saves the whole set for that table.
-const COL_WIDTHS_STORAGE_KEY = 'tamarack_tt_col_widths';
-let colWidthsByTable = {};
-try{
-  const stored = localStorage.getItem(COL_WIDTHS_STORAGE_KEY);
-  if(stored) colWidthsByTable = JSON.parse(stored) || {};
-}catch(e){ colWidthsByTable = {}; }
-function saveColWidths(){
-  try{ localStorage.setItem(COL_WIDTHS_STORAGE_KEY, JSON.stringify(colWidthsByTable)); }catch(e){ /* best-effort — a full/blocked localStorage just means widths won't persist */ }
-}
+const colWidthsByTable = {};
 function makeTableResizable(tableId){
   const table = document.getElementById(tableId);
   if(!table || !table.rows.length) return;
@@ -5100,7 +4790,6 @@ function makeTableResizable(tableId){
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup', onUp);
         handle.classList.remove('active');
-        saveColWidths();
       }
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
@@ -5121,7 +4810,7 @@ function setShowProjectInvoices(checked){
 function renderProjectsTable(){
   const q = (document.getElementById('projectSearch') ? document.getElementById('projectSearch').value : '').trim().toLowerCase();
   const statusFilter = document.getElementById('projectStatusFilter') ? document.getElementById('projectStatusFilter').value : 'open';
-  let html = '<tr><th></th><th>Color</th><th>Project</th><th>Status</th><th>Client</th><th>Billing type</th><th>Rate override ($/hr)</th><th>Budget ($)</th><th>SF</th><th></th></tr>';
+  let html = '<tr><th></th><th>Color</th><th>Project</th><th>Status</th><th>Client</th><th>Billing type</th><th>Rate override ($/hr)</th><th>Budget ($)</th><th>SF</th><th>Sheets</th><th>Tracked</th><th>Amount</th><th>Budget used</th><th>Tasks</th><th></th></tr>';
   const list = sortedProjects().filter(p => {
     if(q && !(p.name.toLowerCase().includes(q) || clientName(p.clientId).toLowerCase().includes(q))) return false;
     const status = p.status || 'Active';
@@ -5131,39 +4820,18 @@ function renderProjectsTable(){
   });
   for(const p of list){
     const tasks = p.tasks || [];
-    const chips = tasks.map(t=>{
-      const extra = isExtraBillingTask(p, t);
-      return '<span class="task-chip">'+t+
-        ' <select title="Whether time logged under this task counts toward the bid amount, or is billed T&amp;M as extra on top of it" style="font-size:.68rem;padding:1px 3px;border-radius:4px;border:1px solid var(--border);margin-left:2px;" onchange="setTaskBilling(\''+p.id+'\',\''+t.replace(/'/g,"\\'")+'\', this.value)">' +
-          '<option value="bid"'+(extra?'':' selected')+'>Bid</option>' +
-          '<option value="extra"'+(extra?' selected':'')+'>T&amp;M extra</option>' +
-        '</select>' +
-        ' <button class="chip-x" title="Remove" onclick="removeProjectTask(\''+p.id+'\',\''+t.replace(/'/g,"\\'")+'\')">&times;</button></span>';
-    }).join(' ');
+    const chips = tasks.map(t=>'<span class="task-chip">'+t+' <button class="chip-x" title="Remove" onclick="removeProjectTask(\''+p.id+'\',\''+t.replace(/'/g,"\\'")+'\')">&times;</button></span>').join(' ');
     const isBid = p.billingType === 'Bid';
     const status = p.status || 'Active';
     // Tracked/Amount — all-time, same figures the old standalone "Project Totals" tab
     // showed, now folded straight into this table (see project memory 2026-09-11).
-    const projEntries = data.entries.filter(e=>e.projectId===p.id);
-    const mins = projEntries.reduce((s,e)=>s+e.roundedMinutes,0);
-    const amount = projectRevenue(p, mins, projEntries);
-    const bs = budgetStatus(p, mins, projEntries);
-    // Hours-by-task breakdown for the third summary line — grouped the same way the
-    // Detailed report groups entries (by task, "(no task)" bucket last), each with its
-    // billed hours so it's easy to see where the tracked time on this project went.
-    const minsByTask = {};
-    for(const e of projEntries){
-      const key = e.task || '(no task)';
-      minsByTask[key] = (minsByTask[key]||0) + e.roundedMinutes;
-    }
-    const taskHourKeys = Object.keys(minsByTask).sort((a,b)=> a==='(no task)' ? 1 : (b==='(no task)' ? -1 : a.localeCompare(b)));
-    const taskHoursHtml = taskHourKeys.map(k =>
-      '<div class="project-summary-item"><span class="lbl">'+k.replace(/</g,'&lt;')+'</span><span class="val">'+fmtHM(minsByTask[k])+'</span></div>'
-    ).join('');
+    const mins = data.entries.filter(e=>e.projectId===p.id).reduce((s,e)=>s+e.roundedMinutes,0);
+    const amount = projectRevenue(p, mins);
+    const bs = budgetStatus(p, mins);
     html += '<tr class="project-row' + (status==='Archived' ? ' note' : '') + '"' + (status==='Archived' ? ' style="opacity:.6;"' : '') + '>' +
       '<td><button class="star-btn" title="' + (p.favorite?'Unstar':'Star to pin to top') + '" onclick="toggleFavorite(\''+p.id+'\')">' + (p.favorite?'★':'☆') + '</button></td>' +
       '<td><input type="color" value="'+(p.color||'#2f7cf6')+'" style="width:34px;height:28px;padding:2px;" onchange="setProjectColor(\''+p.id+'\', this.value)"></td>' +
-      '<td>'+p.name+'</td>' +
+      '<td><input type="text" value="'+String(p.name).replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'" title="Click to rename this project (entries, invoices and reports follow it)" style="width:100%;min-width:180px;box-sizing:border-box;font-weight:600;" onchange="setProjectName(\''+p.id+'\', this)"></td>' +
       '<td><select style="width:100%;box-sizing:border-box;" onchange="setProjectStatus(\''+p.id+'\', this.value)">' +
         ['Active','On Hold','Completed','Archived'].map(s=>'<option value="'+s+'"'+(status===s?' selected':'')+'>'+s+'</option>').join('') +
       '</select></td>' +
@@ -5175,20 +4843,14 @@ function renderProjectsTable(){
       '<td><input type="number" step="0.01" min="0" value="'+(p.hourlyRate||0)+'" title="Blank/0 uses the client\'s default rate ('+ '$' + ((data.clients.find(c=>c.id===p.clientId)||{}).hourlyRate||0).toFixed(2) +'/hr)" style="width:100%;box-sizing:border-box;" onchange="setProjectRate(\''+p.id+'\', this.value)"></td>' +
       '<td><input type="number" step="0.01" min="0" value="'+(p.bidAmount||0)+'" title="' + (isBid ? 'The fixed fee this project is billed at.' : 'Optional reference figure to burn against — a T&amp;M project isn\'t billed at this number, but you\'ll get a heads-up if tracked hours\' dollar value runs past it.') + '" style="width:100%;box-sizing:border-box;" onchange="setProjectBid(\''+p.id+'\', this.value)"></td>' +
       '<td><input type="number" step="1" min="0" value="'+(p.sf||0)+'" style="width:100%;box-sizing:border-box;" onchange="setProjectField(\''+p.id+'\',\'sf\', this.value, true)"></td>' +
+      '<td><input type="number" step="1" min="0" value="'+(p.sheets||0)+'" style="width:100%;box-sizing:border-box;" onchange="setProjectField(\''+p.id+'\',\'sheets\', this.value, true)"></td>' +
+      '<td style="white-space:nowrap;">' + fmtHM(mins) + '</td>' +
+      '<td style="white-space:nowrap;">' + (amount ? '$'+amount.toFixed(2) : '—') + '</td>' +
+      '<td>' + budgetBadgeHtml(bs) + '</td>' +
+      '<td>' + chips + '<div class="row" style="margin-top:4px;"><input id="taskInput-'+p.id+'" type="text" placeholder="Add task…" style="max-width:60%;padding:4px 6px;font-size:.78rem;"><button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="addProjectTask(\''+p.id+'\')">Add</button></div></td>' +
       '<td><button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="deleteProject(\''+p.id+'\')">Delete</button></td></tr>';
-    html += '<tr class="project-summary-row"><td></td><td colspan="8"><div class="project-summary-bar">' +
-      '<div class="project-summary-item"><span class="lbl">Tracked</span><span class="val">' + fmtHM(mins) + '</span></div>' +
-      '<div class="project-summary-item"><span class="lbl">Amount</span><span class="val">' + (amount ? '$'+amount.toFixed(2) : '—') + '</span></div>' +
-      '<div class="project-summary-item"><span class="lbl">Budget used</span><span class="val">' + budgetBadgeHtml(bs) + '</span></div>' +
-      '<div class="project-summary-tasks"><span class="lbl">Tasks</span>' + chips + '<input id="taskInput-'+p.id+'" type="text" placeholder="Add task…" style="max-width:140px;padding:4px 6px;font-size:.78rem;"><button class="secondary" style="padding:4px 8px;font-size:.72rem;" onclick="addProjectTask(\''+p.id+'\')">Add</button></div>' +
-      '</div></td></tr>';
-    if(taskHoursHtml){
-      html += '<tr class="project-summary-row"><td></td><td colspan="8"><div class="project-summary-bar">' +
-        '<div class="project-summary-item"><span class="lbl">Hours by task</span></div>' + taskHoursHtml +
-      '</div></td></tr>';
-    }
     if(showProjectInvoices){
-      html += '<tr class="project-sub-row"><td></td><td colspan="8" style="padding:0 8px 12px 4px;">' + projectBillingSummaryHtml(p) + projectInvoicesHtml(p) + '</td></tr>';
+      html += '<tr class="project-sub-row"><td></td><td colspan="14" style="padding:0 8px 12px 4px;">' + projectBillingSummaryHtml(p) + projectInvoicesHtml(p) + '</td></tr>';
     }
   }
   document.getElementById('projectsTable').innerHTML = (list.length ? html : '<tr><td>' + (q ? 'No projects or clients match "'+q+'".' : 'No projects in this status.') + '</td></tr>');
@@ -5202,7 +4864,7 @@ function renderProjectsTable(){
 // in whole periods from the current one (e.g. -1 = last week/month/year).
 function periodBounds(type, offset){
   const now = new Date();
-  const toStr = d => localDateStr(d);
+  const toStr = d => d.toISOString().slice(0,10);
   if(type === 'week'){
     const day = now.getDay(); // 0=Sun..6=Sat
     const mondayOffset = (day===0 ? -6 : 1-day);
@@ -5233,15 +4895,15 @@ function dashTimeSeries(start, end, rows){
   if(spanDays <= 31){
     for(let i=0;i<spanDays;i++){
       const d = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()+i);
-      const dStr = localDateStr(d);
+      const dStr = d.toISOString().slice(0,10);
       buckets.push({ label: d.toLocaleDateString('en-US',{month:'short', day:'numeric'}), mins: rows.filter(e=>e.date===dStr).reduce((s,e)=>s+e.roundedMinutes,0) });
     }
     return { buckets, byDay: true };
   }
   let cur = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
   while(cur <= endDate){
-    const monStart = localDateStr(new Date(cur.getFullYear(), cur.getMonth(), 1));
-    const monEnd = localDateStr(new Date(cur.getFullYear(), cur.getMonth()+1, 0));
+    const monStart = new Date(cur.getFullYear(), cur.getMonth(), 1).toISOString().slice(0,10);
+    const monEnd = new Date(cur.getFullYear(), cur.getMonth()+1, 0).toISOString().slice(0,10);
     buckets.push({ label: cur.toLocaleDateString('en-US',{month:'short', year:'numeric'}), mins: rows.filter(e=>e.date>=monStart && e.date<=monEnd).reduce((s,e)=>s+e.roundedMinutes,0) });
     cur = new Date(cur.getFullYear(), cur.getMonth()+1, 1);
   }
@@ -5286,8 +4948,8 @@ function renderCalendar(){
   const daysInMonth = new Date(first.getFullYear(), first.getMonth()+1, 0).getDate();
   // Monday-first, matching periodBounds('week', ...) elsewhere in the app.
   const firstWeekday = (first.getDay()===0) ? 6 : first.getDay()-1;
-  const monthStart = localDateStr(first);
-  const monthEnd = localDateStr(new Date(first.getFullYear(), first.getMonth(), daysInMonth));
+  const monthStart = first.toISOString().slice(0,10);
+  const monthEnd = new Date(first.getFullYear(), first.getMonth(), daysInMonth).toISOString().slice(0,10);
   const monthEntries = data.entries.filter(e=>e.date>=monthStart && e.date<=monthEnd);
 
   const byDate = {}; // dateStr -> { mins, projectIds:Set }
@@ -5302,7 +4964,7 @@ function renderCalendar(){
   let html = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=>'<div class="cal-dow">'+d+'</div>').join('');
   for(let i=0;i<firstWeekday;i++) html += '<div class="cal-day cal-empty"></div>';
   for(let day=1; day<=daysInMonth; day++){
-    const dateStr = localDateStr(new Date(first.getFullYear(), first.getMonth(), day));
+    const dateStr = new Date(first.getFullYear(), first.getMonth(), day).toISOString().slice(0,10);
     const info = byDate[dateStr];
     const mins = info ? info.mins : 0;
     // Square-root scaling instead of linear — otherwise one long 8+ hour day maxes the
@@ -5507,7 +5169,7 @@ function renderDashboardStatus(){
     if(totalMins === 0) continue; // nothing tracked yet — matches the Pricing Analysis table's convention
     const invoicedMins = entries.filter(e=>e.invoiced).reduce((s,e)=>s+e.roundedMinutes,0);
     const notInvoicedMins = totalMins - invoicedMins;
-    const bs = budgetStatus(p, totalMins, entries);
+    const bs = budgetStatus(p, totalMins);
     rows.push({ p, totalMins, invoicedMins, notInvoicedMins, bs });
   }
   const filtered = rows.filter(r => !q || r.p.name.toLowerCase().includes(q) || clientName(r.p.clientId).toLowerCase().includes(q));
@@ -5560,11 +5222,10 @@ function renderPricingTable(){
 
   const rows = [];
   for(const p of data.projects){
-    const pEntries = data.entries.filter(e=>e.projectId===p.id);
-    const mins = pEntries.reduce((s,e)=>s+e.roundedMinutes,0);
+    const mins = data.entries.filter(e=>e.projectId===p.id).reduce((s,e)=>s+e.roundedMinutes,0);
     if(mins === 0) continue; // nothing tracked yet — no meaningful $/hr to show
     const hours = mins/60;
-    const revenue = projectRevenue(p, mins, pEntries);
+    const revenue = projectRevenue(p, mins);
     const effRate = hours ? revenue/hours : 0;
     const marginPerHr = effRate - requiredRate;
     const dollarPerSF = p.sf ? revenue/p.sf : 0;
@@ -5615,10 +5276,9 @@ function renderAll(){
   renderProjectsTable();
   renderBidsTable();
   renderPricingTable();
-  updateEntriesPeriodUI();
+  renderEntries();
   renderBalance();
   renderDashboard();
-  updateReportPeriodUI();
   renderCalendar();
   renderInvoiceTab();
   document.getElementById('m-date').value = todayStr();
@@ -5627,118 +5287,10 @@ function renderAll(){
 function showPanel(name){
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active', b.dataset.panel===name));
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id===name));
-  const mobileSel = document.getElementById('mobileNavSelect');
-  if(mobileSel) mobileSel.value = name;
-  document.querySelectorAll('.mobile-topbar button[data-panel]').forEach(b=>{
-    b.classList.toggle('active', b.dataset.panel===name);
-  });
-  // The overflow tabs (Bids/Clients/Pricing/Import/Data File) live in the "More"
-  // sheet, not the bottom bar itself — when one of them is active, light up the
-  // "More" button too, so the bar always shows where you actually are.
-  const moreBtn = document.getElementById('mobileMoreBtn');
-  const moreSheetButtons = document.querySelectorAll('.mobile-more-panel button[data-panel]');
-  let inMoreSheet = false;
-  moreSheetButtons.forEach(b=>{
-    const isActive = b.dataset.panel===name;
-    b.classList.toggle('active', isActive);
-    if(isActive) inMoreSheet = true;
-  });
-  if(moreBtn) moreBtn.classList.toggle('active', inMoreSheet);
-  closeMobileMoreSheet();
 }
-function openMobileMoreSheet(){
-  const sheet = document.getElementById('mobileMoreSheet');
-  const btn = document.getElementById('mobileMoreBtn');
-  if(!sheet) return;
-  sheet.classList.add('open');
-  if(btn){ btn.classList.add('open'); btn.setAttribute('aria-expanded','true'); }
-}
-function closeMobileMoreSheet(){
-  const sheet = document.getElementById('mobileMoreSheet');
-  const btn = document.getElementById('mobileMoreBtn');
-  if(!sheet) return;
-  sheet.classList.remove('open');
-  if(btn){ btn.classList.remove('open'); btn.setAttribute('aria-expanded','false'); }
-}
-document.querySelectorAll('.mobile-topbar button[data-panel]').forEach(btn=>{
+document.querySelectorAll('nav button').forEach(btn=>{
   btn.addEventListener('click', ()=> showPanel(btn.dataset.panel));
 });
-document.querySelectorAll('.mobile-more-panel button[data-panel]').forEach(btn=>{
-  btn.addEventListener('click', ()=> showPanel(btn.dataset.panel));
-});
-(function initMobileMoreSheet(){
-  const moreBtn = document.getElementById('mobileMoreBtn');
-  const backdrop = document.getElementById('mobileMoreBackdrop');
-  if(moreBtn){
-    moreBtn.addEventListener('click', ()=>{
-      const sheet = document.getElementById('mobileMoreSheet');
-      if(sheet && sheet.classList.contains('open')) closeMobileMoreSheet();
-      else openMobileMoreSheet();
-    });
-  }
-  if(backdrop) backdrop.addEventListener('click', closeMobileMoreSheet);
-})();
-// A table's .table-wrap needs to scroll sideways (to reveal extra columns) but must
-// NOT swallow an ordinary vertical scroll of the page. CSS alone (touch-action) isn't
-// reliable enough for this on iOS Safari, so the drag direction is decided here, on
-// the first real movement of each touch: mostly horizontal keeps this box's own
-// overflow-x:auto in charge (it scrolls sideways); mostly vertical flips it to
-// overflow-x:hidden for the rest of that one touch, so the browser can't grab it and
-// the drag falls through to scroll the page instead, same as touching anywhere else.
-function enableTableWrapDirectionalTouch(wrap){
-  if(wrap.dataset.dirTouchBound) return;
-  wrap.dataset.dirTouchBound = '1';
-  let startX = 0, startY = 0, decided = false;
-  wrap.addEventListener('touchstart', (e)=>{
-    if(e.touches.length !== 1) return;
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-    decided = false;
-    wrap.style.overflowX = 'auto';
-  }, {passive:true});
-  wrap.addEventListener('touchmove', (e)=>{
-    if(decided || e.touches.length !== 1) return;
-    const dx = e.touches[0].clientX - startX;
-    const dy = e.touches[0].clientY - startY;
-    if(Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
-    decided = true;
-    if(Math.abs(dy) > Math.abs(dx)) wrap.style.overflowX = 'hidden';
-  }, {passive:true});
-  const restore = ()=>{ wrap.style.overflowX = 'auto'; };
-  wrap.addEventListener('touchend', restore, {passive:true});
-  wrap.addEventListener('touchcancel', restore, {passive:true});
-}
-function bindAllTableWrapTouch(){
-  document.querySelectorAll('.table-wrap').forEach(enableTableWrapDirectionalTouch);
-}
-bindAllTableWrapTouch();
-// Tables get rebuilt (innerHTML replaced) constantly as data changes, but a
-// .table-wrap div itself is part of the static page markup, not regenerated — so
-// binding once on load covers every table without needing to re-bind after renders.
-// The collapsible Dashboard cards (details.mobile-card) are only meant to
-// collapse on mobile — keep them forced open whenever the viewport is wide
-// enough that the desktop layout (not the mobile media query) is in effect.
-function enforceMobileCardsOpenOnDesktop(){
-  if(window.innerWidth > 820){
-    document.querySelectorAll('details.mobile-card').forEach(d=>{ d.open = true; });
-  }
-}
-window.addEventListener('resize', enforceMobileCardsOpenOnDesktop);
-document.querySelectorAll('nav:not(.mobile-topbar) button').forEach(btn=>{
-  btn.addEventListener('click', ()=> showPanel(btn.dataset.panel));
-});
-(function initMobileNav(){
-  const sel = document.getElementById('mobileNavSelect');
-  if(!sel) return;
-  document.querySelectorAll('nav:not(.mobile-topbar) button').forEach(btn=>{
-    const opt = document.createElement('option');
-    opt.value = btn.dataset.panel;
-    opt.textContent = btn.textContent.trim();
-    if(btn.classList.contains('active')) opt.selected = true;
-    sel.appendChild(opt);
-  });
-  sel.addEventListener('change', ()=> showPanel(sel.value));
-})();
 buildTimeOptions();
 PROJECT_COMBOS.forEach(initProjectCombo);
 // The browser filters a <datalist> to options that start with whatever text is
@@ -5754,7 +5306,6 @@ PROJECT_COMBOS.forEach(initProjectCombo);
     el.dataset.prevValue = el.value;
     el.value = '';
   });
-document.getElementById('t-start-override').addEventListener('input', updateStartOverrideClearBtn);
   el.addEventListener('input', ()=>refreshTimeOptionsFor(el));
   el.addEventListener('blur', ()=>{
     if(!el.value.trim() && el.dataset.prevValue) el.value = el.dataset.prevValue;
