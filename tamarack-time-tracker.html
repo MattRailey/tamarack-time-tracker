@@ -3693,17 +3693,21 @@ function entryInvoice(e){
     const att = list.find(a=> r && (digits(a.invoiceNumber)===r || new RegExp('(^|\\D)'+r+'(\\D|$)').test(a.name||'')));
     return {att, exact:true, label: e.invoiceRef};
   }
-  const dated = list.map(a=>{ const t = a.invoiceDate ? new Date(a.invoiceDate) : null; return {a, t: (t && !isNaN(t)) ? t.getTime() : null}; })
+  // Never guess an invoice that already has entries tied to it by number -
+  // those entries ARE what it billed (e.g. #1239 = the three QB#1239 entries),
+  // so un-numbered older work can't have been on it.
+  const claimed = new Set(data.entries.filter(x=> x.projectId===e.projectId && x.invoiceRef).map(x=> digits(x.invoiceRef)));
+  const dated = list.filter(a=> !claimed.has(digits(a.invoiceNumber))).map(a=>{ const t = a.invoiceDate ? new Date(a.invoiceDate) : null; return {a, t: (t && !isNaN(t)) ? t.getTime() : null}; })
     .filter(x=>x.t!=null).sort((x,y)=>x.t-y.t);
   const et = new Date(e.date+'T00:00:00').getTime();
   const hit = dated.find(x=> x.t >= et);
-  return hit ? {att: hit.a, exact:false, label: hit.a.invoiceNumber || hit.a.name} : {att:null, exact:false, label:''};
+  return hit ? {att: hit.a, exact:false, label: hit.a.invoiceNumber || hit.a.name} : {att:null, exact:false, label:'', unknown:true};
 }
 function entryInvoiceCell(e){
   const r = entryInvoice(e);
   if(!r) return '';
   const esc = v=> String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
-  if(!r.att) return r.label ? '<span title="No PDF attached for this invoice #">#' + esc(r.label) + '</span>' : '<span class="note" title="No invoice # or dated invoice PDF on this project">—</span>';
+  if(!r.att) return r.label ? '<span title="No PDF attached for this invoice #">#' + esc(r.label) + '</span>' : '<span class="note" title="Marked invoiced without an invoice #, and no attached invoice PDF fits - attach the missing invoice PDF to the project to link it">not attached</span>';
   return '<a href="#" onclick="openProjectInvoice(\''+e.projectId+'\',\''+r.att.id+'\');return false;" title="' + (r.exact ? 'Open this invoice' : 'Best guess: first invoice on this project dated on/after this entry (the entry has no invoice #)') + '">&#128196; #' + esc(r.label) + '</a>' + (r.exact ? '' : ' <span class="note" style="margin:0" title="Matched by date">~</span>');
 }
 function runReport(){
