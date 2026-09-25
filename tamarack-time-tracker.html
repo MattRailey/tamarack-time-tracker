@@ -3679,6 +3679,33 @@ function updateReportPeriodUI(){
   runReport();
 }
 
+// Which attached invoice PDF an entry was billed on. Exact when the entry has a
+// QB/invoice # that matches an attached file; otherwise inferred as the first
+// invoice on that project dated on/after the entry (marked "~" - many older
+// entries were marked invoiced without a number).
+function entryInvoice(e){
+  if(!e.invoiced) return null;
+  const p = data.projects.find(p=>p.id===e.projectId);
+  const list = (p && p.invoices) || [];
+  const digits = v=> String(v||'').replace(/\D/g,'');
+  if(e.invoiceRef){
+    const r = digits(e.invoiceRef);
+    const att = list.find(a=> r && (digits(a.invoiceNumber)===r || new RegExp('(^|\\D)'+r+'(\\D|$)').test(a.name||'')));
+    return {att, exact:true, label: e.invoiceRef};
+  }
+  const dated = list.map(a=>{ const t = a.invoiceDate ? new Date(a.invoiceDate) : null; return {a, t: (t && !isNaN(t)) ? t.getTime() : null}; })
+    .filter(x=>x.t!=null).sort((x,y)=>x.t-y.t);
+  const et = new Date(e.date+'T00:00:00').getTime();
+  const hit = dated.find(x=> x.t >= et);
+  return hit ? {att: hit.a, exact:false, label: hit.a.invoiceNumber || hit.a.name} : {att:null, exact:false, label:''};
+}
+function entryInvoiceCell(e){
+  const r = entryInvoice(e);
+  if(!r) return '';
+  const esc = v=> String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  if(!r.att) return r.label ? '<span title="No PDF attached for this invoice #">#' + esc(r.label) + '</span>' : '<span class="note" title="No invoice # or dated invoice PDF on this project">—</span>';
+  return '<a href="#" onclick="openProjectInvoice(\''+e.projectId+'\',\''+r.att.id+'\');return false;" title="' + (r.exact ? 'Open this invoice' : 'Best guess: first invoice on this project dated on/after this entry (the entry has no invoice #)') + '">&#128196; #' + esc(r.label) + '</a>' + (r.exact ? '' : ' <span class="note" style="margin:0" title="Matched by date">~</span>');
+}
 function runReport(){
   const projectId = document.getElementById('r-project').value;
   const clientId = document.getElementById('r-client').value;
@@ -3735,7 +3762,7 @@ function renderReportDetailed(rows){
   }
 
   lastReportGroups = [];
-  let html = '<tr><th>Date</th><th>Project</th><th>Task</th><th>Description</th><th>Billed</th><th>Status</th></tr>';
+  let html = '<tr><th>Date</th><th>Project</th><th>Task</th><th>Description</th><th>Billed</th><th>Status</th><th>Invoice</th></tr>';
   for(const pid of projectOrder){
     const taskMap = byProject[pid];
     const taskKeys = Object.keys(taskMap).sort((a,b)=> a==='(no task)' ? 1 : (b==='(no task)' ? -1 : a.localeCompare(b)));
@@ -3747,7 +3774,7 @@ function renderReportDetailed(rows){
       const subtotal = group.reduce((s,e)=>s+e.roundedMinutes,0);
       projectTotal += subtotal;
       for(const e of group){
-        html += '<tr class="' + (e.invoiced?'invoiced':'') + '"><td>' + e.date + '</td><td>' + projectCell(e.projectId) + '</td><td>' + (e.task||'') + '</td><td>' + (e.description||'') + '</td><td>' + fmtHM(e.roundedMinutes) + '</td><td>' + (e.invoiced?('<span class="pill invoiced">Invoiced' + (e.invoiceRef?(' · QB#'+e.invoiceRef):'') + '</span>'):'<span class="pill uninvoiced">Not invoiced</span>') + '</td></tr>';
+        html += '<tr class="' + (e.invoiced?'invoiced':'') + '"><td>' + e.date + '</td><td>' + projectCell(e.projectId) + '</td><td>' + (e.task||'') + '</td><td>' + (e.description||'') + '</td><td>' + fmtHM(e.roundedMinutes) + '</td><td>' + (e.invoiced?('<span class="pill invoiced">Invoiced' + (e.invoiceRef?(' · QB#'+e.invoiceRef):'') + '</span>'):'<span class="pill uninvoiced">Not invoiced</span>') + '</td><td>' + entryInvoiceCell(e) + '</td></tr>';
       }
       const anyUninvoiced = group.some(e=>!e.invoiced);
       let actionHtml;
@@ -3758,9 +3785,9 @@ function renderReportDetailed(rows){
         const refs = [...new Set(group.filter(e=>e.invoiceRef).map(e=>e.invoiceRef))];
         actionHtml = '<span class="note" style="font-size:.72rem;">' + (refs.length ? 'Invoiced — QB# ' + refs.join(', ') : 'Invoiced') + '</span>';
       }
-      html += '<tr style="background:#fafbfc;"><td colspan="4">Subtotal — ' + projectName(pid) + ' / ' + taskKey + '</td><td>' + fmtHM(subtotal) + '</td><td>' + actionHtml + '</td></tr>';
+      html += '<tr style="background:#fafbfc;"><td colspan="4">Subtotal — ' + projectName(pid) + ' / ' + taskKey + '</td><td>' + fmtHM(subtotal) + '</td><td>' + actionHtml + '</td><td></td></tr>';
     }
-    html += '<tr style="font-weight:700;background:#f0f2f6;"><td colspan="4">Project total — ' + projectName(pid) + '</td><td>' + fmtHM(projectTotal) + '</td><td></td></tr>';
+    html += '<tr style="font-weight:700;background:#f0f2f6;"><td colspan="4">Project total — ' + projectName(pid) + '</td><td>' + fmtHM(projectTotal) + '</td><td></td><td></td></tr>';
   }
   document.getElementById('reportTable').innerHTML = html || '<tr><td>No entries match this report.</td></tr>';
   makeTableResizable('reportTable');
@@ -3783,7 +3810,7 @@ function renderReportOverview(rows){
   dayOrder.sort();
 
   lastReportDayGroups = [];
-  let html = '<tr><th>Date</th><th>Task</th><th>Project</th><th>Description</th><th>Billed</th><th>Status</th></tr>';
+  let html = '<tr><th>Date</th><th>Task</th><th>Project</th><th>Description</th><th>Billed</th><th>Status</th><th>Invoice</th></tr>';
   for(const day of dayOrder){
     const entries = byDay[day].slice().sort((a,b)=>{
       const ta = a.task || '(no task)', tb = b.task || '(no task)';
@@ -3794,7 +3821,7 @@ function renderReportOverview(rows){
     lastReportDayGroups.push({ day, entries });
     const dayTotal = entries.reduce((s,e)=>s+e.roundedMinutes,0);
     for(const e of entries){
-      html += '<tr class="' + (e.invoiced?'invoiced':'') + '"><td>' + e.date + '</td><td>' + (e.task||'(no task)') + '</td><td>' + projectCell(e.projectId) + '</td><td>' + (e.description||'') + '</td><td>' + fmtHM(e.roundedMinutes) + '</td><td>' + (e.invoiced?('<span class="pill invoiced">Invoiced' + (e.invoiceRef?(' · QB#'+e.invoiceRef):'') + '</span>'):'<span class="pill uninvoiced">Not invoiced</span>') + '</td></tr>';
+      html += '<tr class="' + (e.invoiced?'invoiced':'') + '"><td>' + e.date + '</td><td>' + (e.task||'(no task)') + '</td><td>' + projectCell(e.projectId) + '</td><td>' + (e.description||'') + '</td><td>' + fmtHM(e.roundedMinutes) + '</td><td>' + (e.invoiced?('<span class="pill invoiced">Invoiced' + (e.invoiceRef?(' · QB#'+e.invoiceRef):'') + '</span>'):'<span class="pill uninvoiced">Not invoiced</span>') + '</td><td>' + entryInvoiceCell(e) + '</td></tr>';
     }
     const anyUninvoiced = entries.some(e=>!e.invoiced);
     let actionHtml;
@@ -3805,7 +3832,7 @@ function renderReportOverview(rows){
       const refs = [...new Set(entries.filter(e=>e.invoiceRef).map(e=>e.invoiceRef))];
       actionHtml = '<span class="note" style="font-size:.72rem;">' + (refs.length ? 'Invoiced — QB# ' + refs.join(', ') : 'Invoiced') + '</span>';
     }
-    html += '<tr style="font-weight:700;background:#f0f2f6;"><td colspan="4">Day total — ' + day + '</td><td>' + fmtHM(dayTotal) + '</td><td>' + actionHtml + '</td></tr>';
+    html += '<tr style="font-weight:700;background:#f0f2f6;"><td colspan="4">Day total — ' + day + '</td><td>' + fmtHM(dayTotal) + '</td><td>' + actionHtml + '</td><td></td></tr>';
   }
   document.getElementById('reportTable').innerHTML = html || '<tr><td>No entries match this report.</td></tr>';
   makeTableResizable('reportTable');
@@ -4516,6 +4543,25 @@ async function generateInvoicePdf(){
     }
     alert('The PDF downloaded, but saving the invoiced status to the data file failed — check the reload banner and try again, or mark these entries invoiced manually from the Reports tab.');
     return;
+  }
+  // The invoice PDF was made right here, so attach it to its project(s)
+  // automatically - no upload prompt needed. Each project gets its own share
+  // of the amount so Bid vs. billed stays exact on multi-project invoices.
+  if(storageMode === 'dropbox'){
+    const byProj = {};
+    lastInvoiceRows.forEach(e=>{ byProj[e.projectId] = (byProj[e.projectId]||0) + (e.roundedMinutes||0); });
+    const fname = invoiceNumber.replace(/[^\w-]+/g,'_') + '.pdf';
+    let attached = 0;
+    for(const pid of Object.keys(byProj)){
+      const proj = data.projects.find(p=>p.id===pid); if(!proj) continue;
+      try{
+        const amt = projectRevenue(proj, byProj[pid]);
+        await saveProjectInvoiceBytes(pid, fname, bytes, bytes.byteLength, { number: invoiceNumber, date: form.invoiceDate || todayStr(), amount: amt || null });
+        attached++;
+      }catch(e){ console.warn('auto-attach invoice failed', e); }
+    }
+    if(attached && !(await writeToFile())) alert('The invoice was saved, but attaching its PDF to the project didn\'t save — drag it onto the project\'s invoice strip instead.');
+    renderProjectsTable();
   }
   document.getElementById('inv-number').value = 'INV-' + data.settings.nextInvoiceNumber;
   updateInvoicePreview();
